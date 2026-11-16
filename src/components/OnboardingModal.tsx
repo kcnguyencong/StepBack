@@ -116,6 +116,7 @@ export default function OnboardingModal({
         localStorage.setItem('surgeryType', surgeryType);
         localStorage.setItem('operatedLeg', surgeryLeg);
         localStorage.setItem('ageGroup', ageGroup);
+        localStorage.setItem('axvyra_profile_completed', 'true');
       } catch {}
 
       const finishedProfile: UserProfile = {
