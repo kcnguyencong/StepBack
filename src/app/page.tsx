@@ -430,11 +430,11 @@ export default function AxvyraApp() {
   return (
     <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex flex-col justify-between font-sans relative select-none">
       {/* ========================================================================= */}
-      {/* HEADER: LUXURY FULL-BLEED HERO (Using /images/home-header-bg.jpg)         */}
+      {/* HEADER: NATURAL FULL-BLEED (Using /images/home-header-bg.jpg)             */}
       {/* ========================================================================= */}
-      <header className="relative w-full rounded-b-[36px] overflow-hidden shadow-lg shadow-teal-900/5 z-20 border-b border-teal-100/80 shrink-0">
+      <header className="relative w-full z-20 shrink-0">
         {/* Background 3D Translucent Knee & Wave Image */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <Image
             src="/images/home-header-bg.jpg"
             alt="AXVYRA Medical Background"
@@ -442,9 +442,8 @@ export default function AxvyraApp() {
             className="object-cover object-top"
             priority
           />
-          {/* Gentle soft white ambient overlay to make typography pop while preserving the glowing 3D knee */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-white/40 pointer-events-none" />
-          <div className="absolute -top-12 -left-12 w-48 h-48 bg-white/40 rounded-full blur-2xl pointer-events-none" />
+          {/* Natural soft gradient fade-out at the bottom into page background #F2F7F9 */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-[#F2F7F9]" />
         </div>
 
         {/* Top App Bar Row: Logo + Auth / Logout + Notification Bell */}
@@ -566,7 +565,7 @@ export default function AxvyraApp() {
       </header>
 
       {/* Main Scrollable View */}
-      <main className="flex-1 px-4 pt-4 pb-28 space-y-3.5 overflow-y-auto relative z-10">
+      <main className="flex-1 px-4 pt-1.5 pb-28 space-y-3.5 overflow-y-auto relative z-10">
         {/* ========================================================================= */}
         {/* TAB 1: HOME (MATCHING THE UPLOADED DESIGN IMAGE)                          */}
         {/* ========================================================================= */}
