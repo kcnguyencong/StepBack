@@ -71,8 +71,21 @@ export async function ensureNeonTables(): Promise<boolean> {
   if (!connectionString) return false;
 
   const initSql = `
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      full_name TEXT NOT NULL,
+      password_hash TEXT,
+      provider TEXT DEFAULT 'email',
+      avatar_url TEXT,
+      is_verified BOOLEAN DEFAULT true,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS recovery_cases (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
       patient_name TEXT NOT NULL,
       surgery_date TEXT NOT NULL,
       surgery_type TEXT NOT NULL,

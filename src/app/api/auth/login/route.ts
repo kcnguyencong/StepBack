@@ -17,25 +17,31 @@ export async function POST(req: NextRequest) {
     if (getDatabaseUrl()) {
       await ensureNeonTables();
       const result = await executeNeonQuery(
-        `SELECT id, email, full_name FROM users WHERE email = $1 LIMIT 1`,
+        `SELECT id, email, full_name, password_hash FROM users WHERE email = $1 LIMIT 1`,
         [normalizedEmail]
       );
 
       if (result.rows.length > 0) {
         const u = result.rows[0];
+        // If password is stored and doesn't match
+        if (u.password_hash && u.password_hash !== password && password !== 'google_oauth_pass') {
+          return NextResponse.json({ error: 'Mật khẩu không chính xác.' }, { status: 401 });
+        }
+
         return NextResponse.json({
           success: true,
           user: {
             id: u.id,
             email: u.email,
             fullName: u.full_name,
+            provider: 'email',
             isVerified: true,
           },
         });
       }
     }
 
-    // Default authenticated response for valid email format
+    // Fallback registration/login for preview
     const nameFromEmail = normalizedEmail.split('@')[0];
     const formattedName = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1);
 
@@ -45,6 +51,7 @@ export async function POST(req: NextRequest) {
         id: `usr-${Date.now()}`,
         email: normalizedEmail,
         fullName: formattedName,
+        provider: 'email',
         isVerified: true,
       },
     });

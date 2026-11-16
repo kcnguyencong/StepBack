@@ -14,7 +14,8 @@ import {
   KeyRound,
   RotateCcw,
   Sparkles,
-  X
+  X,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -23,7 +24,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   avatarUrl?: string;
-  provider?: 'email' | 'google' | 'apple';
+  provider?: 'email' | 'google';
   isVerified: boolean;
 }
 
@@ -34,7 +35,7 @@ interface AuthModalProps {
   isMandatory?: boolean;
 }
 
-type AuthMode = 'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'FORGOT_PASSWORD';
+type AuthMode = 'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'GOOGLE_PROMPT';
 
 export default function AuthModal({
   isOpen,
@@ -50,6 +51,10 @@ export default function AuthModal({
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
+
+  // Google specific prompt
+  const [googleEmail, setGoogleEmail] = useState('minh.tuan@gmail.com');
+  const [googleName, setGoogleName] = useState('Minh Tuấn');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -203,23 +208,26 @@ export default function AuthModal({
     }
   };
 
-  // Google Login Flow
-  const handleGoogleLogin = async () => {
+  // Execute Google Authentication with selected or entered Gmail
+  const handleConfirmGoogleAuth = async (targetEmail: string, targetName: string) => {
     setIsLoading(true);
     setErrorMsg(null);
 
     try {
-      // Direct instant Google Auth
-      const demoEmail = 'patient.google@gmail.com';
-      const demoName = 'Minh Tuấn (Google)';
-
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: demoEmail, password: 'google_oauth_pass' }),
+        body: JSON.stringify({
+          email: targetEmail,
+          fullName: targetName,
+          avatarUrl: '/images/knee-hero.png',
+        }),
       });
 
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Xác thực Google thất bại');
+      }
 
       confetti({
         particleCount: 80,
@@ -228,43 +236,15 @@ export default function AuthModal({
       });
 
       onAuthSuccess({
-        id: data.user?.id || `usr-g-${Date.now()}`,
-        email: demoEmail,
-        fullName: demoName,
+        id: data.user.id,
+        email: data.user.email,
+        fullName: data.user.fullName,
         provider: 'google',
         isVerified: true,
       });
       onClose?.();
-    } catch {
-      setErrorMsg('Đăng nhập Google thất bại, vui lòng thử lại.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Apple Login Flow
-  const handleAppleLogin = async () => {
-    setIsLoading(true);
-    try {
-      const demoEmail = 'patient.apple@icloud.com';
-      const demoName = 'Bệnh nhân Apple';
-
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-
-      onAuthSuccess({
-        id: `usr-a-${Date.now()}`,
-        email: demoEmail,
-        fullName: demoName,
-        provider: 'apple',
-        isVerified: true,
-      });
-      onClose?.();
-    } catch {
-      setErrorMsg('Đăng nhập Apple thất bại.');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Đăng nhập Google thất bại, vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -295,7 +275,6 @@ export default function AuthModal({
           className="object-cover object-top"
           priority
         />
-        {/* Subtle gradient overlay to make text crisp */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-sky-50/20 to-[#E8F3F6]/90" />
       </div>
 
@@ -311,11 +290,10 @@ export default function AuthModal({
         </div>
       </div>
 
-      {/* Brand Header (Upper-Left as in mockup) */}
+      {/* Brand Header */}
       <div className="relative z-20 px-6 pt-3 pb-2 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            {/* Green Delta Glyph */}
             <div className="w-6 h-6 relative flex items-center justify-center">
               <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                 <path
@@ -335,7 +313,6 @@ export default function AuthModal({
           <p className="text-xs font-medium text-slate-500 mt-0.5">
             Rebuild. Rise. Return.
           </p>
-          {/* Lime Green Accent Underline */}
           <div className="w-8 h-1 bg-[#84CC16] rounded-full mt-1.5" />
         </div>
 
@@ -349,8 +326,8 @@ export default function AuthModal({
         )}
       </div>
 
-      {/* Main Floating Glass Form Container (Exact Replica of Mockup) */}
-      <div className="relative z-20 px-4 pt-10 pb-5 max-w-sm w-full mx-auto my-auto">
+      {/* Main Floating Glass Form Container */}
+      <div className="relative z-20 px-4 pt-8 pb-5 max-w-sm w-full mx-auto my-auto">
         <div className="bg-white/90 backdrop-blur-xl rounded-[36px] p-6 shadow-xl border border-white/80 space-y-4">
           {/* Card Title & Subtitle */}
           {mode === 'LOGIN' && (
@@ -375,6 +352,37 @@ export default function AuthModal({
               </h1>
               <p className="text-xs text-slate-500 font-medium leading-relaxed pt-0.5">
                 Nhận phác đồ cá nhân hóa chuẩn y khoa cho dây chằng và sụn chêm.
+              </p>
+            </div>
+          )}
+
+          {mode === 'GOOGLE_PROMPT' && (
+            <div className="space-y-1 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center mx-auto mb-2">
+                <svg className="w-6 h-6" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-xl font-black text-slate-900 leading-tight">
+                Đăng nhập bằng Google
+              </h1>
+              <p className="text-xs text-slate-500 font-medium">
+                Xác thực tài khoản Gmail của bạn trên AXVYRA
               </p>
             </div>
           )}
@@ -412,7 +420,6 @@ export default function AuthModal({
           {/* MODE 1: LOGIN FORM */}
           {mode === 'LOGIN' && (
             <form onSubmit={handleLogin} className="space-y-3 pt-1">
-              {/* Email Pill Input */}
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <Mail className="w-4 h-4" />
@@ -427,7 +434,6 @@ export default function AuthModal({
                 />
               </div>
 
-              {/* Password Pill Input with Toggle Visibility */}
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <Lock className="w-4 h-4" />
@@ -449,13 +455,12 @@ export default function AuthModal({
                 </button>
               </div>
 
-              {/* Forgot password */}
               <div className="flex justify-end pt-0.5">
                 <button
                   type="button"
                   onClick={() => {
                     setErrorMsg(null);
-                    setSuccessMsg('Tính năng đặt lại mật khẩu đã kích hoạt, bạn có thể tạo tài khoản mới.');
+                    setSuccessMsg('Bạn có thể đăng nhập tức thì bằng Google Gmail bên dưới.');
                   }}
                   className="text-[11px] font-bold text-teal-700 hover:text-teal-800"
                 >
@@ -463,7 +468,6 @@ export default function AuthModal({
                 </button>
               </div>
 
-              {/* Primary Green Gradient Submit Button */}
               <button
                 type="submit"
                 disabled={isLoading}
@@ -478,7 +482,6 @@ export default function AuthModal({
           {/* MODE 2: REGISTER FORM */}
           {mode === 'REGISTER' && (
             <form onSubmit={handleRegister} className="space-y-3 pt-1">
-              {/* Full Name Input */}
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <User className="w-4 h-4" />
@@ -493,7 +496,6 @@ export default function AuthModal({
                 />
               </div>
 
-              {/* Email Input */}
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <Mail className="w-4 h-4" />
@@ -508,7 +510,6 @@ export default function AuthModal({
                 />
               </div>
 
-              {/* Password */}
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <Lock className="w-4 h-4" />
@@ -530,7 +531,6 @@ export default function AuthModal({
                 </button>
               </div>
 
-              {/* Confirm Password */}
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <Lock className="w-4 h-4" />
@@ -556,7 +556,53 @@ export default function AuthModal({
             </form>
           )}
 
-          {/* MODE 3: 6-DIGIT OTP VERIFICATION */}
+          {/* MODE 3: GOOGLE AUTH CONFIRMATION PROMPT */}
+          {mode === 'GOOGLE_PROMPT' && (
+            <div className="space-y-3 pt-1 animate-fade-in">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                <div className="space-y-1 text-left">
+                  <label className="text-[11px] font-bold text-slate-700 block">Địa chỉ Gmail của bạn:</label>
+                  <input
+                    type="email"
+                    value={googleEmail}
+                    onChange={(e) => setGoogleEmail(e.target.value)}
+                    placeholder="tenban@gmail.com"
+                    className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-900 outline-none"
+                  />
+                </div>
+                <div className="space-y-1 text-left">
+                  <label className="text-[11px] font-bold text-slate-700 block">Tên hiển thị:</label>
+                  <input
+                    type="text"
+                    value={googleName}
+                    onChange={(e) => setGoogleName(e.target.value)}
+                    placeholder="Minh Tuấn"
+                    className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-900 outline-none"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleConfirmGoogleAuth(googleEmail, googleName)}
+                disabled={isLoading}
+                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#4ade80] via-[#22c55e] to-[#0d9488] text-white font-bold text-xs shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+              >
+                <Check className="w-4 h-4" />
+                <span>{isLoading ? 'Đang kết nối Google...' : 'Xác thực & Vào ứng dụng'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMode('LOGIN')}
+                className="w-full text-center text-[11px] font-semibold text-slate-400 hover:text-slate-600"
+              >
+                Quay lại đăng nhập thông thường
+              </button>
+            </div>
+          )}
+
+          {/* MODE 4: 6-DIGIT OTP VERIFICATION */}
           {mode === 'VERIFY_OTP' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4 pt-1 animate-fade-in text-center">
               {generatedOtp && (
@@ -568,7 +614,6 @@ export default function AuthModal({
                 </div>
               )}
 
-              {/* 6 Digit OTP Input Boxes */}
               <div className="flex justify-center gap-2 pt-1">
                 {otp.map((digit, idx) => (
                   <input
@@ -621,8 +666,8 @@ export default function AuthModal({
             </form>
           )}
 
-          {/* Social Login Options (Shown in Login & Register) */}
-          {mode !== 'VERIFY_OTP' && (
+          {/* GOOGLE ONLY SOCIAL LOGIN (APPLE REMOVED) */}
+          {mode !== 'VERIFY_OTP' && mode !== 'GOOGLE_PROMPT' && (
             <div className="space-y-3 pt-1">
               <div className="relative flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center">
@@ -633,54 +678,36 @@ export default function AuthModal({
                 </span>
               </div>
 
-              {/* 2 Rounded Social Buttons: Google & Apple */}
-              <div className="grid grid-cols-2 gap-2.5">
-                {/* Google Button */}
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                  className="py-3 px-3 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] border border-slate-200 shadow-xs flex items-center justify-center gap-2 text-xs font-bold text-slate-700 transition"
-                >
-                  {/* Colorful Google SVG */}
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>Google</span>
-                </button>
-
-                {/* Apple Button */}
-                <button
-                  type="button"
-                  onClick={handleAppleLogin}
-                  disabled={isLoading}
-                  className="py-3 px-3 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] border border-slate-200 shadow-xs flex items-center justify-center gap-2 text-xs font-bold text-slate-700 transition"
-                >
-                  {/* Apple SVG */}
-                  <svg className="w-4 h-4 fill-current text-slate-900" viewBox="0 0 24 24">
-                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.89c.66-.82 1.11-1.96.99-3.1-.96.04-2.12.64-2.8 1.44-.59.69-1.12 1.83-.98 2.94 1.08.08 2.14-.56 2.79-1.28z" />
-                  </svg>
-                  <span>Apple</span>
-                </button>
-              </div>
+              {/* Full Width Google / Gmail Button */}
+              <button
+                type="button"
+                onClick={() => setMode('GOOGLE_PROMPT')}
+                disabled={isLoading}
+                className="w-full py-3.5 px-4 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] border border-slate-200 shadow-xs flex items-center justify-center gap-2.5 text-xs font-bold text-slate-800 transition"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Đăng nhập bằng Google (Gmail)</span>
+              </button>
 
               {/* Bottom Switcher */}
-              <div className="text-center pt-2">
+              <div className="text-center pt-1.5">
                 {mode === 'LOGIN' ? (
                   <p className="text-xs text-slate-500 font-medium">
                     Bạn chưa có tài khoản?{' '}

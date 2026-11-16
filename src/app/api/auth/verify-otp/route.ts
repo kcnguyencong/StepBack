@@ -25,15 +25,20 @@ export async function POST(req: NextRequest) {
 
     const userId = `usr-${Date.now()}`;
     const fullName = stored ? stored.fullName : 'Bệnh nhân';
+    const passwordHash = stored ? stored.passwordHash : 'default_hash';
 
     // Insert user into Neon if configured
     if (getDatabaseUrl()) {
       await ensureNeonTables();
       await executeNeonQuery(
-        `INSERT INTO users (id, email, full_name, created_at, updated_at)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (email) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;`,
-        [userId, normalizedEmail, fullName]
+        `INSERT INTO users (id, email, full_name, password_hash, provider, is_verified, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'email', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         ON CONFLICT (email) DO UPDATE SET
+           full_name = EXCLUDED.full_name,
+           password_hash = EXCLUDED.password_hash,
+           is_verified = true,
+           updated_at = CURRENT_TIMESTAMP;`,
+        [userId, normalizedEmail, fullName, passwordHash]
       );
     }
 
@@ -45,6 +50,7 @@ export async function POST(req: NextRequest) {
         id: userId,
         email: normalizedEmail,
         fullName,
+        provider: 'email',
         isVerified: true,
       },
     });
