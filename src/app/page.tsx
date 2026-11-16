@@ -1109,9 +1109,16 @@ export default function AxvyraApp() {
                           <h4 className="text-xs font-bold text-slate-900">
                             {item.name}
                           </h4>
-                          <span className="text-[10px] text-slate-400 italic">
-                            {item.englishName}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className="text-[10px] text-slate-400 italic">
+                              {item.englishName}
+                            </span>
+                            {item.startTiming && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded-full">
+                                ⏱ Bắt đầu: {item.startTiming}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right shrink-0">

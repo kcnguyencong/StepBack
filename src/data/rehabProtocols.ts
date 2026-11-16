@@ -17,6 +17,7 @@ export interface Exercise {
   medicalSource: string;
   allowedSurgeries: SurgeryType[];
   excludedAgeGroups?: AgeGroup[];
+  startTiming?: string; // Thời điểm bắt đầu an toàn sau phẫu thuật (VD: Ngày 1 sau mổ, Tuần 3...)
 
   // Compatibility fields for existing player / UI
   vietnameseName?: string;
@@ -189,6 +190,7 @@ export const REHAB_EXERCISES: Exercise[] = [
     ],
     medicalSource: 'MOON Knee Group ACL Protocol - Phase 1',
     allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    startTiming: 'Ngay Ngày 1 sau mổ (24h đầu trên giường bệnh)',
     vietnameseName: 'Bơm cổ chân (Gập duỗi bàn chân)',
     targetSets: 3,
     targetReps: 15,
@@ -214,6 +216,7 @@ export const REHAB_EXERCISES: Exercise[] = [
     ],
     medicalSource: 'Mass General Hospital (MGH) Sports Medicine Protocol',
     allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    startTiming: 'Ngày 1 - 2 sau mổ (khi hết thuốc tê)',
     vietnameseName: 'Gồng cơ tứ đầu đùi tĩnh',
     targetSets: 3,
     targetReps: 10,
@@ -239,6 +242,7 @@ export const REHAB_EXERCISES: Exercise[] = [
     contraindications: 'Không đè vật nặng lên xương bánh chè nếu cảm thấy đau buốt bên trong khớp.',
     medicalSource: 'MOON Knee Group - Extension Restoration Guideline',
     allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    startTiming: 'Ngày 1 - 3 sau mổ (quan trọng nhất để duỗi 0°)',
     vietnameseName: 'Kê gót chân ép duỗi thẳng gối',
     targetSets: 2,
     targetReps: 1,
@@ -264,6 +268,7 @@ export const REHAB_EXERCISES: Exercise[] = [
     contraindications: 'Với ca KHÂU SỤN CHÊM: Tuyệt đối dừng lại khi đạt góc 90°, không dùng tay ép quá mức.',
     medicalSource: 'Hospital for Special Surgery (HSS) ACL/Meniscus Protocol',
     allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    startTiming: 'Ngày 3 - 5 sau mổ (khi vết mổ bớt sưng)',
     vietnameseName: 'Trượt gót chân gập gối thụ động',
     targetSets: 2,
     targetReps: 10,
@@ -290,6 +295,7 @@ export const REHAB_EXERCISES: Exercise[] = [
     ],
     medicalSource: 'Phác đồ Phục hồi chức năng sau mổ ACL - Bộ Y tế Việt Nam',
     allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    startTiming: 'Ngày 3 - 7 sau mổ (khi gồng đùi chắc chắn)',
     vietnameseName: 'Nâng chân thẳng 4 hướng (Nằm ngửa)',
     targetSets: 3,
     targetReps: 10,
