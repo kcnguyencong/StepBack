@@ -46,6 +46,8 @@ import WorkoutPlayer from '@/components/WorkoutPlayer';
 import KneeAngleCamera, { AngleRecord } from '@/components/KneeAngleCamera';
 import OnboardingModal, { UserProfile } from '@/components/OnboardingModal';
 import SessionFeedbackModal from '@/components/SessionFeedbackModal';
+import AuthModal, { AuthUser } from '@/components/AuthModal';
+import { LogOut, LogIn, UserCheck } from 'lucide-react';
 
 type MainTab = 'home' | 'plan' | 'progress' | 'explore';
 
@@ -56,6 +58,10 @@ export default function AxvyraApp() {
   // Recovery Case State
   const [recoveryCase, setRecoveryCase] = useState<RecoveryCase | null>(null);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+
+  // Authentication State
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
   // Workout Session State
   const [activeWorkoutExercises, setActiveWorkoutExercises] = useState<Exercise[] | null>(null);
@@ -89,11 +95,44 @@ export default function AxvyraApp() {
     }
     setRecoveryCase(currentCase);
 
+    // Load Auth User
+    try {
+      const savedUser = localStorage.getItem('axvyra_auth_user');
+      if (savedUser) {
+        setAuthUser(JSON.parse(savedUser));
+      }
+    } catch {}
+
     // Sync with Neon Serverless DB
     AxvyraStore.syncWithServer().then((serverCase) => {
       if (serverCase) setRecoveryCase({ ...serverCase });
     });
   }, []);
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    setAuthUser(user);
+    try {
+      localStorage.setItem('axvyra_auth_user', JSON.stringify(user));
+    } catch {}
+
+    if (recoveryCase) {
+      const updated = {
+        ...recoveryCase,
+        patientName: user.fullName || recoveryCase.patientName,
+      };
+      AxvyraStore.saveRecoveryCase(updated);
+      setRecoveryCase(updated);
+    }
+  };
+
+  const handleLogout = () => {
+    if (confirm('Bạn có muốn đăng xuất khỏi tài khoản này không?')) {
+      setAuthUser(null);
+      try {
+        localStorage.removeItem('axvyra_auth_user');
+      } catch {}
+    }
+  };
 
   // Compute live rehab clinical status
   const rehabStatus = useMemo(() => {
@@ -294,14 +333,35 @@ export default function AxvyraApp() {
           </span>
         </div>
 
-        <button
-          onClick={() => setShowOnboarding(true)}
-          className="relative w-9 h-9 rounded-full bg-white shadow-xs border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 transition"
-          aria-label="Thông báo & Hồ sơ"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
-        </button>
+        <div className="flex items-center gap-2">
+          {authUser ? (
+            <button
+              onClick={handleLogout}
+              title="Nhấn để đăng xuất"
+              className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="max-w-[75px] truncate">{authUser.fullName.split(' ').pop()}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="flex items-center gap-1 py-1 px-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition"
+            >
+              <LogIn className="w-3.5 h-3.5 text-slate-600" />
+              <span>Đăng nhập</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="relative w-9 h-9 rounded-full bg-white shadow-xs border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 transition"
+            aria-label="Thông báo & Hồ sơ"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+          </button>
+        </div>
       </div>
 
       {/* Main Scrollable View */}
@@ -325,19 +385,30 @@ export default function AxvyraApp() {
               </div>
 
               {/* Greeting Line */}
-              <div className="relative z-10 flex items-center gap-2.5 mb-2">
+              <div
+                className="relative z-10 flex items-center gap-2.5 mb-2 cursor-pointer"
+                onClick={() => {
+                  if (!authUser) setShowAuthModal(true);
+                  else setShowOnboarding(true);
+                }}
+              >
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-emerald-100 flex items-center justify-center">
                   <Image
                     src="/images/knee-hero.png"
-                    alt="Minh Avatar"
+                    alt="Avatar"
                     width={40}
                     height={40}
                     className="object-cover scale-150"
                   />
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-slate-900 leading-tight">
-                    Chào {recoveryCase.patientName || 'Minh'}!
+                  <h2 className="text-sm font-black text-slate-900 leading-tight flex items-center gap-1">
+                    Chào {authUser ? authUser.fullName : recoveryCase.patientName || 'Minh'}!
+                    {!authUser && (
+                      <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-full ml-1">
+                        Đăng nhập
+                      </span>
+                    )}
                   </h2>
                   <p className="text-[11px] text-slate-500 font-medium">
                     Ngày {rehabStatus.currentDay} sau phẫu thuật {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel}
@@ -993,7 +1064,7 @@ export default function AxvyraApp() {
       {/* Clinical Onboarding Modal */}
       <OnboardingModal
         initialProfile={{
-          name: recoveryCase.patientName,
+          name: authUser ? authUser.fullName : recoveryCase.patientName,
           surgeryDate: recoveryCase.surgeryDate,
           surgeryType: recoveryCase.surgeryType,
           surgeryLeg: recoveryCase.surgeryLeg,
@@ -1002,6 +1073,13 @@ export default function AxvyraApp() {
         isOpen={showOnboarding}
         onComplete={handleOnboardingComplete}
         onClose={() => setShowOnboarding(false)}
+      />
+
+      {/* Auth Modal (Login / Register / Email OTP Verification) */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={handleAuthSuccess}
       />
 
       {/* FLOATING BOTTOM DOCK WITH 4 TABS (EXACT REPLICA OF DESIGN) */}
