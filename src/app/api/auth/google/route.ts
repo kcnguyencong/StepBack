@@ -3,6 +3,14 @@ import { executeNeonQuery, ensureNeonTables, getDatabaseUrl } from '@/lib/neonCl
 
 export const dynamic = 'force-dynamic';
 
+export async function GET() {
+  const clientId =
+    process.env.GOOGLE_CLIENT_ID ||
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    '451917802570-bfkh9g6ft0k0uhi977s1oujihtquml05.apps.googleusercontent.com';
+  return NextResponse.json({ clientId });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

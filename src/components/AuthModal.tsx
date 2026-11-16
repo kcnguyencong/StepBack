@@ -208,9 +208,19 @@ export default function AuthModal({
   };
 
   // Google Client ID
-  const GOOGLE_CLIENT_ID =
+  const [googleClientId, setGoogleClientId] = useState<string>(
     process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-    '451917802570-bfkh9g6ft0k0uhi977s1oujihtquml05.apps.googleusercontent.com';
+    '451917802570-bfkh9g6ft0k0uhi977s1oujihtquml05.apps.googleusercontent.com'
+  );
+
+  useEffect(() => {
+    fetch('/api/auth/google')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.clientId) setGoogleClientId(data.clientId);
+      })
+      .catch(() => {});
+  }, []);
 
   // Initialize Google One-Tap & OAuth SDK
   useEffect(() => {
@@ -220,7 +230,7 @@ export default function AuthModal({
       if ((window as any).google?.accounts?.id) {
         try {
           (window as any).google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
+            client_id: googleClientId,
             callback: async (response: any) => {
               if (response.credential) {
                 try {
@@ -306,7 +316,7 @@ export default function AuthModal({
     if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
       try {
         const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
+          client_id: googleClientId,
           scope: 'email profile openid',
           callback: async (tokenResponse: any) => {
             if (tokenResponse.error) {
