@@ -95,13 +95,19 @@ export default function AxvyraApp() {
     }
     setRecoveryCase(currentCase);
 
-    // Load Auth User
+    // Load Auth User - enforce Auth if none exists
     try {
       const savedUser = localStorage.getItem('axvyra_auth_user');
       if (savedUser) {
         setAuthUser(JSON.parse(savedUser));
+        setShowAuthModal(false);
+      } else {
+        setAuthUser(null);
+        setShowAuthModal(true);
       }
-    } catch {}
+    } catch {
+      setShowAuthModal(true);
+    }
 
     // Sync with Neon Serverless DB
     AxvyraStore.syncWithServer().then((serverCase) => {
@@ -131,6 +137,7 @@ export default function AxvyraApp() {
       try {
         localStorage.removeItem('axvyra_auth_user');
       } catch {}
+      setShowAuthModal(true);
     }
   };
 
@@ -1075,10 +1082,13 @@ export default function AxvyraApp() {
         onClose={() => setShowOnboarding(false)}
       />
 
-      {/* Auth Modal (Login / Register / Email OTP Verification) */}
+      {/* Auth Modal (Login / Register / Email OTP Verification) - Mandatory until logged in */}
       <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
+        isOpen={!authUser || showAuthModal}
+        isMandatory={!authUser}
+        onClose={() => {
+          if (authUser) setShowAuthModal(false);
+        }}
         onAuthSuccess={handleAuthSuccess}
       />
 

@@ -25,13 +25,14 @@ export interface AuthUser {
 
 interface AuthModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   onAuthSuccess: (user: AuthUser) => void;
+  isMandatory?: boolean;
 }
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'VERIFY_OTP';
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onAuthSuccess, isMandatory = false }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>('LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -133,7 +134,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       });
 
       onAuthSuccess(data.user);
-      onClose();
+      onClose?.();
     } catch (err: any) {
       setErrorMsg(err.message || 'Đăng nhập không thành công.');
     } finally {
@@ -173,7 +174,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       });
 
       onAuthSuccess(data.user);
-      onClose();
+      onClose?.();
     } catch (err: any) {
       setErrorMsg(err.message || 'Xác thực OTP thất bại.');
     } finally {
@@ -221,13 +222,15 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   return (
     <div className="fixed sm:absolute inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3 animate-fade-in font-sans">
       <div className="bg-white rounded-[2.2rem] border border-slate-100 shadow-2xl w-full max-w-sm p-5 sm:p-6 space-y-4 text-slate-800 relative">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Close Button (Hidden if mandatory) */}
+        {!isMandatory && onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Brand Header */}
         <div className="flex items-center gap-2 pt-1">
