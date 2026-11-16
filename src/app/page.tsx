@@ -578,464 +578,252 @@ export default function AxvyraApp() {
             {!hasCompletedProfile ? (
               <div className="space-y-3 animate-fade-in">
                 {/* HERO CARD 1: THIẾT LẬP HỒ SƠ PHỤC HỒI */}
-                <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 rounded-[32px] p-5 text-white shadow-xl shadow-emerald-950/20 space-y-4 border border-emerald-400/25 relative overflow-hidden">
-                  <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-emerald-400/15 rounded-full blur-2xl pointer-events-none" />
+                <div className="bg-gradient-to-br from-slate-900 via-teal-950 to-[#0e272a] rounded-3xl p-6 text-white shadow-xl shadow-teal-950/20 space-y-5 border border-teal-500/30 relative overflow-hidden">
+                  <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
 
                   <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-emerald-300 font-bold text-[10px] uppercase tracking-wider border border-white/10 flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3 text-emerald-400" />
-                      Bước 1: Khởi tạo quá trình
+                    <span className="px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                      Khởi tạo lộ trình phục hồi
                     </span>
-                    <span className="text-[10px] text-emerald-200/80 font-semibold">Chỉ 1 phút</span>
+                    <span className="text-xs text-teal-200/70 font-semibold">1 phút</span>
                   </div>
 
-                  <div className="space-y-1.5 relative z-10">
+                  <div className="space-y-2 relative z-10">
                     <h2 className="text-xl font-black text-white leading-tight">
-                      Thiết lập hồ sơ phẫu thuật
+                      Cá nhân hóa hồ sơ phẫu thuật
                     </h2>
-                    <p className="text-xs text-emerald-100/85 leading-relaxed font-medium">
-                      Nhập ngày mổ, loại can thiệp dây chằng / sụn chêm và độ tuổi để kích hoạt phác đồ chuẩn y khoa và khóa góc an toàn dành riêng cho bạn.
+                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                      Kích hoạt phác đồ chuẩn y khoa (MOON / MGH) dựa trên ngày phẫu thuật, can thiệp dây chằng & sụn chêm để tự động khóa góc an toàn và cá nhân hóa bài tập hàng ngày.
                     </p>
                   </div>
 
-                  {/* 3 Steps Mini Badges */}
-                  <div className="grid grid-cols-3 gap-2 py-1 text-center text-[10.5px]">
-                    <div className="p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 space-y-0.5">
-                      <span className="text-base block">📋</span>
-                      <strong className="block text-white font-bold">1. Thông tin</strong>
-                      <span className="text-[9px] text-emerald-200/70 block">Ngày & Bên mổ</span>
+                  {/* 3 Value Pillars */}
+                  <div className="grid grid-cols-3 gap-2 py-1 text-center text-xs">
+                    <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                      <Calendar className="w-4 h-4 text-teal-400 mx-auto" />
+                      <strong className="block text-white font-bold text-[11px]">Ngày phẫu thuật</strong>
+                      <span className="text-[10px] text-slate-400 block">Đếm ngày tự động</span>
                     </div>
-                    <div className="p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 space-y-0.5">
-                      <span className="text-base block">🛡️</span>
-                      <strong className="block text-white font-bold">2. An toàn</strong>
-                      <span className="text-[9px] text-emerald-200/70 block">Khóa góc tối đa</span>
+                    <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 mx-auto" />
+                      <strong className="block text-white font-bold text-[11px]">Bảo vệ sụn chêm</strong>
+                      <span className="text-[10px] text-slate-400 block">Khóa góc & tỳ lực</span>
                     </div>
-                    <div className="p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 space-y-0.5">
-                      <span className="text-base block">🎯</span>
-                      <strong className="block text-white font-bold">3. Phục hồi</strong>
-                      <span className="text-[9px] text-emerald-200/70 block">16 tuần chuẩn hóa</span>
+                    <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                      <Activity className="w-4 h-4 text-teal-300 mx-auto" />
+                      <strong className="block text-white font-bold text-[11px]">Lộ trình 16 tuần</strong>
+                      <span className="text-[10px] text-slate-400 block">Trở lại thể thao</span>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setShowOnboarding(true)}
-                    className="w-full py-3.5 px-4 rounded-full bg-white hover:bg-emerald-50 active:scale-[0.98] text-emerald-950 font-black text-xs shadow-lg flex items-center justify-center gap-2 transition"
+                    className="w-full py-3.5 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 active:scale-[0.99] text-slate-950 font-black text-sm shadow-lg shadow-teal-500/25 flex items-center justify-center gap-2 transition"
                   >
-                    <span>Bắt đầu thiết lập hồ sơ ngay</span>
-                    <ArrowRight className="w-4 h-4 text-emerald-700" />
+                    <span>Thiết lập hồ sơ ngay</span>
+                    <ArrowRight className="w-4 h-4 text-slate-950" />
                   </button>
                 </div>
 
-                {/* Giới thiệu nhẹ nhàng */}
-                <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm space-y-2">
+                {/* Giới thiệu tiêu chuẩn y tế */}
+                <div className="bg-white rounded-3xl p-4 border border-slate-200/70 shadow-sm space-y-2">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Chuẩn Y học Thể thao Quốc tế (FIFA 11+ / Melbourne ACL)</span>
+                    <ShieldCheck className="w-4 h-4 text-teal-600" />
+                    <span>Chuẩn Phục hồi Chức năng Y học Thể thao Quốc tế</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Sau khi thiết lập, ứng dụng sẽ tự động phân loại giai đoạn, cung cấp bài tập có âm thanh đếm nhịp và sử dụng Camera AI đo góc gối chính xác.
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Hệ thống tích hợp đếm nhịp bằng âm thanh, đếm ngược thời gian giữ cơ và ứng dụng Camera AI theo dõi góc gối theo thời gian thực.
                   </p>
-                </div>
-
-                {/* Chườm đá nhanh */}
-                <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
-                      <Clock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-900">Chườm đá lạnh (15 Phút)</h3>
-                      <p className="text-[10px] text-slate-500">Giảm sưng đau, chống phản ứng viêm</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-black tabular-nums text-sky-600 font-mono">
-                      {formatTimer(iceSeconds)}
-                    </span>
-                    <button
-                      onClick={() => setIsIceRunning(!isIceRunning)}
-                      className={`py-1.5 px-3 rounded-full text-xs font-bold transition ${
-                        isIceRunning ? 'bg-amber-500 text-white' : 'bg-sky-600 text-white'
-                      }`}
-                    >
-                      {isIceRunning ? 'Dừng' : 'Bắt đầu'}
-                    </button>
-                  </div>
                 </div>
               </div>
             ) : (
               /* ========================================================================= */
               /* TRƯỜNG HỢP 2: ĐÃ THIẾT LẬP HỒ SƠ -> GIAO DIỆN TINH GỌN, KHÔNG HỀ BỊ RỐI    */
               /* ========================================================================= */
-              <div className="space-y-3.5 animate-fade-in">
-                {/* 1. Lưu ý bảo vệ sụn chêm gọn gàng (nếu có) */}
+              <div className="space-y-4 animate-fade-in">
+                {/* Cảnh báo an toàn đặc biệt (nếu có khâu sụn chêm) */}
                 {rehabStatus.isMeniscusRepairStrictLimit && (
-                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 shadow-xs flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span className="text-[11px] leading-tight">
-                      <strong className="text-rose-950 font-bold">Lưu ý khâu sụn chêm:</strong> Tuyệt đối không gập quá 90° và không tỳ chân mổ trong 6 tuần đầu ({recoveryCase?.weightBearingStatus || 'NWB'}).
-                    </span>
+                  <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-xs flex items-center gap-3">
+                    <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+                    <div className="text-xs leading-relaxed">
+                      <strong className="font-bold text-amber-950">Chỉ định khâu sụn chêm:</strong> Giữ góc gập ≤ 90° và đi 2 nạng không tỳ lực trong giai đoạn đầu ({recoveryCase?.weightBearingStatus || 'NWB'}).
+                    </div>
                   </div>
                 )}
 
-                {/* 2. CARD 1: BÀI TẬP HÔM NAY (ƯU TIÊN SỐ 1 KHI BỆNH NHÂN VÀO APP) */}
-                <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100/90 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-                        <Dumbbell className="w-4 h-4 text-teal-600" />
-                      </div>
-                      <span className="font-bold text-[13px] text-slate-900">
-                        Bài tập hôm nay
+                {/* =================================================================== */}
+                {/* KHỐI 1: HERO ACTION CARD - BUỔI TẬP PHỤC HỒI HÔM NAY                */}
+                {/* =================================================================== */}
+                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4 relative overflow-hidden">
+                  {/* Card Header: Phase Tag & Safe Flexion Limit */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
+                      <Activity className="w-3.5 h-3.5 text-teal-600" />
+                      Giai đoạn {rehabStatus.phase.phase} • Ngày {rehabStatus.currentDay}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      Gập tối đa: <strong className="text-teal-700 font-bold">{rehabStatus.allowedFlexionMax}°</strong>
+                    </span>
+                  </div>
+
+                  {/* Focus Title & Details */}
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-slate-900 leading-snug">
+                      {rehabStatus.phase.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {rehabStatus.exercises.length} bài tập phục hồi chức năng • Hướng dẫn đếm nhịp bằng giọng nói
+                    </p>
+                  </div>
+
+                  {/* Safety Guidance Strip */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Tỳ đè</span>
+                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
+                        {rehabStatus.weightBearingSummary}
                       </span>
                     </div>
-                    <button
-                      onClick={() => setActiveTab('plan')}
-                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
-                    >
-                      <span>{rehabStatus.exercises.length} bài tập • Guided Timer</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Nẹp gối</span>
+                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
+                        {rehabStatus.braceSummary}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-slate-50/60 p-2.5 rounded-2xl border border-slate-100">
-                    <div
-                      onClick={() => handleStartTodaySession()}
-                      className="relative w-24 h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 cursor-pointer group shadow-xs"
-                    >
-                      <Image
-                        src="/images/knee-hero.png"
-                        alt="Exercise Thumbnail"
-                        fill
-                        className="object-cover opacity-80 group-hover:scale-105 transition"
-                      />
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <div className="w-6 h-6 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md">
-                          <Play className="w-3 h-3 fill-current ml-0.5 text-slate-800" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 min-w-0 pr-1">
-                      <h3 className="text-xs font-bold text-slate-900 truncate">
-                        Buổi tập Phase {rehabStatus.phase.phase} • Ngày {rehabStatus.currentDay}
-                      </h3>
-                      <p className="text-[10.5px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                        {rehabStatus.exercises[0]?.name || 'Tăng sức mạnh gối và kiểm soát vận động'}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => handleStartTodaySession()}
-                      className="py-2 px-3.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-500/20 flex items-center gap-1 shrink-0 transition"
-                    >
-                      <span>Bắt đầu</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  {/* Big Primary CTA Button */}
+                  <button
+                    onClick={() => handleStartTodaySession()}
+                    className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] text-white font-black text-sm shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 transition"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Bắt đầu buổi tập hôm nay</span>
+                  </button>
                 </div>
 
-                {/* 3. CARD 2: HÀNH TRÌNH PHỤC HỒI (LỘ TRÌNH 5 CHẶNG) */}
-                <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100/90 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <Layers className="w-4 h-4 text-emerald-600" />
+                {/* =================================================================== */}
+                {/* KHỐI 2: RECOVERY DASHBOARD - BENTO GRID CHỈ SỐ PHỤC HỒI            */}
+                {/* =================================================================== */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Ô 1: Biên độ gập gối (ROM) & Đo Camera AI */}
+                  <div
+                    onClick={() => setActiveTab('progress')}
+                    className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/70 flex flex-col justify-between cursor-pointer hover:border-teal-300 transition group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between text-slate-500">
+                        <span className="text-xs font-bold text-slate-700">Biên độ ROM</span>
+                        <Compass className="w-4 h-4 text-teal-600" />
                       </div>
-                      <span className="font-bold text-[13px] text-slate-900">
-                        Hành trình phục hồi
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('progress')}
-                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
-                    >
-                      <span>Tuần {rehabStatus.currentWeek} / 16</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-1">
-                    <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
-                      <svg className="w-full h-full -rotate-90 transform">
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="32"
-                          className="text-slate-100"
-                          strokeWidth="6"
-                          stroke="currentColor"
-                          fill="transparent"
-                        />
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="32"
-                          className="text-emerald-500 transition-all duration-700"
-                          strokeWidth="6"
-                          strokeDasharray={2 * Math.PI * 32}
-                          strokeDashoffset={2 * Math.PI * 32 * (1 - rehabProgressPercent / 100)}
-                          strokeLinecap="round"
-                          stroke="currentColor"
-                          fill="transparent"
-                        />
-                      </svg>
-                      <div className="absolute flex flex-col items-center justify-center text-center">
-                        <span className="text-base font-black text-slate-900">{rehabProgressPercent}%</span>
-                        <span className="text-[7.5px] font-bold text-slate-400 uppercase leading-none mt-0.5">
-                          Kế hoạch
+                      <div className="mt-3">
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          {latestROM ? `${latestROM.flexionAngle}°` : '--°'}
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium mt-0.5 block">
+                          Giới hạn: {rehabStatus.allowedFlexionMax}°
                         </span>
                       </div>
                     </div>
-
-                    <div className="flex-1 relative pb-1">
-                      <div className="absolute top-2.5 left-2 right-2 h-0.5 bg-slate-200 z-0" />
-                      <div
-                        className="absolute top-2.5 left-2 h-0.5 bg-emerald-500 z-0 transition-all duration-500"
-                        style={{ width: `${roadmapLineWidth}%` }}
-                      />
-
-                      <div className="relative z-10 grid grid-cols-5 text-center gap-1">
-                        {ROADMAP_STEPS.map((step) => {
-                          const isCompleted = rehabStatus.currentWeek > step.maxWeek;
-                          const isCurrent = rehabStatus.currentWeek >= step.minWeek && rehabStatus.currentWeek <= step.maxWeek;
-
-                          return (
-                            <div key={step.id} className="flex flex-col items-center">
-                              {isCompleted ? (
-                                <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
-                                  <Check className="w-3 h-3 stroke-[3]" />
-                                </div>
-                              ) : isCurrent ? (
-                                <div className="w-5 h-5 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center shadow-xs animate-pulse">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                                </div>
-                              ) : (
-                                <div className="w-5 h-5 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center" />
-                              )}
-                              <span
-                                className={`text-[9px] mt-1 leading-tight ${
-                                  isCurrent
-                                    ? 'font-bold text-slate-900'
-                                    : isCompleted
-                                    ? 'font-semibold text-slate-600'
-                                    : 'font-medium text-slate-400'
-                                }`}
-                              >
-                                {step.label}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. CARD 3: TIẾN BỘ GẦN ĐÂY */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                      <BarChart2 className="w-4 h-4 text-emerald-600" />
-                      <span className="font-bold text-[13px] text-slate-900">
-                        Tiến bộ gần đây
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('progress')}
-                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
-                    >
-                      <span>Xem chi tiết</span>
+                    <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-700 group-hover:text-teal-800">
+                      <span>{latestROM ? 'Đo lại AI' : 'Đo góc AI'}</span>
                       <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Metric 1: ROM Gối */}
-                    <div
-                      onClick={() => setActiveTab('progress')}
-                      className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative cursor-pointer hover:border-emerald-200 transition"
-                    >
-                      <div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600">
-                          <Compass className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>ROM gối</span>
-                        </div>
-                        <div className="flex items-baseline gap-1 mt-2">
-                          <span className="text-base font-black text-slate-900">
-                            {latestROM ? `${latestROM.flexionAngle}°` : '--°'}
-                          </span>
-                          {latestROM && romDelta !== null ? (
-                            <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ${
-                              romDelta >= 0 ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'
-                            }`}>
-                              {romDelta >= 0 ? `↑ +${romDelta}°` : `↓ ${romDelta}°`}
-                            </span>
-                          ) : (
-                            <span className="text-[8.5px] font-medium text-slate-400 bg-slate-50 px-1 py-0.2 rounded-md">
-                              {latestROM ? 'Đã đo' : 'Chưa đo'}
-                            </span>
-                          )}
-                        </div>
+                  {/* Ô 2: Lộ trình & Tuần phục hồi */}
+                  <div
+                    onClick={() => setActiveTab('progress')}
+                    className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/70 flex flex-col justify-between cursor-pointer hover:border-teal-300 transition group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between text-slate-500">
+                        <span className="text-xs font-bold text-slate-700">Lộ trình 16 tuần</span>
+                        <Layers className="w-4 h-4 text-teal-600" />
                       </div>
-
-                      <div className="mt-3 pt-2 border-t border-slate-50 text-[9.5px] text-emerald-600 font-semibold flex items-center justify-between">
-                        <span>{latestROM ? 'Đo lại' : 'Đo AI'}</span>
-                        <ChevronRight className="w-3 h-3" />
+                      <div className="mt-3">
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          Tuần {rehabStatus.currentWeek}
+                        </div>
+                        <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${rehabProgressPercent}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-
-                    {/* Metric 2: Sức mạnh */}
-                    <div
-                      onClick={() => setActiveTab('plan')}
-                      className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative cursor-pointer hover:border-sky-200 transition"
-                    >
-                      <div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600">
-                          <Zap className="w-3.5 h-3.5 text-sky-600" />
-                          <span>Sức mạnh</span>
-                        </div>
-                        <div className="flex items-baseline gap-1 mt-2">
-                          <span className="text-base font-black text-slate-900">
-                            {completedSessions > 0 ? `${completedSessions}` : '0'}
-                          </span>
-                          <span className="text-[9px] text-slate-400">buổi</span>
-                          <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ml-auto ${
-                            completedSessions > 0 ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-50'
-                          }`}>
-                            {completedSessions > 0 ? 'Đã tập' : 'Chưa tập'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 pt-2 border-t border-slate-50 text-[9.5px] text-sky-600 font-semibold flex items-center justify-between">
-                        <span>Tập ngay</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </div>
-                    </div>
-
-                    {/* Metric 3: Khả năng vận động */}
-                    <div className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative">
-                      <div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 truncate">
-                          <Activity className="w-3.5 h-3.5 text-purple-600" />
-                          <span>Khả năng</span>
-                        </div>
-                        <div className="flex items-baseline gap-1 mt-2">
-                          {mobilityScore !== null ? (
-                            <>
-                              <span className="text-base font-black text-slate-900">
-                                {mobilityScore.toFixed(1)}
-                              </span>
-                              <span className="text-[8.5px] text-slate-400">/10</span>
-                            </>
-                          ) : (
-                            <span className="text-base font-black text-slate-900">
-                              --
-                            </span>
-                          )}
-                          <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ml-auto ${
-                            latestDailyLog ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-50'
-                          }`}>
-                            {latestDailyLog ? `Đau ${latestDailyLog.painScore}/10` : 'Chưa ghi'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 pt-2 border-t border-slate-50 text-[9.5px] text-purple-600 font-semibold truncate">
-                        {latestDailyLog ? `Sưng: ${latestDailyLog.swellingLevel}` : 'Nhật ký đau'}
-                      </div>
+                    <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-700 group-hover:text-teal-800">
+                      <span>{completedSessions} buổi hoàn thành</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </div>
                   </div>
                 </div>
 
-                {/* 5. CARD 4: QUY CHUẨN AN TOÀN & CHƯỜM ĐÁ 15 PHÚT (TINH GỌN, KHÔNG CỒNG KỀNH) */}
-                <div className="bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/30 rounded-3xl p-4 shadow-sm border border-emerald-100/80 space-y-3">
+
+
+                {/* =================================================================== */}
+                {/* KHỐI 3: POST-OP PROTOCOL & CARE - CHĂM SÓC HẬU PHẪU                 */}
+                {/* =================================================================== */}
+                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4">
+                  {/* Cryotherapy Ice Timer Widget */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                        <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
+                        <Clock className="w-5 h-5 text-teal-600" />
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-slate-900 leading-tight">
-                          Quy chuẩn an toàn • Phase {rehabStatus.phase.phase}
-                        </h3>
-                        <p className="text-[10px] text-emerald-700 font-semibold">
-                          Tuần {rehabStatus.phase.weekRange[0]} - {rehabStatus.phase.weekRange[1]}
-                        </p>
+                        <h4 className="text-sm font-bold text-slate-900">Chườm đá lạnh (Cryotherapy)</h4>
+                        <p className="text-xs text-slate-500">15 phút giúp giảm phù nề & chống viêm</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-500 font-medium block">Góc tối đa</span>
-                      <span className="text-sm font-black text-emerald-700">{rehabStatus.allowedFlexionMax}°</span>
+
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg font-black tabular-nums text-slate-800 font-mono">
+                        {formatTimer(iceSeconds)}
+                      </span>
+                      <button
+                        onClick={() => setIsIceRunning(!isIceRunning)}
+                        className={`py-2 px-4 rounded-xl text-xs font-bold transition shadow-xs ${
+                          isIceRunning
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-teal-700 hover:bg-teal-800 text-white'
+                        }`}
+                      >
+                        {isIceRunning ? 'Tạm dừng' : 'Bắt đầu'}
+                      </button>
                     </div>
                   </div>
 
-                  {/* 2 Badges */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-xs">
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Tỳ đè</span>
-                      <p className="font-semibold text-slate-800 leading-snug line-clamp-2">{rehabStatus.weightBearingSummary}</p>
-                    </div>
-                    <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-xs">
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Nẹp gối</span>
-                      <p className="font-semibold text-slate-800 leading-snug line-clamp-2">{rehabStatus.braceSummary}</p>
-                    </div>
-                  </div>
-
-                  {/* Collapsible Red Flags & Dangerous Symptoms */}
-                  <div className="pt-1 border-t border-slate-100/80">
+                  {/* Red Flags / Emergency Warning Drawer */}
+                  <div className="pt-3 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setShowRedFlags(!showRedFlags)}
-                      className="w-full flex items-center justify-between text-left py-1 text-[11px] font-bold text-rose-700 hover:text-rose-800 transition"
+                      className="w-full flex items-center justify-between text-left text-xs font-bold text-slate-600 hover:text-rose-700 transition"
                     >
-                      <span className="flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                        <span>Dấu hiệu cờ đỏ cần khám ngay ({rehabStatus.redFlags.length})</span>
+                      <span className="flex items-center gap-2 text-rose-700 font-bold">
+                        <AlertTriangle className="w-4 h-4 text-rose-600" />
+                        <span>Dấu hiệu bất thường (Cờ đỏ) cần liên hệ bác sĩ</span>
                       </span>
                       {showRedFlags ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-rose-600" />
+                        <ChevronUp className="w-4 h-4 text-slate-400" />
                       ) : (
-                        <ChevronDown className="w-3.5 h-3.5 text-rose-600" />
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
                       )}
                     </button>
 
                     {showRedFlags && (
-                      <div className="mt-2 p-2.5 rounded-2xl bg-rose-50 border border-rose-200 text-[10.5px] text-rose-900 space-y-1 animate-fade-in">
-                        <ul className="pl-4 list-disc space-y-1">
+                      <div className="mt-3 p-3.5 rounded-2xl bg-rose-50/80 border border-rose-200/80 text-xs text-rose-900 space-y-1.5 animate-fade-in">
+                        <ul className="pl-4 list-disc space-y-1.5 leading-relaxed">
                           {rehabStatus.redFlags.map((flag, idx) => (
                             <li key={idx}>{flag}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                  </div>
-
-                  {/* Integrated Ice Timer Bar */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
-                        <Clock className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-800">Chườm đá lạnh</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-black tabular-nums text-sky-600 font-mono">
-                        {formatTimer(iceSeconds)}
-                      </span>
-                      <button
-                        onClick={() => setIsIceRunning(!isIceRunning)}
-                        className={`py-1 px-3 rounded-full text-[11px] font-bold transition ${
-                          isIceRunning ? 'bg-amber-500 text-white' : 'bg-sky-600 text-white'
-                        }`}
-                      >
-                        {isIceRunning ? 'Dừng' : 'Bắt đầu'}
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
