@@ -429,142 +429,150 @@ export default function AxvyraApp() {
 
   return (
     <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex flex-col justify-between font-sans relative select-none">
-      {/* Main App Bar (Logo & Notification) */}
-      <div className="px-5 pt-5 pb-1 flex items-center justify-between z-20">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowOnboarding(true)}>
-          {/* Stylized Green Brand Triangle Logo */}
-          <div className="w-5 h-5 relative flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-              <path
-                d="M12 3L22 20H2L12 3Z"
-                fill="#84CC16"
-                stroke="#10B981"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12 8L18 19H6L12 8Z"
-                fill="#10B981"
-              />
-            </svg>
+      {/* ========================================================================= */}
+      {/* HEADER: LUXURY FULL-BLEED HERO (Using /images/auth-bg.jpg)                */}
+      {/* ========================================================================= */}
+      <header className="relative w-full rounded-b-[32px] overflow-hidden shadow-xl shadow-teal-950/20 z-20 border-b border-white/10 shrink-0">
+        {/* Background 3D Knee & Wave image with rich luxury gradient overlay */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image
+            src="/images/auth-bg.jpg"
+            alt="AXVYRA Medical Background"
+            fill
+            className="object-cover object-center"
+            priority
+          />
+          {/* Deep Teal / Obsidian gradient overlay for high contrast & luxury feel */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-[#082025]/75 to-[#0b2b31]/95" />
+          {/* Subtle glowing ambient light */}
+          <div className="absolute -top-10 -right-10 w-44 h-44 bg-teal-400/20 rounded-full blur-3xl pointer-events-none" />
+        </div>
+
+        {/* Top App Bar Row: Logo + Auth / Logout + Notification Bell */}
+        <div className="relative z-10 px-5 pt-4 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowOnboarding(true)}>
+            {/* Stylized Brand Logo */}
+            <div className="w-5 h-5 relative flex items-center justify-center">
+              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">
+                <path
+                  d="M12 3L22 20H2L12 3Z"
+                  fill="#84CC16"
+                  stroke="#10B981"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path d="M12 8L18 19H6L12 8Z" fill="#10B981" />
+              </svg>
+            </div>
+            <span className="font-black text-lg tracking-wider text-white">
+              AXVYRA
+            </span>
           </div>
-          <span className="font-black text-lg tracking-wider text-slate-900">
-            AXVYRA
-          </span>
+
+          <div className="flex items-center gap-2">
+            {authUser ? (
+              <button
+                onClick={handleLogout}
+                title="Nhấn để đăng xuất"
+                className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold shadow-xs transition"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-emerald-300" />
+                <span className="max-w-[80px] truncate">{userShortName}</span>
+                <LogOut className="w-3 h-3 text-white/60 ml-0.5" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="flex items-center gap-1 py-1 px-3 rounded-full bg-emerald-500/90 hover:bg-emerald-500 text-white text-[11px] font-bold shadow-xs transition"
+              >
+                <LogIn className="w-3.5 h-3.5 text-white" />
+                <span>Đăng nhập</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setShowOnboarding(true)}
+              className="relative w-9 h-9 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/90 hover:text-white transition shadow-xs"
+              aria-label="Thông báo & Hồ sơ"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {authUser ? (
-            <button
-              onClick={handleLogout}
-              title="Nhấn để đăng xuất"
-              className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold"
+        {/* Home Specific Greeting & Clinical Profile Row */}
+        {activeTab === 'home' && (
+          <div className="relative z-10 px-5 pt-2 pb-5 flex items-center justify-between">
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => {
+                if (!authUser) setShowAuthModal(true);
+                else setShowOnboarding(true);
+              }}
             >
-              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="max-w-[75px] truncate">{userShortName}</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="flex items-center gap-1 py-1 px-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition"
-            >
-              <LogIn className="w-3.5 h-3.5 text-slate-600" />
-              <span>Đăng nhập</span>
-            </button>
-          )}
+              {/* User Avatar with glowing border */}
+              <div className="relative">
+                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-400/80 shadow-md shadow-emerald-500/25 shrink-0 bg-slate-800 flex items-center justify-center">
+                  <Image
+                    src={authUser?.avatarUrl || '/images/knee-hero.png'}
+                    alt="Avatar"
+                    width={44}
+                    height={44}
+                    className="object-cover scale-125"
+                  />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900" />
+              </div>
 
-          <button
-            onClick={() => setShowOnboarding(true)}
-            className="relative w-9 h-9 rounded-full bg-white shadow-xs border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 transition"
-            aria-label="Thông báo & Hồ sơ"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
-          </button>
-        </div>
-      </div>
+              {/* Name & Clinical Status Tag */}
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-[15px] font-black text-white leading-tight">
+                    Chào {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bệnh nhân')}
+                  </h2>
+                  {!authUser && (
+                    <span className="text-[9.5px] text-emerald-300 font-bold bg-emerald-500/20 border border-emerald-400/30 px-2 py-0.5 rounded-full">
+                      Khách
+                    </span>
+                  )}
+                </div>
+
+                {hasCompletedProfile ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-medium text-emerald-200">
+                      Ngày {rehabStatus.currentDay} • {getSurgeryDetails(recoveryCase?.surgeryType).shortLabel} • {getAgeGroupDetails(ageGroup).shortLabel}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowOnboarding(true);
+                      }}
+                      className="text-[10px] font-bold text-teal-200 hover:text-white bg-teal-500/25 hover:bg-teal-500/40 border border-teal-400/30 px-2 py-0.5 rounded-full transition"
+                    >
+                      Sửa
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-[11px] font-medium text-amber-200">
+                      ⚠️ Chưa thiết lập hồ sơ mổ
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* Main Scrollable View */}
-      <main className="flex-1 px-4 pt-2 pb-28 space-y-3.5 overflow-y-auto relative z-10">
+      <main className="flex-1 px-4 pt-4 pb-28 space-y-3.5 overflow-y-auto relative z-10">
         {/* ========================================================================= */}
         {/* TAB 1: HOME (MATCHING THE UPLOADED DESIGN IMAGE)                          */}
         {/* ========================================================================= */}
         {activeTab === 'home' && (
           <div className="space-y-3.5 animate-fade-in">
-            {/* Patient Header Greeting & Glowing 3D Knee Hero Banner */}
-            <div className="relative pt-1 pb-1">
-              {/* Background 3D Knee Asset placed on the right */}
-              <div className="absolute right-[-14px] top-[-10px] w-48 h-48 opacity-90 pointer-events-none select-none z-0">
-                <Image
-                  src="/images/knee-hero.png"
-                  alt="AXVYRA Knee"
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              </div>
-
-              {/* Greeting Line */}
-              <div
-                className="relative z-10 flex items-center gap-2.5 mb-2 cursor-pointer"
-                onClick={() => {
-                  if (!authUser) setShowAuthModal(true);
-                  else setShowOnboarding(true);
-                }}
-              >
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-emerald-100 flex items-center justify-center">
-                  <Image
-                    src="/images/knee-hero.png"
-                    alt="Avatar"
-                    width={40}
-                    height={40}
-                    className="object-cover scale-150"
-                  />
-                </div>
-                <div>
-                  <h2 className="text-sm font-black text-slate-900 leading-tight flex items-center gap-1">
-                    Chào {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bệnh nhân')}!
-                    {!authUser && (
-                      <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-full ml-1">
-                        Đăng nhập
-                      </span>
-                    )}
-                  </h2>
-                  {hasCompletedProfile ? (
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <p className="text-[11px] text-slate-500 font-medium">
-                        Ngày {rehabStatus.currentDay} • {getSurgeryDetails(recoveryCase?.surgeryType).shortLabel} • {getAgeGroupDetails(ageGroup).shortLabel}
-                      </p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowOnboarding(true);
-                        }}
-                        className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100 px-1.5 py-0.2 rounded-full transition"
-                      >
-                        Sửa
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-[11px] text-amber-700 font-semibold mt-0.5 flex items-center gap-1">
-                      <span>⚠️ Chưa thiết lập hồ sơ phẫu thuật</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Main Headline */}
-              <div className="relative z-10 max-w-[270px]">
-                <h1 className="text-[25px] font-black text-slate-900 leading-[1.15] tracking-tight">
-                  Your <span className="text-[#208B9F] italic font-serif font-black">Comeback</span>
-                  <br />
-                  Starts Here.
-                </h1>
-                <p className="text-[11.5px] text-slate-500 font-medium mt-1 leading-snug">
-                  Mỗi ngày một bước tiến, gần hơn với phong độ của bạn.
-                </p>
-              </div>
-            </div>
 
             {/* ========================================================================= */}
             {/* TRƯỜNG HỢP 1: USER CHƯA THIẾT LẬP HỒ SƠ -> CARD ĐẦU TIÊN LÀ THIẾT LẬP HỒ SƠ */}

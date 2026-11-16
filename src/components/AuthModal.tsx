@@ -60,6 +60,12 @@ export default function AuthModal({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
 
+  // Google Client ID
+  const [googleClientId, setGoogleClientId] = useState<string>(
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    '451917802570-bfkh9g6ft0k0uhi977s1oujihtquml05.apps.googleusercontent.com'
+  );
+
   // OTP Countdown Timer
   useEffect(() => {
     let timer: any = null;
@@ -69,7 +75,59 @@ export default function AuthModal({
     return () => clearInterval(timer);
   }, [mode, countdown]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    fetch('/api/auth/google')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.clientId) setGoogleClientId(data.clientId);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Initialize Google One-Tap & OAuth SDK
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const initGsi = () => {
+      if ((window as any).google?.accounts?.id) {
+        try {
+          (window as any).google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: async (response: any) => {
+              if (response.credential) {
+                try {
+                  const base64Url = response.credential.split('.')[1];
+                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                  const jsonPayload = decodeURIComponent(
+                    atob(base64)
+                      .split('')
+                      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                      .join('')
+                  );
+                  const payload = JSON.parse(jsonPayload);
+                  if (payload.email) {
+                    await handleConfirmGoogleAuth(
+                      payload.email,
+                      payload.name || 'Bệnh nhân',
+                      payload.picture
+                    );
+                  }
+                } catch (e) {
+                  console.error('Failed to parse Google ID token:', e);
+                }
+              }
+            },
+          });
+        } catch (e) {
+          console.warn('GSI ID init error:', e);
+        }
+      }
+    };
+
+    initGsi();
+    const t = setTimeout(initGsi, 800);
+    return () => clearTimeout(t);
+  }, [googleClientId]);
 
   // Handle Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -221,66 +279,6 @@ export default function AuthModal({
     }
   };
 
-  // Google Client ID
-  const [googleClientId, setGoogleClientId] = useState<string>(
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-    '451917802570-bfkh9g6ft0k0uhi977s1oujihtquml05.apps.googleusercontent.com'
-  );
-
-  useEffect(() => {
-    fetch('/api/auth/google')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.clientId) setGoogleClientId(data.clientId);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Initialize Google One-Tap & OAuth SDK
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const initGsi = () => {
-      if ((window as any).google?.accounts?.id) {
-        try {
-          (window as any).google.accounts.id.initialize({
-            client_id: googleClientId,
-            callback: async (response: any) => {
-              if (response.credential) {
-                try {
-                  const base64Url = response.credential.split('.')[1];
-                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                  const jsonPayload = decodeURIComponent(
-                    atob(base64)
-                      .split('')
-                      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                      .join('')
-                  );
-                  const payload = JSON.parse(jsonPayload);
-                  if (payload.email) {
-                    await handleConfirmGoogleAuth(
-                      payload.email,
-                      payload.name || 'Bệnh nhân',
-                      payload.picture
-                    );
-                  }
-                } catch (e) {
-                  console.error('Failed to parse Google ID token:', e);
-                }
-              }
-            },
-          });
-        } catch (e) {
-          console.warn('GSI ID init error:', e);
-        }
-      }
-    };
-
-    initGsi();
-    const t = setTimeout(initGsi, 800);
-    return () => clearTimeout(t);
-  }, []);
-
   // Execute Google Authentication with selected or entered Gmail
   const handleConfirmGoogleAuth = async (targetEmail: string, targetName: string, avatarUrl?: string) => {
     setIsLoading(true);
@@ -398,6 +396,8 @@ export default function AuthModal({
       nextInput?.focus();
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed sm:absolute inset-0 z-50 bg-[#E8F3F6] flex flex-col justify-between overflow-y-auto animate-fade-in font-sans">
