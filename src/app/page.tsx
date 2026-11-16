@@ -304,20 +304,8 @@ export default function AxvyraApp() {
 
   return (
     <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex flex-col justify-between font-sans relative select-none">
-      {/* Dynamic Island & Phone Top Bar */}
-      <div className="pt-3 px-6 flex items-center justify-between text-xs font-semibold text-slate-800 z-30 select-none">
-        <span className="font-bold text-sm">9:41</span>
-        <div className="w-24 h-5 bg-black rounded-full mx-auto" />
-        <div className="flex items-center gap-1 text-slate-700">
-          <span className="text-[10px] font-bold">5G</span>
-          <div className="w-4 h-2.5 border border-slate-700 rounded-xs p-0.5 flex items-center">
-            <div className="w-full h-full bg-slate-700 rounded-2xs" />
-          </div>
-        </div>
-      </div>
-
       {/* Main App Bar (Logo & Notification) */}
-      <div className="px-5 pt-3 pb-1 flex items-center justify-between z-20">
+      <div className="px-5 pt-5 pb-1 flex items-center justify-between z-20">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowOnboarding(true)}>
           {/* Stylized Green Brand Triangle Logo */}
           <div className="w-5 h-5 relative flex items-center justify-center">

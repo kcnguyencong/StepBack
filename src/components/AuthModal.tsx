@@ -277,20 +277,8 @@ export default function AuthModal({
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-sky-50/20 to-[#E8F3F6]/90" />
       </div>
 
-      {/* Top Phone Status Bar */}
-      <div className="relative z-20 pt-3 px-6 flex items-center justify-between text-xs font-semibold text-slate-800 select-none">
-        <span className="font-bold text-sm">9:41</span>
-        <div className="w-24 h-5 bg-black rounded-full mx-auto" />
-        <div className="flex items-center gap-1 text-slate-700">
-          <span className="text-[10px] font-bold">5G</span>
-          <div className="w-4 h-2.5 border border-slate-700 rounded-xs p-0.5 flex items-center">
-            <div className="w-full h-full bg-slate-700 rounded-2xs" />
-          </div>
-        </div>
-      </div>
-
       {/* Brand Header */}
-      <div className="relative z-20 px-6 pt-3 pb-2 flex items-start justify-between">
+      <div className="relative z-20 px-6 pt-6 pb-2 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 relative flex items-center justify-center">
@@ -372,7 +360,7 @@ export default function AuthModal({
                 Đăng nhập bằng Google
               </h1>
               <p className="text-xs text-slate-500 font-medium">
-                Xác thực tài khoản Gmail của bạn trên AXVYRA
+                Xác thực tài khoản Google của bạn trên AXVYRA
               </p>
             </div>
           )}
@@ -450,7 +438,7 @@ export default function AuthModal({
                   type="button"
                   onClick={() => {
                     setErrorMsg(null);
-                    setSuccessMsg('Bạn có thể đăng nhập tức thì bằng Google Gmail bên dưới.');
+                    setSuccessMsg('Bạn có thể đăng nhập tức thì bằng Google bên dưới.');
                   }}
                   className="text-[11px] font-bold text-teal-700 hover:text-teal-800"
                 >
@@ -551,7 +539,7 @@ export default function AuthModal({
             <div className="space-y-3 pt-1 animate-fade-in">
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                 <div className="space-y-1 text-left">
-                  <label className="text-[11px] font-bold text-slate-700 block">Địa chỉ Gmail của bạn:</label>
+                  <label className="text-[11px] font-bold text-slate-700 block">Địa chỉ Email Google của bạn:</label>
                   <input
                     type="email"
                     value={googleEmail}
@@ -693,7 +681,7 @@ export default function AuthModal({
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>Đăng nhập bằng Google (Gmail)</span>
+                <span>Đăng nhập bằng Google</span>
               </button>
 
               {/* Bottom Switcher */}
