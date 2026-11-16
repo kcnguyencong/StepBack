@@ -14,7 +14,6 @@ import {
   KeyRound,
   RotateCcw,
   Sparkles,
-  X,
   Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -315,15 +314,6 @@ export default function AuthModal({
           </p>
           <div className="w-8 h-1 bg-[#84CC16] rounded-full mt-1.5" />
         </div>
-
-        {!isMandatory && onClose && (
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-white/80 hover:bg-white text-slate-600 shadow-xs border border-white/80 transition"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
       </div>
 
       {/* Main Floating Glass Form Container */}
