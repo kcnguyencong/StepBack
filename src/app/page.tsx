@@ -136,6 +136,7 @@ export default function AxvyraApp() {
 
   const handleAuthSuccess = (user: AuthUser) => {
     setAuthUser(user);
+    setShowAuthModal(false);
     try {
       localStorage.setItem('axvyra_auth_user', JSON.stringify(user));
     } catch {}
@@ -1173,10 +1174,10 @@ export default function AxvyraApp() {
 
       {/* Auth Modal (Login / Register / Email OTP Verification) - Mandatory until logged in */}
       <AuthModal
-        isOpen={!authUser || showAuthModal}
+        isOpen={Boolean(!authUser || showAuthModal)}
         isMandatory={!authUser}
         onClose={() => {
-          if (authUser) setShowAuthModal(false);
+          setShowAuthModal(false);
         }}
         onAuthSuccess={handleAuthSuccess}
       />
