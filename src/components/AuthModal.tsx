@@ -95,16 +95,23 @@ export default function AuthModal({
         throw new Error(data.error || 'Sai email hoặc mật khẩu');
       }
 
-      confetti({
-        particleCount: 75,
-        spread: 65,
-        origin: { y: 0.6 },
-      });
+      try {
+        confetti({
+          particleCount: 75,
+          spread: 65,
+          origin: { y: 0.6 },
+        });
+      } catch {}
+
+      const rawUser = data?.user || {};
+      const safeFullName = typeof rawUser.fullName === 'string' && rawUser.fullName.trim()
+        ? rawUser.fullName.trim()
+        : (email.split('@')[0] || 'Bệnh nhân');
 
       onAuthSuccess({
-        id: data.user.id,
-        email: data.user.email,
-        fullName: data.user.fullName,
+        id: rawUser.id || `usr-${Date.now()}`,
+        email: rawUser.email || email,
+        fullName: safeFullName,
         provider: 'email',
         isVerified: true,
       });
@@ -186,16 +193,23 @@ export default function AuthModal({
         throw new Error(data.error || 'Mã xác thực không đúng hoặc đã hết hạn.');
       }
 
-      confetti({
-        particleCount: 85,
-        spread: 75,
-        origin: { y: 0.6 },
-      });
+      try {
+        confetti({
+          particleCount: 85,
+          spread: 75,
+          origin: { y: 0.6 },
+        });
+      } catch {}
+
+      const rawUser = data?.user || {};
+      const safeFullName = typeof rawUser.fullName === 'string' && rawUser.fullName.trim()
+        ? rawUser.fullName.trim()
+        : (email.split('@')[0] || 'Bệnh nhân');
 
       onAuthSuccess({
-        id: data.user.id,
-        email: data.user.email,
-        fullName: data.user.fullName,
+        id: rawUser.id || `usr-${Date.now()}`,
+        email: rawUser.email || email,
+        fullName: safeFullName,
         provider: 'email',
         isVerified: true,
       });
@@ -288,16 +302,24 @@ export default function AuthModal({
         throw new Error(data.error || 'Xác thực Google thất bại');
       }
 
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      } catch {}
+
+      const rawUser = data?.user || {};
+      const safeFullName = typeof rawUser.fullName === 'string' && rawUser.fullName.trim()
+        ? rawUser.fullName.trim()
+        : (targetName || targetEmail.split('@')[0] || 'Bệnh nhân Google');
 
       onAuthSuccess({
-        id: data.user.id,
-        email: data.user.email,
-        fullName: data.user.fullName,
+        id: rawUser.id || `usr-g-${Date.now()}`,
+        email: rawUser.email || targetEmail,
+        fullName: safeFullName,
+        avatarUrl: rawUser.avatarUrl || avatarUrl,
         provider: 'google',
         isVerified: true,
       });

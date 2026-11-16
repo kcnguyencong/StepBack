@@ -10,7 +10,7 @@ import {
   KNOWLEDGE_ARTICLES,
   MilestoneStatus,
 } from '@/data/axvyraDomain';
-import { SurgeryType, getRehabStatus, SURGERY_DETAILS } from '@/data/rehabProtocols';
+import { SurgeryType, getRehabStatus, SURGERY_DETAILS, getSafeSurgeryType } from '@/data/rehabProtocols';
 
 const STORAGE_KEY = 'axvyra_v1_case';
 const AUDIT_KEY = 'axvyra_v1_audit';
@@ -72,12 +72,40 @@ export function getOrCreateDefaultCase(
 }
 
 export class AxvyraStore {
+  static sanitizeCase(raw: any): RecoveryCase {
+    const defaultCase = getOrCreateDefaultCase();
+    if (!raw || typeof raw !== 'object') return defaultCase;
+
+    const safeType = getSafeSurgeryType(raw.surgeryType);
+    const safeLeg = raw.surgeryLeg === 'right' ? 'right' : 'left';
+
+    return {
+      ...defaultCase,
+      ...raw,
+      id: typeof raw.id === 'string' && raw.id ? raw.id : defaultCase.id,
+      patientName: typeof raw.patientName === 'string' && raw.patientName ? raw.patientName : defaultCase.patientName,
+      surgeryDate: typeof raw.surgeryDate === 'string' && raw.surgeryDate ? raw.surgeryDate : defaultCase.surgeryDate,
+      surgeryType: safeType,
+      surgeryLeg: safeLeg,
+      currentPhase: typeof raw.currentPhase === 'number' ? raw.currentPhase : defaultCase.currentPhase,
+      weightBearingStatus: typeof raw.weightBearingStatus === 'string' ? raw.weightBearingStatus : defaultCase.weightBearingStatus,
+      braceRequirement: typeof raw.braceRequirement === 'string' ? raw.braceRequirement : defaultCase.braceRequirement,
+      maxSafeFlexion: typeof raw.maxSafeFlexion === 'number' ? raw.maxSafeFlexion : defaultCase.maxSafeFlexion,
+      dailySessions: Array.isArray(raw.dailySessions) && raw.dailySessions.length > 0 ? raw.dailySessions : defaultCase.dailySessions,
+      romHistory: Array.isArray(raw.romHistory) ? raw.romHistory : [],
+      milestones: Array.isArray(raw.milestones) && raw.milestones.length > 0 ? raw.milestones : defaultCase.milestones,
+      sessionFeedbacks: Array.isArray(raw.sessionFeedbacks) ? raw.sessionFeedbacks : [],
+      dailyLogs: Array.isArray(raw.dailyLogs) ? raw.dailyLogs : [],
+    };
+  }
+
   static getRecoveryCase(): RecoveryCase | null {
     if (typeof window === 'undefined') return null;
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (!data) return null;
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      return this.sanitizeCase(parsed);
     } catch {
       return null;
     }
@@ -93,8 +121,11 @@ export class AxvyraStore {
         if (res.ok) {
           const json = await res.json();
           if (json.connected && json.data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
-            return json.data;
+            const sanitized = this.sanitizeCase(
+              typeof json.data === 'string' ? JSON.parse(json.data) : json.data
+            );
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+            return sanitized;
           }
         }
         return null;

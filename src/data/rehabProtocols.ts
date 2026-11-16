@@ -539,6 +539,30 @@ export const SURGERY_DETAILS: Record<SurgeryType, { label: string; shortLabel: s
   }
 };
 
+export function getSafeAgeGroup(ag?: any): AgeGroup {
+  if (ag === 'UNDER_30' || ag === 'AGE_31_45' || ag === 'OVER_45') {
+    return ag;
+  }
+  return 'AGE_31_45';
+}
+
+export function getSafeSurgeryType(st?: any): SurgeryType {
+  if (st === 'ACL_ONLY' || st === 'ACL_MENISCUS_REPAIR' || st === 'ACL_MENISCUS_TRIM') {
+    return st;
+  }
+  return 'ACL_MENISCUS_REPAIR';
+}
+
+export function getAgeGroupDetails(ag?: any) {
+  const safe = getSafeAgeGroup(ag);
+  return AGE_GROUP_DETAILS[safe] || AGE_GROUP_DETAILS.AGE_31_45;
+}
+
+export function getSurgeryDetails(st?: any) {
+  const safe = getSafeSurgeryType(st);
+  return SURGERY_DETAILS[safe] || SURGERY_DETAILS.ACL_MENISCUS_REPAIR;
+}
+
 export interface RehabStatus {
   currentDay: number;
   currentWeek: number;
@@ -559,14 +583,17 @@ export interface RehabStatus {
 
 export function getRehabStatus(
   surgeryDateStr: string | Date,
-  surgeryType: SurgeryType = 'ACL_ONLY',
-  ageGroup: AgeGroup = 'AGE_31_45'
+  rawSurgeryType: SurgeryType = 'ACL_ONLY',
+  rawAgeGroup: AgeGroup = 'AGE_31_45'
 ): RehabStatus {
+  const surgeryType = getSafeSurgeryType(rawSurgeryType);
+  const ageGroup = getSafeAgeGroup(rawAgeGroup);
+
   const sDate = new Date(surgeryDateStr);
   const now = new Date();
   
   // Difference in calendar days
-  const diffTime = Math.max(0, now.getTime() - sDate.getTime());
+  const diffTime = Math.max(0, now.getTime() - (isNaN(sDate.getTime()) ? now.getTime() : sDate.getTime()));
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   const currentWeek = Math.max(1, Math.floor(diffDays / 7) + 1);
 
@@ -582,14 +609,15 @@ export function getRehabStatus(
     phaseIndex = 3;
   }
 
-  const phase = PHASE_RULES[phaseIndex];
-  const allowedFlexionMax = phase.maxFlexionAngle[surgeryType];
+  const phase = PHASE_RULES[phaseIndex] || PHASE_RULES[0];
+  const allowedFlexionMax = phase.maxFlexionAngle[surgeryType] ?? 90;
   const isMeniscusRepairStrictLimit = surgeryType === 'ACL_MENISCUS_REPAIR' && currentWeek <= 6;
-  const weightBearingSummary = phase.weightBearingStatus[surgeryType];
-  const braceSummary = phase.braceRule[surgeryType];
-  const redFlags = phase.redFlags;
-  const milestoneCriteria = phase.milestoneCriteria;
-  const ageAdjustmentNote = AGE_GROUP_DETAILS[ageGroup]?.clinicalNote || AGE_GROUP_DETAILS.AGE_31_45.clinicalNote;
+  const weightBearingSummary = phase.weightBearingStatus[surgeryType] ?? 'Chống nạng tập đi';
+  const braceSummary = phase.braceRule[surgeryType] ?? 'Đeo nẹp 0°';
+  const redFlags = phase.redFlags || [];
+  const milestoneCriteria = phase.milestoneCriteria || [];
+  const ageDetail = getAgeGroupDetails(ageGroup);
+  const ageAdjustmentNote = ageDetail.clinicalNote;
 
   // Filter exercises relevant to this phase, surgery type, and age group
   const matchedExercises = REHAB_EXERCISES.filter(
@@ -607,7 +635,7 @@ export function getRehabStatus(
     phase,
     surgeryType,
     ageGroup,
-    surgeryDate: typeof surgeryDateStr === 'string' ? surgeryDateStr : surgeryDateStr.toISOString().split('T')[0],
+    surgeryDate: typeof surgeryDateStr === 'string' ? surgeryDateStr : (isNaN(sDate.getTime()) ? new Date().toISOString().split('T')[0] : sDate.toISOString().split('T')[0]),
     allowedFlexionMax,
     isMeniscusRepairStrictLimit,
     weightBearingSummary,

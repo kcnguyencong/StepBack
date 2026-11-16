@@ -20,7 +20,17 @@ import {
   Target
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { SurgeryType, SURGERY_DETAILS, getRehabStatus, AgeGroup, AGE_GROUP_DETAILS } from '@/data/rehabProtocols';
+import {
+  SurgeryType,
+  SURGERY_DETAILS,
+  getRehabStatus,
+  AgeGroup,
+  AGE_GROUP_DETAILS,
+  getAgeGroupDetails,
+  getSurgeryDetails,
+  getSafeAgeGroup,
+  getSafeSurgeryType
+} from '@/data/rehabProtocols';
 
 export interface UserProfile {
   name: string;
@@ -65,17 +75,17 @@ export default function OnboardingModal({
   });
   const [surgeryType, setSurgeryType] = useState<SurgeryType>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('surgeryType') as SurgeryType;
-      if (stored) return stored;
+      const stored = localStorage.getItem('surgeryType');
+      if (stored) return getSafeSurgeryType(stored);
     }
-    return initialProfile.surgeryType || 'ACL_MENISCUS_REPAIR';
+    return getSafeSurgeryType(initialProfile.surgeryType);
   });
   const [ageGroup, setAgeGroup] = useState<AgeGroup>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('ageGroup') as AgeGroup;
-      if (stored) return stored;
+      const stored = localStorage.getItem('ageGroup');
+      if (stored) return getSafeAgeGroup(stored);
     }
-    return initialProfile.ageGroup || 'AGE_31_45';
+    return getSafeAgeGroup(initialProfile.ageGroup);
   });
   const [weightBearing, setWeightBearing] = useState<string>(
     initialProfile.surgeryType === 'ACL_MENISCUS_REPAIR' ? 'NWB' : 'PWB'
@@ -331,7 +341,7 @@ export default function OnboardingModal({
                 ))}
               </div>
               <p className="text-[10px] text-slate-500 italic mt-0.5">
-                💡 {AGE_GROUP_DETAILS[ageGroup].clinicalNote}
+                💡 {getAgeGroupDetails(ageGroup).clinicalNote}
               </p>
             </div>
           </div>
@@ -537,14 +547,14 @@ export default function OnboardingModal({
               <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
                 <span className="text-slate-500">Phẫu thuật:</span>
                 <span className="font-bold text-slate-900">
-                  {surgeryLeg === 'left' ? 'Gối Trái (L)' : 'Gối Phải (R)'} • {SURGERY_DETAILS[surgeryType].shortLabel}
+                  {surgeryLeg === 'left' ? 'Gối Trái (L)' : 'Gối Phải (R)'} • {getSurgeryDetails(surgeryType).shortLabel}
                 </span>
               </div>
 
               <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
                 <span className="text-slate-500">Độ tuổi lâm sàng:</span>
                 <span className="font-bold text-slate-900">
-                  {AGE_GROUP_DETAILS[ageGroup].label}
+                  {getAgeGroupDetails(ageGroup).label}
                 </span>
               </div>
 

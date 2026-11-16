@@ -37,6 +37,10 @@ import {
   SURGERY_DETAILS,
   AGE_GROUP_DETAILS,
   getRehabStatus,
+  getSafeAgeGroup,
+  getSafeSurgeryType,
+  getAgeGroupDetails,
+  getSurgeryDetails,
   Exercise
 } from '@/data/rehabProtocols';
 import {
@@ -102,21 +106,21 @@ export default function AxvyraApp() {
     // Sync with LocalStorage custom surgery fields & ageGroup
     try {
       const storedDate = localStorage.getItem('surgeryDate');
-      const storedType = localStorage.getItem('surgeryType') as SurgeryType;
-      const storedLeg = localStorage.getItem('operatedLeg') as 'left' | 'right';
-      const storedAge = localStorage.getItem('ageGroup') as AgeGroup;
+      const storedType = localStorage.getItem('surgeryType');
+      const storedLeg = localStorage.getItem('operatedLeg');
+      const storedAge = localStorage.getItem('ageGroup');
 
       if (storedAge) {
-        setAgeGroup(storedAge);
+        setAgeGroup(getSafeAgeGroup(storedAge));
       }
 
       if (storedDate || storedType || storedLeg) {
-        currentCase = {
+        currentCase = AxvyraStore.sanitizeCase({
           ...currentCase,
           surgeryDate: storedDate || currentCase.surgeryDate,
-          surgeryType: storedType || currentCase.surgeryType,
-          surgeryLeg: storedLeg || currentCase.surgeryLeg,
-        };
+          surgeryType: getSafeSurgeryType(storedType || currentCase.surgeryType),
+          surgeryLeg: storedLeg === 'right' ? 'right' : 'left',
+        });
         AxvyraStore.saveRecoveryCase(currentCase);
       }
     } catch {}
@@ -127,8 +131,14 @@ export default function AxvyraApp() {
     try {
       const savedUser = localStorage.getItem('axvyra_auth_user');
       if (savedUser) {
-        setAuthUser(JSON.parse(savedUser));
-        setShowAuthModal(false);
+        const parsed = JSON.parse(savedUser);
+        if (parsed && typeof parsed === 'object') {
+          setAuthUser(parsed);
+          setShowAuthModal(false);
+        } else {
+          setAuthUser(null);
+          setShowAuthModal(true);
+        }
       } else {
         setAuthUser(null);
         setShowAuthModal(true);
@@ -139,24 +149,40 @@ export default function AxvyraApp() {
 
     // Sync with Neon Serverless DB
     AxvyraStore.syncWithServer().then((serverCase) => {
-      if (serverCase) setRecoveryCase({ ...serverCase });
+      if (serverCase) setRecoveryCase(AxvyraStore.sanitizeCase(serverCase));
     });
   }, []);
 
   const handleAuthSuccess = (user: AuthUser) => {
-    setAuthUser(user);
-    setShowAuthModal(false);
     try {
-      localStorage.setItem('axvyra_auth_user', JSON.stringify(user));
-    } catch {}
-
-    if (recoveryCase) {
-      const updated = {
-        ...recoveryCase,
-        patientName: user.fullName || recoveryCase.patientName,
+      const rawName = user?.fullName || user?.email?.split('@')[0] || 'Bệnh nhân';
+      const safeName = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : 'Bệnh nhân';
+      const safeUser: AuthUser = {
+        id: user?.id || `usr-${Date.now()}`,
+        email: user?.email || '',
+        fullName: safeName,
+        avatarUrl: user?.avatarUrl,
+        provider: user?.provider || 'email',
+        isVerified: true,
       };
-      AxvyraStore.saveRecoveryCase(updated);
-      setRecoveryCase(updated);
+
+      setAuthUser(safeUser);
+      setShowAuthModal(false);
+      try {
+        localStorage.setItem('axvyra_auth_user', JSON.stringify(safeUser));
+      } catch {}
+
+      if (recoveryCase) {
+        const updated = AxvyraStore.sanitizeCase({
+          ...recoveryCase,
+          patientName: safeName,
+        });
+        AxvyraStore.saveRecoveryCase(updated);
+        setRecoveryCase(updated);
+      }
+    } catch (e) {
+      console.error('handleAuthSuccess error:', e);
+      setShowAuthModal(false);
     }
   };
 
@@ -335,8 +361,13 @@ export default function AxvyraApp() {
     );
   }
 
-  const todaySession = recoveryCase.dailySessions[0] || null;
-  const latestROM = recoveryCase.romHistory[0] || null;
+  const todaySession = recoveryCase?.dailySessions?.[0] || null;
+  const latestROM = recoveryCase?.romHistory?.[0] || null;
+
+  const userDisplayName = typeof authUser?.fullName === 'string' && authUser.fullName.trim()
+    ? authUser.fullName.trim()
+    : 'Bệnh nhân';
+  const userShortName = userDisplayName.split(' ').pop() || 'User';
 
   return (
     <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex flex-col justify-between font-sans relative select-none">
@@ -372,7 +403,7 @@ export default function AxvyraApp() {
               className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold"
             >
               <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="max-w-[75px] truncate">{authUser.fullName ? authUser.fullName.split(' ').pop() : 'User'}</span>
+              <span className="max-w-[75px] truncate">{userShortName}</span>
             </button>
           ) : (
             <button
@@ -434,7 +465,7 @@ export default function AxvyraApp() {
                 </div>
                 <div>
                   <h2 className="text-sm font-black text-slate-900 leading-tight flex items-center gap-1">
-                    Chào {authUser ? authUser.fullName : (recoveryCase?.patientName || 'Minh')}!
+                    Chào {authUser ? userDisplayName : (recoveryCase?.patientName || 'Minh')}!
                     {!authUser && (
                       <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-full ml-1">
                         Đăng nhập
@@ -442,7 +473,7 @@ export default function AxvyraApp() {
                     )}
                   </h2>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    Ngày {rehabStatus.currentDay} sau phẫu thuật {SURGERY_DETAILS[recoveryCase?.surgeryType || 'ACL_ONLY'].shortLabel} • <span className="font-bold text-slate-700">{AGE_GROUP_DETAILS[ageGroup].shortLabel}</span>
+                    Ngày {rehabStatus.currentDay} sau phẫu thuật {getSurgeryDetails(recoveryCase?.surgeryType).shortLabel} • <span className="font-bold text-slate-700">{getAgeGroupDetails(ageGroup).shortLabel}</span>
                   </p>
                 </div>
               </div>
@@ -598,7 +629,7 @@ export default function AxvyraApp() {
                       Quy chuẩn an toàn • {rehabStatus.phase.title}
                     </h3>
                     <p className="text-[10px] text-emerald-700 font-semibold">
-                      Tuần {rehabStatus.phase.weekRange[0]} - {rehabStatus.phase.weekRange[1]} • {SURGERY_DETAILS[rehabStatus.surgeryType].shortLabel} • {AGE_GROUP_DETAILS[ageGroup].shortLabel}
+                      Tuần {rehabStatus.phase.weekRange[0]} - {rehabStatus.phase.weekRange[1]} • {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} • {getAgeGroupDetails(ageGroup).shortLabel}
                     </p>
                   </div>
                 </div>
@@ -624,7 +655,7 @@ export default function AxvyraApp() {
               <div className="p-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-[11px] flex items-start gap-2">
                 <span className="text-base shrink-0">🩺</span>
                 <div>
-                  <span className="font-bold text-emerald-950 block">Chỉ định độ tuổi ({AGE_GROUP_DETAILS[ageGroup].shortLabel}):</span>
+                  <span className="font-bold text-emerald-950 block">Chỉ định độ tuổi ({getAgeGroupDetails(ageGroup).shortLabel}):</span>
                   <span className="text-emerald-900/90 leading-tight block mt-0.5">{rehabStatus.ageAdjustmentNote}</span>
                 </div>
               </div>
@@ -898,7 +929,7 @@ export default function AxvyraApp() {
                 {rehabStatus.phase.title}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Phác đồ lâm sàng chuẩn y khoa cho {SURGERY_DETAILS[rehabStatus.surgeryType].shortLabel} ({AGE_GROUP_DETAILS[ageGroup].shortLabel}).
+                Phác đồ lâm sàng chuẩn y khoa cho {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} ({getAgeGroupDetails(ageGroup).shortLabel}).
               </p>
             </div>
 
@@ -1024,7 +1055,7 @@ export default function AxvyraApp() {
                 Cột Mốc Phục Hồi Lâm Sàng
               </h2>
               <div className="space-y-2">
-                {recoveryCase.milestones.map((m) => (
+                {(recoveryCase?.milestones || []).map((m) => (
                   <div
                     key={m.id}
                     className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between gap-2"
