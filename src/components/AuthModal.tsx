@@ -150,8 +150,8 @@ export default function AuthModal({
         throw new Error(data.error || 'Đăng ký thất bại');
       }
 
-      setGeneratedOtp(data.otpCode || '123456');
-      setSuccessMsg('Mã xác thực 6 số đã được gửi tới email!');
+      setGeneratedOtp(data.otpCode || null);
+      setSuccessMsg(data.message || 'Mã xác thực 6 số đã được gửi tới email của bạn!');
       setMode('VERIFY_OTP');
       setCountdown(60);
     } catch (err: any) {
@@ -584,10 +584,10 @@ export default function AuthModal({
           {mode === 'VERIFY_OTP' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4 pt-1 animate-fade-in text-center">
               {generatedOtp && (
-                <div className="p-2.5 rounded-2xl bg-sky-50 border border-sky-200 text-sky-900 text-xs font-semibold flex items-center justify-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-sky-600 shrink-0" />
+                <div className="p-2.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center justify-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    Mã xác thực: <strong className="text-base font-black tracking-widest text-sky-700">{generatedOtp}</strong>
+                    Chế độ thử nghiệm: <strong className="text-base font-black tracking-widest text-amber-700">{generatedOtp}</strong>
                   </span>
                 </div>
               )}
@@ -614,10 +614,26 @@ export default function AuthModal({
                 </span>
                 <button
                   type="button"
-                  disabled={countdown > 0}
-                  onClick={() => {
-                    setCountdown(60);
-                    setSuccessMsg('Đã tạo mã xác thực mới!');
+                  disabled={countdown > 0 || isLoading}
+                  onClick={async () => {
+                    setIsLoading(true);
+                    setErrorMsg(null);
+                    try {
+                      const res = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fullName, email, password }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Gửi lại mã thất bại');
+                      setGeneratedOtp(data.otpCode || null);
+                      setCountdown(60);
+                      setSuccessMsg('Đã gửi lại mã xác thực mới vào email của bạn!');
+                    } catch (err: any) {
+                      setErrorMsg(err.message || 'Không thể gửi lại mã xác thực.');
+                    } finally {
+                      setIsLoading(false);
+                    }
                   }}
                   className="font-bold text-emerald-600 disabled:opacity-40 text-[11px]"
                 >

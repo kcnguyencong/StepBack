@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeNeonQuery, ensureNeonTables, getDatabaseUrl } from '@/lib/neonClient';
 import { setStoredOtp } from '@/lib/otpStore';
+import { sendOtpEmail } from '@/lib/emailService';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // Generate random 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     setStoredOtp(normalizedEmail, {
       code: otpCode,
@@ -37,10 +38,24 @@ export async function POST(req: NextRequest) {
       passwordHash: password,
     });
 
+    // Send real email via Resend
+    const emailResult = await sendOtpEmail(normalizedEmail, otpCode, fullName.trim());
+
+    if (!emailResult.success) {
+      console.warn('Email sending notice:', emailResult.error);
+      if (emailResult.isDomainRestricted) {
+        // Resend free sandbox only allows sending to the account owner email
+        return NextResponse.json({
+          success: true,
+          message: 'Tài khoản Resend thử nghiệm chỉ cho phép gửi tới email đăng ký của bạn. Mã OTP tạm thời:',
+          otpCode, // Fallback for unverified test emails only
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Mã xác thực 6 số đã được gửi tới email.',
-      otpCode,
+      message: 'Mã xác thực 6 số đã được gửi tới email của bạn. Vui lòng kiểm tra hòm thư (kể cả thư mục Spam)!',
     });
   } catch (err: any) {
     console.error('Register API Error:', err);
