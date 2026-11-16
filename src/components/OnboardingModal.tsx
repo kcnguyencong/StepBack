@@ -64,7 +64,7 @@ export default function OnboardingModal({
       const stored = localStorage.getItem('surgeryDate');
       if (stored) return stored;
     }
-    return initialProfile.surgeryDate || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    return initialProfile.surgeryDate || new Date().toISOString().split('T')[0];
   });
   const [surgeryLeg, setSurgeryLeg] = useState<'left' | 'right'>(() => {
     if (typeof window !== 'undefined') {
@@ -472,9 +472,8 @@ export default function OnboardingModal({
                 <input
                   type="date"
                   value={surgeryDate}
-                  max={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setSurgeryDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl p-3 pl-10 text-xs sm:text-sm font-semibold text-slate-900 transition outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl p-3 pl-10 text-xs sm:text-sm font-semibold text-slate-900 transition outline-none cursor-pointer"
                 />
                 <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               </div>
