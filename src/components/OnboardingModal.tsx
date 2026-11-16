@@ -20,13 +20,14 @@ import {
   Target
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { SurgeryType, SURGERY_DETAILS, getRehabStatus } from '@/data/rehabProtocols';
+import { SurgeryType, SURGERY_DETAILS, getRehabStatus, AgeGroup, AGE_GROUP_DETAILS } from '@/data/rehabProtocols';
 
 export interface UserProfile {
   name: string;
   surgeryDate: string;
   surgeryType: SurgeryType;
   surgeryLeg: 'left' | 'right';
+  ageGroup?: AgeGroup;
   weightBearingRestriction?: string;
   maxFlexionRestriction?: number;
   rehabGoal?: string;
@@ -69,6 +70,13 @@ export default function OnboardingModal({
     }
     return initialProfile.surgeryType || 'ACL_MENISCUS_REPAIR';
   });
+  const [ageGroup, setAgeGroup] = useState<AgeGroup>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('ageGroup') as AgeGroup;
+      if (stored) return stored;
+    }
+    return initialProfile.ageGroup || 'AGE_31_45';
+  });
   const [weightBearing, setWeightBearing] = useState<string>(
     initialProfile.surgeryType === 'ACL_MENISCUS_REPAIR' ? 'NWB' : 'PWB'
   );
@@ -97,6 +105,7 @@ export default function OnboardingModal({
         localStorage.setItem('surgeryDate', surgeryDate);
         localStorage.setItem('surgeryType', surgeryType);
         localStorage.setItem('operatedLeg', surgeryLeg);
+        localStorage.setItem('ageGroup', ageGroup);
       } catch {}
 
       const finishedProfile: UserProfile = {
@@ -104,6 +113,7 @@ export default function OnboardingModal({
         surgeryDate,
         surgeryType,
         surgeryLeg,
+        ageGroup,
         weightBearingRestriction: weightBearing,
         maxFlexionRestriction: maxFlexion,
         rehabGoal,
@@ -121,7 +131,7 @@ export default function OnboardingModal({
     }
   };
 
-  const previewStatus = getRehabStatus(surgeryDate, surgeryType);
+  const previewStatus = getRehabStatus(surgeryDate, surgeryType, ageGroup);
 
   return (
     <div className="fixed sm:absolute inset-0 z-50 bg-white flex flex-col justify-between overflow-hidden animate-fade-in">
@@ -292,6 +302,37 @@ export default function OnboardingModal({
                   <div className="text-[10px] text-slate-400">Right Knee</div>
                 </button>
               </div>
+            </div>
+
+            {/* Nhóm độ tuổi */}
+            <div className="space-y-1.5 pt-1.5 border-t border-slate-100">
+              <label className="text-xs font-bold text-slate-700 block">
+                Nhóm độ tuổi bệnh nhân:
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'UNDER_30', label: '< 30 tuổi', desc: 'VĐV / Trẻ' },
+                  { id: 'AGE_31_45', label: '31 - 45 tuổi', desc: 'Phong trào' },
+                  { id: 'OVER_45', label: '> 45 tuổi', desc: 'Trung niên' },
+                ].map((ag) => (
+                  <button
+                    key={ag.id}
+                    type="button"
+                    onClick={() => setAgeGroup(ag.id as AgeGroup)}
+                    className={`p-2.5 rounded-2xl border text-center transition-all ${
+                      ageGroup === ag.id
+                        ? 'border-emerald-500 bg-emerald-50/80 text-emerald-800 font-bold ring-2 ring-emerald-500/25'
+                        : 'border-slate-200 bg-slate-50/60 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="text-xs font-black block">{ag.label}</span>
+                    <span className="text-[9.5px] text-slate-500 block mt-0.5">{ag.desc}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-500 italic mt-0.5">
+                💡 {AGE_GROUP_DETAILS[ageGroup].clinicalNote}
+              </p>
             </div>
           </div>
         )}
@@ -497,6 +538,13 @@ export default function OnboardingModal({
                 <span className="text-slate-500">Phẫu thuật:</span>
                 <span className="font-bold text-slate-900">
                   {surgeryLeg === 'left' ? 'Gối Trái (L)' : 'Gối Phải (R)'} • {SURGERY_DETAILS[surgeryType].shortLabel}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+                <span className="text-slate-500">Độ tuổi lâm sàng:</span>
+                <span className="font-bold text-slate-900">
+                  {AGE_GROUP_DETAILS[ageGroup].label}
                 </span>
               </div>
 

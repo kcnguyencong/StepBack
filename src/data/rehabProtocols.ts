@@ -1,4 +1,5 @@
 export type SurgeryType = 'ACL_ONLY' | 'ACL_MENISCUS_REPAIR' | 'ACL_MENISCUS_TRIM';
+export type AgeGroup = 'UNDER_30' | 'AGE_31_45' | 'OVER_45';
 
 export interface Exercise {
   id: string;
@@ -15,6 +16,7 @@ export interface Exercise {
   contraindications?: string;
   medicalSource: string;
   allowedSurgeries: SurgeryType[];
+  excludedAgeGroups?: AgeGroup[];
 
   // Compatibility fields for existing player / UI
   vietnameseName?: string;
@@ -489,6 +491,7 @@ export const REHAB_EXERCISES: Exercise[] = [
     ],
     medicalSource: 'FIFA 11+ Knee Injury Prevention',
     allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    excludedAgeGroups: ['OVER_45'],
     vietnameseName: 'Thang dây linh hoạt cơ bản',
     targetSets: 3,
     targetReps: 5,
@@ -496,6 +499,24 @@ export const REHAB_EXERCISES: Exercise[] = [
     restSec: 30,
   },
 ];
+
+export const AGE_GROUP_DETAILS: Record<AgeGroup, { label: string; shortLabel: string; clinicalNote: string }> = {
+  UNDER_30: {
+    label: "Dưới 30 tuổi (Vận động viên / Người trẻ)",
+    shortLabel: "< 30 tuổi",
+    clinicalNote: "Mật độ xương và khả năng phục hồi cơ bắp nhanh; mục tiêu hồi phục thể lực cường độ cao và trở lại thể thao đối kháng."
+  },
+  AGE_31_45: {
+    label: "31 - 45 tuổi (Người đi làm / Thể thao phong trào)",
+    shortLabel: "31 - 45 tuổi",
+    clinicalNote: "Tốc độ liền gân tiêu chuẩn; cần chú trọng cân bằng sức mạnh gân hamstring/quad và độ bền khớp."
+  },
+  OVER_45: {
+    label: "Trên 45 tuổi (Trung niên & Cao tuổi)",
+    shortLabel: "> 45 tuổi",
+    clinicalNote: "Ưu tiên bảo tồn sụn khớp, kéo dài thời gian thích nghi chịu lực, loại bỏ các bài tập va đập dội lực cao."
+  }
+};
 
 export const SURGERY_DETAILS: Record<SurgeryType, { label: string; shortLabel: string; description: string; riskNote: string }> = {
   ACL_ONLY: {
@@ -523,18 +544,24 @@ export interface RehabStatus {
   currentWeek: number;
   phase: PhaseRule;
   surgeryType: SurgeryType;
+  ageGroup: AgeGroup;
   surgeryDate: string;
   allowedFlexionMax: number;
   isMeniscusRepairStrictLimit: boolean;
   weightBearingSummary: string;
   braceSummary: string;
+  ageAdjustmentNote: string;
   dangerSigns: string[];
   redFlags: string[];
   milestoneCriteria: string[];
   exercises: Exercise[];
 }
 
-export function getRehabStatus(surgeryDateStr: string | Date, surgeryType: SurgeryType = 'ACL_ONLY'): RehabStatus {
+export function getRehabStatus(
+  surgeryDateStr: string | Date,
+  surgeryType: SurgeryType = 'ACL_ONLY',
+  ageGroup: AgeGroup = 'AGE_31_45'
+): RehabStatus {
   const sDate = new Date(surgeryDateStr);
   const now = new Date();
   
@@ -562,10 +589,14 @@ export function getRehabStatus(surgeryDateStr: string | Date, surgeryType: Surge
   const braceSummary = phase.braceRule[surgeryType];
   const redFlags = phase.redFlags;
   const milestoneCriteria = phase.milestoneCriteria;
+  const ageAdjustmentNote = AGE_GROUP_DETAILS[ageGroup]?.clinicalNote || AGE_GROUP_DETAILS.AGE_31_45.clinicalNote;
 
-  // Filter exercises relevant to this phase and surgery type
+  // Filter exercises relevant to this phase, surgery type, and age group
   const matchedExercises = REHAB_EXERCISES.filter(
-    (ex) => ex.phase === phase.phase && ex.allowedSurgeries.includes(surgeryType)
+    (ex) =>
+      ex.phase === phase.phase &&
+      ex.allowedSurgeries.includes(surgeryType) &&
+      (!ex.excludedAgeGroups || !ex.excludedAgeGroups.includes(ageGroup))
   );
 
   const exercises = matchedExercises.length > 0 ? matchedExercises : REHAB_EXERCISES.slice(0, 4);
@@ -575,11 +606,13 @@ export function getRehabStatus(surgeryDateStr: string | Date, surgeryType: Surge
     currentWeek,
     phase,
     surgeryType,
+    ageGroup,
     surgeryDate: typeof surgeryDateStr === 'string' ? surgeryDateStr : surgeryDateStr.toISOString().split('T')[0],
     allowedFlexionMax,
     isMeniscusRepairStrictLimit,
     weightBearingSummary,
     braceSummary,
+    ageAdjustmentNote,
     dangerSigns: redFlags,
     redFlags,
     milestoneCriteria,

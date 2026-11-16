@@ -33,7 +33,9 @@ import {
 } from 'lucide-react';
 import {
   SurgeryType,
+  AgeGroup,
   SURGERY_DETAILS,
+  AGE_GROUP_DETAILS,
   getRehabStatus,
   Exercise
 } from '@/data/rehabProtocols';
@@ -64,6 +66,7 @@ export default function AxvyraApp() {
   // Authentication State
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [ageGroup, setAgeGroup] = useState<AgeGroup>('AGE_31_45');
 
   // Workout Session State
   const [activeWorkoutExercises, setActiveWorkoutExercises] = useState<Exercise[] | null>(null);
@@ -96,11 +99,17 @@ export default function AxvyraApp() {
       setShowOnboarding(true);
     }
 
-    // Sync with LocalStorage custom surgery fields if set
+    // Sync with LocalStorage custom surgery fields & ageGroup
     try {
       const storedDate = localStorage.getItem('surgeryDate');
       const storedType = localStorage.getItem('surgeryType') as SurgeryType;
       const storedLeg = localStorage.getItem('operatedLeg') as 'left' | 'right';
+      const storedAge = localStorage.getItem('ageGroup') as AgeGroup;
+
+      if (storedAge) {
+        setAgeGroup(storedAge);
+      }
+
       if (storedDate || storedType || storedLeg) {
         currentCase = {
           ...currentCase,
@@ -152,20 +161,19 @@ export default function AxvyraApp() {
   };
 
   const handleLogout = () => {
-    if (confirm('Bạn có muốn đăng xuất khỏi tài khoản này không?')) {
-      setAuthUser(null);
-      try {
-        localStorage.removeItem('axvyra_auth_user');
-      } catch {}
-      setShowAuthModal(true);
-    }
+    try {
+      localStorage.removeItem('axvyra_auth_user');
+    } catch {}
+    setAuthUser(null);
+    setShowAuthModal(true);
   };
 
   // Compute live rehab clinical status
   const rehabStatus = useMemo(() => {
-    if (!recoveryCase) return getRehabStatus(new Date(), 'ACL_MENISCUS_REPAIR');
-    return getRehabStatus(recoveryCase.surgeryDate, recoveryCase.surgeryType);
-  }, [recoveryCase]);
+    const sDate = recoveryCase?.surgeryDate || new Date().toISOString().split('T')[0];
+    const sType = recoveryCase?.surgeryType || 'ACL_MENISCUS_REPAIR';
+    return getRehabStatus(sDate, sType, ageGroup);
+  }, [recoveryCase, ageGroup]);
 
   // Ice Timer Tick
   useEffect(() => {
@@ -214,6 +222,10 @@ export default function AxvyraApp() {
       localStorage.setItem('surgeryDate', profile.surgeryDate);
       localStorage.setItem('surgeryType', profile.surgeryType);
       localStorage.setItem('operatedLeg', profile.surgeryLeg);
+      if (profile.ageGroup) {
+        localStorage.setItem('ageGroup', profile.ageGroup);
+        setAgeGroup(profile.ageGroup);
+      }
     } catch {}
 
     const updated = getOrCreateDefaultCase(
@@ -360,7 +372,7 @@ export default function AxvyraApp() {
               className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold"
             >
               <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="max-w-[75px] truncate">{authUser.fullName.split(' ').pop()}</span>
+              <span className="max-w-[75px] truncate">{authUser.fullName ? authUser.fullName.split(' ').pop() : 'User'}</span>
             </button>
           ) : (
             <button
@@ -422,7 +434,7 @@ export default function AxvyraApp() {
                 </div>
                 <div>
                   <h2 className="text-sm font-black text-slate-900 leading-tight flex items-center gap-1">
-                    Chào {authUser ? authUser.fullName : recoveryCase.patientName || 'Minh'}!
+                    Chào {authUser ? authUser.fullName : (recoveryCase?.patientName || 'Minh')}!
                     {!authUser && (
                       <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-full ml-1">
                         Đăng nhập
@@ -430,7 +442,7 @@ export default function AxvyraApp() {
                     )}
                   </h2>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    Ngày {rehabStatus.currentDay} sau phẫu thuật {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel}
+                    Ngày {rehabStatus.currentDay} sau phẫu thuật {SURGERY_DETAILS[recoveryCase?.surgeryType || 'ACL_ONLY'].shortLabel} • <span className="font-bold text-slate-700">{AGE_GROUP_DETAILS[ageGroup].shortLabel}</span>
                   </p>
                 </div>
               </div>
@@ -453,7 +465,7 @@ export default function AxvyraApp() {
               <div className="p-3.5 rounded-3xl bg-rose-50 border border-rose-200 text-xs text-rose-900 shadow-xs flex items-start gap-2.5">
                 <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <strong className="text-rose-950 font-bold">CẢNH BÁO BẢO VỆ SỤN CHÊM:</strong> 6 tuần đầu tuyệt đối KHÔNG gập gối quá 90° và KHÔNG tì chân mổ ({recoveryCase.weightBearingStatus}).
+                  <strong className="text-rose-950 font-bold">CẢNH BÁO BẢO VỆ SỤN CHÊM:</strong> 6 tuần đầu tuyệt đối KHÔNG gập gối quá 90° và KHÔNG tì chân mổ ({recoveryCase?.weightBearingStatus || 'NWB'}).
                 </div>
               </div>
             )}
@@ -586,7 +598,7 @@ export default function AxvyraApp() {
                       Quy chuẩn an toàn • {rehabStatus.phase.title}
                     </h3>
                     <p className="text-[10px] text-emerald-700 font-semibold">
-                      Tuần {rehabStatus.phase.weekRange[0]} - {rehabStatus.phase.weekRange[1]} • {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel}
+                      Tuần {rehabStatus.phase.weekRange[0]} - {rehabStatus.phase.weekRange[1]} • {SURGERY_DETAILS[rehabStatus.surgeryType].shortLabel} • {AGE_GROUP_DETAILS[ageGroup].shortLabel}
                     </p>
                   </div>
                 </div>
@@ -605,6 +617,15 @@ export default function AxvyraApp() {
                 <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-xs">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Quy định nẹp gối</span>
                   <p className="font-semibold text-slate-800 leading-snug">{rehabStatus.braceSummary}</p>
+                </div>
+              </div>
+
+              {/* Age Group Adjustment Note */}
+              <div className="p-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-[11px] flex items-start gap-2">
+                <span className="text-base shrink-0">🩺</span>
+                <div>
+                  <span className="font-bold text-emerald-950 block">Chỉ định độ tuổi ({AGE_GROUP_DETAILS[ageGroup].shortLabel}):</span>
+                  <span className="text-emerald-900/90 leading-tight block mt-0.5">{rehabStatus.ageAdjustmentNote}</span>
                 </div>
               </div>
 
@@ -877,7 +898,7 @@ export default function AxvyraApp() {
                 {rehabStatus.phase.title}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Phác đồ lâm sàng chuẩn y khoa cho {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel}.
+                Phác đồ lâm sàng chuẩn y khoa cho {SURGERY_DETAILS[rehabStatus.surgeryType].shortLabel} ({AGE_GROUP_DETAILS[ageGroup].shortLabel}).
               </p>
             </div>
 
@@ -1161,10 +1182,11 @@ export default function AxvyraApp() {
       {/* Clinical Onboarding Modal */}
       <OnboardingModal
         initialProfile={{
-          name: authUser ? authUser.fullName : recoveryCase.patientName,
-          surgeryDate: recoveryCase.surgeryDate,
-          surgeryType: recoveryCase.surgeryType,
-          surgeryLeg: recoveryCase.surgeryLeg,
+          name: authUser ? authUser.fullName : (recoveryCase?.patientName || 'Minh'),
+          surgeryDate: recoveryCase?.surgeryDate || new Date().toISOString().split('T')[0],
+          surgeryType: recoveryCase?.surgeryType || 'ACL_MENISCUS_REPAIR',
+          surgeryLeg: recoveryCase?.surgeryLeg || 'left',
+          ageGroup: ageGroup,
           completedOnboarding: true,
         }}
         isOpen={showOnboarding}
