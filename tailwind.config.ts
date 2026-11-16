@@ -8,6 +8,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["'Readex Pro'", "sans-serif"],
+      },
       colors: {
         brand: {
           50: '#ecfdf5',
