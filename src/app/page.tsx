@@ -3,54 +3,43 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import {
-  Activity,
-  AlertOctagon,
+  Bell,
+  Layers,
+  Dumbbell,
+  BarChart2,
   Calendar,
+  Compass,
+  Play,
   CheckCircle2,
   Clock,
-  Dumbbell,
   Heart,
-  HelpCircle,
-  Home,
-  Info,
-  Maximize2,
-  Play,
+  ChevronRight,
+  TrendingUp,
+  Sparkles,
+  ShieldAlert,
   RotateCcw,
   Pause,
-  Settings,
-  ShieldAlert,
-  Sliders,
-  Sparkles,
-  TrendingUp,
-  User,
-  Volume2,
-  ChevronRight,
-  Flame,
   Award,
-  BookOpen,
-  ArrowRight,
-  ShieldCheck,
-  Camera,
   Search,
+  BookOpen,
+  Camera,
+  Activity,
   Check,
-  AlertTriangle,
-  ChevronDown
+  Zap,
+  Flame,
+  Home
 } from 'lucide-react';
 import {
   SurgeryType,
   SURGERY_DETAILS,
-  REHAB_PHASES,
   getRehabStatus,
   Exercise
 } from '@/data/rehabProtocols';
 import {
   RecoveryCase,
-  Milestone,
   DailyExerciseSession,
-  ROMRecord,
-  DailyRecoveryLog,
-  KnowledgeArticle,
-  KNOWLEDGE_ARTICLES
+  KNOWLEDGE_ARTICLES,
+  KnowledgeArticle
 } from '@/data/axvyraDomain';
 import { AxvyraStore, getOrCreateDefaultCase } from '@/lib/axvyraStore';
 import WorkoutPlayer from '@/components/WorkoutPlayer';
@@ -74,7 +63,7 @@ export default function AxvyraApp() {
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [feedbackSessionTitle, setFeedbackSessionTitle] = useState<string>('');
 
-  // Ice Timer State (15 min = 900s)
+  // Ice Timer State
   const [iceSeconds, setIceSeconds] = useState<number>(15 * 60);
   const [isIceRunning, setIsIceRunning] = useState<boolean>(false);
 
@@ -100,7 +89,7 @@ export default function AxvyraApp() {
     }
     setRecoveryCase(currentCase);
 
-    // Sync with Neon Server
+    // Sync with Neon Serverless DB
     AxvyraStore.syncWithServer().then((serverCase) => {
       if (serverCase) setRecoveryCase({ ...serverCase });
     });
@@ -112,7 +101,7 @@ export default function AxvyraApp() {
     return getRehabStatus(recoveryCase.surgeryDate, recoveryCase.surgeryType);
   }, [recoveryCase]);
 
-  // Ice Timer
+  // Ice Timer Tick
   useEffect(() => {
     let interval: any = null;
     if (isIceRunning) {
@@ -153,7 +142,7 @@ export default function AxvyraApp() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Handle Onboarding Completion
+  // Onboarding Completion
   const handleOnboardingComplete = (profile: UserProfile) => {
     const updated = getOrCreateDefaultCase(
       profile.name,
@@ -170,12 +159,11 @@ export default function AxvyraApp() {
     setShowOnboarding(false);
   };
 
-  // Start Today's Session
+  // Start Session
   const handleStartTodaySession = (session: DailyExerciseSession) => {
     setActiveSessionId(session.id);
     setFeedbackSessionTitle(session.title);
 
-    // Convert prescription items to Exercise format for player
     const exercisesForPlayer: Exercise[] = session.exercises.map((e) => ({
       id: e.exerciseId,
       name: e.title,
@@ -194,13 +182,11 @@ export default function AxvyraApp() {
     setActiveWorkoutExercises(exercisesForPlayer);
   };
 
-  // Handle Workout Complete -> open feedback modal
   const handleWorkoutFinished = () => {
     setActiveWorkoutExercises(null);
     setShowFeedbackModal(true);
   };
 
-  // Save Session Feedback
   const handleSaveSessionFeedback = (feedback: {
     rpeScore: number;
     painDuringSession: number;
@@ -213,7 +199,6 @@ export default function AxvyraApp() {
     setActiveSessionId(null);
   };
 
-  // Save Quick Recovery Log
   const handleSaveQuickLog = () => {
     const todayStr = new Date().toLocaleDateString('vi-VN', {
       day: '2-digit',
@@ -235,7 +220,6 @@ export default function AxvyraApp() {
     setTimeout(() => setLogSuccessNotice(false), 3000);
   };
 
-  // ROM Measurement saved from Knee Camera
   const handleROMRecorded = (record: AngleRecord) => {
     const updated = AxvyraStore.addROMRecord({
       flexionAngle: record.flexionAngle,
@@ -248,7 +232,6 @@ export default function AxvyraApp() {
     if (updated) setRecoveryCase({ ...updated });
   };
 
-  // Filter explore articles
   const filteredArticles = useMemo(() => {
     return KNOWLEDGE_ARTICLES.filter((art) => {
       const matchCat = selectedCategory === 'all' || art.category === selectedCategory;
@@ -261,10 +244,10 @@ export default function AxvyraApp() {
 
   if (!mounted || !recoveryCase) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-4">
-        <div className="flex items-center gap-3 text-emerald-600 font-semibold text-sm">
+      <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex items-center justify-center p-4">
+        <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
           <Activity className="w-5 h-5 animate-spin" />
-          Đang nạp AXVYRA V1...
+          Đang tải AXVYRA...
         </div>
       </div>
     );
@@ -272,82 +255,106 @@ export default function AxvyraApp() {
 
   const todaySession = recoveryCase.dailySessions[0] || null;
   const latestROM = recoveryCase.romHistory[0] || null;
-  const latestLog = recoveryCase.dailyLogs[0] || null;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col justify-between selection:bg-emerald-500 selection:text-white relative">
-      {/* Soft Ambient Background Glow */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] h-72 bg-gradient-to-b from-sky-100/50 via-emerald-50/40 to-transparent pointer-events-none z-0 blur-3xl" />
-
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-100 px-4 py-3 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="relative w-9 h-9 rounded-2xl overflow-hidden border border-emerald-100 shadow-xs bg-emerald-50 flex items-center justify-center">
-              <Image
-                src="/images/knee-hero.png"
-                alt="AXVYRA Knee"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-slate-900 text-sm tracking-tight">AXVYRA</span>
-                <span className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase">
-                  V1 • Rehab
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-500 font-medium">
-                {recoveryCase.patientName} • Ngày {rehabStatus.currentDay} (Tuần {rehabStatus.currentWeek})
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex flex-col justify-between font-sans relative select-none">
+      {/* Dynamic Island & Phone Top Bar */}
+      <div className="pt-3 px-6 flex items-center justify-between text-xs font-semibold text-slate-800 z-30 select-none">
+        <span className="font-bold text-sm">9:41</span>
+        <div className="w-24 h-5 bg-black rounded-full mx-auto" />
+        <div className="flex items-center gap-1 text-slate-700">
+          <span className="text-[10px] font-bold">5G</span>
+          <div className="w-4 h-2.5 border border-slate-700 rounded-xs p-0.5 flex items-center">
+            <div className="w-full h-full bg-slate-700 rounded-2xs" />
           </div>
-
-          <button
-            onClick={() => setShowOnboarding(true)}
-            aria-label="Cài đặt ca phục hồi"
-            className="flex items-center gap-1 py-1.5 px-3 rounded-full bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-600 text-xs font-semibold border border-slate-200/80 transition"
-          >
-            <Settings className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Hồ sơ</span>
-          </button>
         </div>
-      </header>
+      </div>
 
-      {/* Main Tab Content */}
-      <main className="flex-1 p-4 space-y-4 pb-24 relative z-10 overflow-y-auto">
+      {/* Main App Bar (Logo & Notification) */}
+      <div className="px-5 pt-3 pb-1 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowOnboarding(true)}>
+          {/* Stylized Green Brand Triangle Logo */}
+          <div className="w-5 h-5 relative flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+              <path
+                d="M12 3L22 20H2L12 3Z"
+                fill="#84CC16"
+                stroke="#10B981"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M12 8L18 19H6L12 8Z"
+                fill="#10B981"
+              />
+            </svg>
+          </div>
+          <span className="font-black text-lg tracking-wider text-slate-900">
+            AXVYRA
+          </span>
+        </div>
+
+        <button
+          onClick={() => setShowOnboarding(true)}
+          className="relative w-9 h-9 rounded-full bg-white shadow-xs border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 transition"
+          aria-label="Thông báo & Hồ sơ"
+        >
+          <Bell className="w-4 h-4" />
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+        </button>
+      </div>
+
+      {/* Main Scrollable View */}
+      <main className="flex-1 px-4 pt-2 pb-28 space-y-3.5 overflow-y-auto relative z-10">
         {/* ========================================================================= */}
-        {/* TAB 1: HOME — RECOVERY JOURNEY DASHBOARD                                  */}
+        {/* TAB 1: HOME (MATCHING THE UPLOADED DESIGN IMAGE)                          */}
         {/* ========================================================================= */}
         {activeTab === 'home' && (
-          <div className="space-y-4 animate-fade-in">
-            {/* Header: Recovery Context & Knee Asset */}
-            <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-5 shadow-lg shadow-emerald-700/20">
-              <div className="relative z-10 max-w-[260px]">
-                <div className="inline-flex items-center gap-1 text-[10px] text-emerald-200 font-bold uppercase tracking-wider mb-1 bg-white/10 px-2 py-0.5 rounded-full backdrop-blur-xs">
-                  <Sparkles className="w-3 h-3" />
-                  Hành trình phục hồi
-                </div>
-                <h1 className="text-xl font-black text-white leading-tight">
-                  Từng bước vững chắc,
-                  <br />
-                  <span className="text-emerald-200">Trở lại mạnh mẽ.</span>
-                </h1>
-                <p className="text-xs text-emerald-100/90 mt-1 leading-relaxed">
-                  {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel} • Gối {recoveryCase.surgeryLeg === 'left' ? 'Trái' : 'Phải'}
-                </p>
-              </div>
-
-              {/* Knee illustration asset in header */}
-              <div className="absolute -right-6 -bottom-6 w-40 h-40 opacity-30 pointer-events-none rounded-full overflow-hidden">
+          <div className="space-y-3.5 animate-fade-in">
+            {/* Patient Header Greeting & Glowing 3D Knee Hero Banner */}
+            <div className="relative pt-1 pb-1">
+              {/* Background 3D Knee Asset placed on the right */}
+              <div className="absolute right-[-14px] top-[-10px] w-48 h-48 opacity-90 pointer-events-none select-none z-0">
                 <Image
                   src="/images/knee-hero.png"
-                  alt="Knee Graphic"
+                  alt="AXVYRA Knee"
                   fill
-                  className="object-cover"
+                  className="object-contain"
+                  priority
                 />
+              </div>
+
+              {/* Greeting Line */}
+              <div className="relative z-10 flex items-center gap-2.5 mb-2">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-emerald-100 flex items-center justify-center">
+                  <Image
+                    src="/images/knee-hero.png"
+                    alt="Minh Avatar"
+                    width={40}
+                    height={40}
+                    className="object-cover scale-150"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-slate-900 leading-tight">
+                    Chào {recoveryCase.patientName || 'Minh'}!
+                  </h2>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Ngày {rehabStatus.currentDay} sau phẫu thuật {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel}
+                  </p>
+                </div>
+              </div>
+
+              {/* Main Headline styled like the image: "Your Comeback Starts Here." */}
+              <div className="relative z-10 max-w-[270px]">
+                <h1 className="text-[25px] font-black text-slate-900 leading-[1.15] tracking-tight">
+                  Your <span className="text-[#208B9F] italic font-serif font-black">Comeback</span>
+                  <br />
+                  Starts Here.
+                </h1>
+                <p className="text-[11.5px] text-slate-500 font-medium mt-1 leading-snug">
+                  Mỗi ngày một bước tiến, gần hơn với phong độ của bạn.
+                </p>
               </div>
             </div>
 
@@ -356,251 +363,408 @@ export default function AxvyraApp() {
               <div className="p-3.5 rounded-3xl bg-rose-50 border border-rose-200 text-xs text-rose-900 shadow-xs flex items-start gap-2.5">
                 <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <strong className="text-rose-950 font-black">QUY TẮC BẢO VỆ SỤN CHÊM:</strong> 6 tuần đầu tuyệt đối KHÔNG gập gối quá 90° và KHÔNG tì chân mổ ({recoveryCase.weightBearingStatus}).
+                  <strong className="text-rose-950 font-bold">CẢNH BÁO BẢO VỆ SỤN CHÊM:</strong> 6 tuần đầu tuyệt đối KHÔNG gập gối quá 90° và KHÔNG tì chân mổ ({recoveryCase.weightBearingStatus}).
                 </div>
               </div>
             )}
 
-            {/* B. Recovery Journey Section (Milestones & Next Milestone) */}
-            <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs space-y-3">
+            {/* CARD 1: HÀNH TRÌNH PHỤC HỒI (EXACT REPLICA OF DESIGN) */}
+            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100/90 space-y-3">
+              {/* Card Header */}
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Cột mốc phục hồi (Recovery Journey)
-                  </h2>
-                  <div className="text-sm font-black text-slate-900 mt-0.5">
-                    Giai đoạn {rehabStatus.phase.phaseNumber}: {rehabStatus.phase.weeksRange}
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Layers className="w-4 h-4 text-emerald-600" />
                   </div>
+                  <span className="font-bold text-[13px] text-slate-900">
+                    Hành trình phục hồi
+                  </span>
                 </div>
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  Góc an toàn: &le; {recoveryCase.maxSafeFlexion}°
-                </span>
-              </div>
-
-              {/* Active Milestone Card */}
-              {recoveryCase.milestones.length > 0 && (
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase">
-                      Mục tiêu tiếp theo (Next Milestone)
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
-                      {recoveryCase.milestones[0].status === 'IN_PROGRESS'
-                        ? 'Đang thực hiện'
-                        : 'Chờ đánh giá'}
-                    </span>
-                  </div>
-                  <h3 className="text-xs font-black text-slate-900">
-                    {recoveryCase.milestones[0].title}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    {recoveryCase.milestones[0].description}
-                  </p>
-                  <div className="text-[10px] text-slate-400 font-medium pt-1">
-                    🎯 Tiêu chuẩn: {recoveryCase.milestones[0].targetCriteria}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* C. Today's Exercise Card */}
-            {todaySession && (
-              <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                      <Dumbbell className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-xs font-black text-slate-900">
-                        {todaySession.title}
-                      </h2>
-                      <p className="text-[11px] text-slate-500">
-                        {todaySession.exercises.length} bài tập • ~{todaySession.estimatedMinutes} phút
-                      </p>
-                    </div>
-                  </div>
-
-                  {todaySession.completed ? (
-                    <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Đã xong
-                    </span>
-                  ) : (
-                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                      Chưa tập
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600">
-                  <strong className="text-slate-800">Trọng tâm: </strong>
-                  {todaySession.focus}
-                </div>
-
                 <button
-                  onClick={() => handleStartTodaySession(todaySession)}
-                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold rounded-2xl text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                  onClick={() => setActiveTab('progress')}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
                 >
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>{todaySession.completed ? 'Tập Lại Buổi Này' : 'Bắt Đầu Buổi Tập Hôm Nay'}</span>
+                  <span>Tuần {rehabStatus.currentWeek} / 16</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
 
-            {/* D. Recent Progress Summary */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="bg-white border border-slate-100 rounded-3xl p-3.5 shadow-xs">
-                <div className="text-[10px] text-slate-400 font-semibold uppercase">ROM Gối mới nhất</div>
-                <div className="text-lg font-black text-emerald-600 mt-1">
-                  {latestROM ? `${latestROM.flexionAngle}°` : 'Chưa đo'}
+              {/* Progress Content: Circular % & 5-Step Roadmap */}
+              <div className="flex items-center gap-3 pt-1">
+                {/* Left Radial Gauge */}
+                <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90 transform">
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      className="text-slate-100"
+                      strokeWidth="6"
+                      stroke="currentColor"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      className="text-emerald-500"
+                      strokeWidth="6"
+                      strokeDasharray={2 * Math.PI * 32}
+                      strokeDashoffset={2 * Math.PI * 32 * (1 - 0.62)}
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="transparent"
+                    />
+                  </svg>
+                  <div className="absolute flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-slate-900">62%</span>
+                    <span className="text-[7.5px] font-bold text-slate-400 uppercase leading-none mt-0.5">
+                      Kế hoạch
+                    </span>
+                  </div>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  Giới hạn: &le; {recoveryCase.maxSafeFlexion}°
-                </div>
-              </div>
 
-              <div className="bg-white border border-slate-100 rounded-3xl p-3.5 shadow-xs">
-                <div className="text-[10px] text-slate-400 font-semibold uppercase">Điểm đau gần nhất</div>
-                <div className="text-lg font-black text-slate-900 mt-1">
-                  {latestLog ? `${latestLog.painScore}/10` : '3/10'}
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  Sưng: {latestLog ? latestLog.swellingLevel : 'Nhẹ'}
+                {/* Right Horizontal Roadmap (5 steps) */}
+                <div className="flex-1 relative pb-1">
+                  {/* Connecting Line */}
+                  <div className="absolute top-2.5 left-2 right-2 h-0.5 bg-slate-200 z-0" />
+                  <div
+                    className="absolute top-2.5 left-2 h-0.5 bg-emerald-500 z-0 transition-all duration-500"
+                    style={{ width: '50%' }}
+                  />
+
+                  <div className="relative z-10 grid grid-cols-5 text-center gap-1">
+                    {/* Node 1: Hậu phẫu */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                      <span className="text-[9px] font-semibold text-slate-600 mt-1 leading-tight">
+                        Hậu phẫu
+                      </span>
+                    </div>
+
+                    {/* Node 2: Vận động sớm */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                      <span className="text-[9px] font-semibold text-slate-600 mt-1 leading-tight">
+                        Vận động sớm
+                      </span>
+                    </div>
+
+                    {/* Node 3: Tăng cường (Active) */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-5 h-5 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center shadow-xs">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      </div>
+                      <span className="text-[9px] font-bold text-slate-900 mt-1 leading-tight">
+                        Tăng cường
+                      </span>
+                    </div>
+
+                    {/* Node 4: Chạy & Nhảy */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-5 h-5 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center" />
+                      <span className="text-[9px] font-medium text-slate-400 mt-1 leading-tight">
+                        Chạy & Nhảy
+                      </span>
+                    </div>
+
+                    {/* Node 5: Trở lại thể thao */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-5 h-5 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center" />
+                      <span className="text-[9px] font-medium text-slate-400 mt-1 leading-tight">
+                        Trở lại thể thao
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 15-Minute Ice Timer Card */}
-            <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
-                    <Clock className="w-4 h-4" />
+            {/* CARD 2: BÀI TẬP HÔM NAY (EXACT REPLICA OF DESIGN) */}
+            {todaySession && (
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100/90 space-y-3">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                      <Dumbbell className="w-4 h-4 text-teal-600" />
+                    </div>
+                    <span className="font-bold text-[13px] text-slate-900">
+                      Bài tập hôm nay
+                    </span>
                   </div>
+                  <button
+                    onClick={() => setActiveTab('plan')}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
+                  >
+                    <span>Ước tính {todaySession.estimatedMinutes} phút • {todaySession.exercises.length} bài tập</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Content: Thumbnail, Title, Start Button */}
+                <div className="flex items-center gap-3 bg-slate-50/60 p-2.5 rounded-2xl border border-slate-100">
+                  {/* Exercise Video Thumbnail */}
+                  <div
+                    onClick={() => handleStartTodaySession(todaySession)}
+                    className="relative w-24 h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 cursor-pointer group shadow-xs"
+                  >
+                    <Image
+                      src="/images/knee-hero.png"
+                      alt="Exercise Thumbnail"
+                      fill
+                      className="object-cover opacity-80 group-hover:scale-105 transition"
+                    />
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md">
+                        <Play className="w-3 h-3 fill-current ml-0.5 text-slate-800" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Title & Desc */}
+                  <div className="flex-1 min-w-0 pr-1">
+                    <h3 className="text-xs font-bold text-slate-900 truncate">
+                      Buổi tập ngày {rehabStatus.currentDay}
+                    </h3>
+                    <p className="text-[10.5px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                      Tăng sức mạnh gối và kiểm soát vận động
+                    </p>
+                  </div>
+
+                  {/* Start Button */}
+                  <button
+                    onClick={() => handleStartTodaySession(todaySession)}
+                    className="py-2 px-3.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-500/20 flex items-center gap-1 shrink-0 transition"
+                  >
+                    <span>Bắt đầu</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* CARD 3: TIẾN BỘ GẦN ĐÂY (EXACT REPLICA WITH 3 SPARKLINE CARDS) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="w-4 h-4 text-emerald-600" />
+                  <span className="font-bold text-[13px] text-slate-900">
+                    Tiến bộ gần đây
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveTab('progress')}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
+                >
+                  <span>Xem chi tiết</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* 3 Metric Cards Grid */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* Metric 1: ROM Gối */}
+                <div className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative">
                   <div>
-                    <h3 className="text-xs font-bold text-slate-900 uppercase">Chườm Đá Lạnh (15 Phút)</h3>
-                    <p className="text-[10px] text-slate-400">Giảm sưng đau sau tập</p>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600">
+                      <Compass className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>ROM gối</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-base font-black text-slate-900">
+                        {latestROM ? `${latestROM.flexionAngle}°` : '128°'}
+                      </span>
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded-md">
+                        ↑ +8°
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Green Sparkline Curve */}
+                  <div className="w-full h-7 mt-2">
+                    <svg viewBox="0 0 100 30" className="w-full h-full">
+                      <defs>
+                        <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M0 25 Q25 22 50 15 T100 5 L100 30 L0 30 Z"
+                        fill="url(#greenGradient)"
+                      />
+                      <path
+                        d="M0 25 Q25 22 50 15 T100 5"
+                        fill="none"
+                        stroke="#10b981"
+                        strokeWidth="2"
+                      />
+                    </svg>
                   </div>
                 </div>
 
-                <div className="text-2xl font-black tabular-nums text-sky-600 font-mono">
-                  {formatTimer(iceSeconds)}
+                {/* Metric 2: Sức mạnh */}
+                <div className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative">
+                  <div>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600">
+                      <Zap className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Sức mạnh</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-base font-black text-slate-900">76%</span>
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded-md">
+                        ↑ +12%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Blue Sparkline Curve */}
+                  <div className="w-full h-7 mt-2">
+                    <svg viewBox="0 0 100 30" className="w-full h-full">
+                      <defs>
+                        <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M0 26 Q30 20 60 18 T100 8 L100 30 L0 30 Z"
+                        fill="url(#blueGradient)"
+                      />
+                      <path
+                        d="M0 26 Q30 20 60 18 T100 8"
+                        fill="none"
+                        stroke="#0ea5e9"
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Metric 3: Khả năng vận động */}
+                <div className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative">
+                  <div>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 truncate">
+                      <Activity className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Khả năng</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-base font-black text-slate-900">7.8</span>
+                      <span className="text-[8.5px] text-slate-400">/10</span>
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded-md">
+                        ↑ +1.6
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Purple Sparkline Curve */}
+                  <div className="w-full h-7 mt-2">
+                    <svg viewBox="0 0 100 30" className="w-full h-full">
+                      <defs>
+                        <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#a855f7" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#a855f7" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M0 28 Q35 22 65 14 T100 6 L100 30 L0 30 Z"
+                        fill="url(#purpleGradient)"
+                      />
+                      <path
+                        d="M0 28 Q35 22 65 14 T100 6"
+                        fill="none"
+                        stroke="#a855f7"
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick 15-Minute Ice Timer */}
+            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900">Chườm đá lạnh (15 Phút)</h3>
+                  <p className="text-[10px] text-slate-500">Giảm sưng đau, chống phản ứng viêm</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
+                <span className="text-base font-black tabular-nums text-sky-600 font-mono">
+                  {formatTimer(iceSeconds)}
+                </span>
                 <button
                   onClick={() => setIsIceRunning(!isIceRunning)}
-                  className={`flex-1 py-2.5 px-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                    isIceRunning
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                      : 'bg-sky-600 hover:bg-sky-500 text-white shadow-xs'
+                  className={`py-1.5 px-3 rounded-full text-xs font-bold transition ${
+                    isIceRunning ? 'bg-amber-500 text-white' : 'bg-sky-600 text-white'
                   }`}
                 >
-                  {isIceRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  {isIceRunning ? 'Tạm Dừng' : 'Bắt Đầu Chườm Đá'}
-                </button>
-                <button
-                  onClick={resetIceTimer}
-                  className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl text-xs font-semibold border border-slate-200 transition"
-                >
-                  <RotateCcw className="w-4 h-4" />
+                  {isIceRunning ? 'Dừng' : 'Bắt đầu'}
                 </button>
               </div>
-            </div>
-
-            {/* E. Quick Recovery Log Button */}
-            <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-rose-500" />
-                  <span className="text-xs font-black text-slate-900">Ghi Nhật Ký Triệu Chứng Nhanh</span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">Hôm nay</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[11px] text-slate-600">Mức độ đau:</span>
-                  <span className="font-bold text-slate-900">{painScore}/10 VAS</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={painScore}
-                  onChange={(e) => setPainScore(parseInt(e.target.value, 10))}
-                  className="w-full accent-emerald-600 h-1.5 bg-slate-100 rounded-lg cursor-pointer"
-                />
-              </div>
-
-              {logSuccessNotice && (
-                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] font-bold flex items-center gap-1.5 border border-emerald-200">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  Đã ghi nhật ký hôm nay thành công!
-                </div>
-              )}
-
-              <button
-                onClick={handleSaveQuickLog}
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs transition"
-              >
-                Lưu Nhật Ký Triệu Chứng
-              </button>
             </div>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: PLAN — KẾ HOẠCH BÀI TẬP & CHI TIẾT                                */}
+        {/* TAB 2: PLAN (KẾ HOẠCH BÀI TẬP)                                           */}
         {/* ========================================================================= */}
         {activeTab === 'plan' && (
-          <div className="space-y-4 animate-fade-in">
+          <div className="space-y-3.5 animate-fade-in">
             <div>
               <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
                 Kế hoạch phục hồi • Phase {rehabStatus.phase.phaseNumber}
               </span>
               <h1 className="text-xl font-black text-slate-900 mt-0.5">
-                Chương Trình Tập Luyện
+                Lịch Tập Theo Tuần
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Chỉ thực hiện các bài tập được chỉ định trong kế hoạch an toàn.
+                Chỉ thực hiện các bài tập được phân quyền bởi bác sĩ và phác đồ.
               </p>
             </div>
 
-            {/* Week Selector / Calendar strip */}
-            <div className="bg-white border border-slate-100 rounded-3xl p-3 shadow-xs flex items-center justify-between text-center">
-              {[1, 2, 3, 4, 5, 6].map((dayNum) => (
+            {/* Day Selector Strip */}
+            <div className="bg-white rounded-3xl p-2.5 border border-slate-100 shadow-sm flex items-center justify-between text-center">
+              {[1, 2, 3, 4, 5, 6].map((d) => (
                 <div
-                  key={dayNum}
+                  key={d}
                   className={`p-2 rounded-2xl flex flex-col items-center flex-1 cursor-pointer transition ${
-                    dayNum === 1
+                    d === 1
                       ? 'bg-emerald-600 text-white font-bold shadow-xs'
                       : 'text-slate-500 hover:bg-slate-50'
                   }`}
                 >
-                  <span className="text-[9px] uppercase tracking-wider">T.{dayNum + 1}</span>
-                  <span className="text-xs font-black mt-0.5">{dayNum}</span>
+                  <span className="text-[8.5px] uppercase tracking-wider">T.{d + 1}</span>
+                  <span className="text-xs font-black mt-0.5">{d}</span>
                 </div>
               ))}
             </div>
 
-            {/* Today Session Card */}
+            {/* Session Detail */}
             {todaySession && (
-              <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs space-y-3">
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-emerald-600 uppercase">
-                      Buổi tập được chỉ định
-                    </span>
-                    <h2 className="text-sm font-black text-slate-900 mt-0.5">
-                      {todaySession.title}
+                    <h2 className="text-xs font-bold text-emerald-700 uppercase">
+                      Buổi tập hôm nay
                     </h2>
+                    <h3 className="text-sm font-black text-slate-900 mt-0.5">
+                      {todaySession.title}
+                    </h3>
                   </div>
                   <button
                     onClick={() => handleStartTodaySession(todaySession)}
-                    className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-xs flex items-center gap-1.5 shadow-xs transition"
+                    className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full text-xs flex items-center gap-1 shadow-sm transition"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
                     <span>Tập ngay</span>
@@ -615,9 +779,9 @@ export default function AxvyraApp() {
                           <span className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center justify-center border border-emerald-200">
                             {idx + 1}
                           </span>
-                          <h3 className="text-xs font-bold text-slate-900">
+                          <h4 className="text-xs font-bold text-slate-900">
                             {item.vietnameseName}
-                          </h3>
+                          </h4>
                         </div>
                         <span className="text-[10px] font-semibold text-slate-500">
                           {item.targetSets} hiệp × {item.targetReps} lần
@@ -640,39 +804,24 @@ export default function AxvyraApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: PROGRESS — TIẾN ĐỘ, ROM & LỊCH SỬ                                */}
+        {/* TAB 3: PROGRESS (TIẾN ĐỘ & CAMERA AI)                                     */}
         {/* ========================================================================= */}
         {activeTab === 'progress' && (
-          <div className="space-y-4 animate-fade-in">
+          <div className="space-y-3.5 animate-fade-in">
             <div>
               <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                Theo dõi phục hồi • Persisted Data
+                Theo dõi phục hồi • Camera AI
               </span>
               <h1 className="text-xl font-black text-slate-900 mt-0.5">
-                Tiến Độ & Biên Độ Khớp Gối
+                Tiến Độ & Biên Độ Góc Gối
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Dữ liệu đo đạc thực tế, không có chỉ số giả định.
+                Nhận diện góc gập duỗi qua MediaPipe PoseLandmarker chuẩn xác.
               </p>
             </div>
 
-            {/* Launch Camera ROM Measurement */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-4 shadow-md space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-xs font-bold text-white uppercase">Đo Góc Gối Bằng Camera AI</h2>
-                    <p className="text-[10px] text-slate-400">MediaPipe Vision • Hông - Gối - Cổ chân</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  Live Vision
-                </span>
-              </div>
-
+            {/* AI Knee Camera Module */}
+            <div className="bg-slate-900 rounded-3xl p-3 shadow-md border border-slate-800">
               <KneeAngleCamera
                 safeMaxFlexion={recoveryCase.maxSafeFlexion}
                 selectedLeg={recoveryCase.surgeryLeg}
@@ -680,23 +829,23 @@ export default function AxvyraApp() {
               />
             </div>
 
-            {/* Milestones History */}
-            <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs space-y-3">
+            {/* Milestone Timeline */}
+            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-2.5">
               <h2 className="text-xs font-black text-slate-900 uppercase">
-                Tiến Trình Cột Mốc Lâm Sàng
+                Cột Mốc Phục Hồi Lâm Sàng
               </h2>
               <div className="space-y-2">
                 {recoveryCase.milestones.map((m) => (
                   <div
                     key={m.id}
-                    className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between gap-2"
+                    className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between gap-2"
                   >
                     <div>
                       <div className="text-xs font-bold text-slate-900">{m.title}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">{m.targetCriteria}</div>
+                      <div className="text-[10.5px] text-slate-500 mt-0.5">{m.targetCriteria}</div>
                     </div>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${
+                      className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
                         m.status === 'CONFIRMED'
                           ? 'bg-emerald-100 text-emerald-700'
                           : m.status === 'IN_PROGRESS'
@@ -708,58 +857,23 @@ export default function AxvyraApp() {
                         ? 'Đã duyệt'
                         : m.status === 'IN_PROGRESS'
                         ? 'Đang tập'
-                        : 'Chưa bắt đầu'}
+                        : 'Chờ'}
                     </span>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* ROM History List */}
-            <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs space-y-3">
-              <h2 className="text-xs font-black text-slate-900 uppercase">
-                Lịch Sử Đo Góc ROM ({recoveryCase.romHistory.length})
-              </h2>
-              {recoveryCase.romHistory.length === 0 ? (
-                <div className="py-6 text-center text-slate-400 text-xs">
-                  Chưa có lần đo góc gối nào được ghi lại.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {recoveryCase.romHistory.slice(0, 5).map((rom) => (
-                    <div
-                      key={rom.id}
-                      className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-900">Gập: {rom.flexionAngle}°</span>
-                        <span className="text-[10px] text-slate-400 ml-2">
-                          {new Date(rom.recordedAt).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          rom.isSafe ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {rom.isSafe ? 'Đạt an toàn' : 'Vượt góc'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: EXPLORE — THƯ VIỆN KIẾN THỨC & AN TOÀN                             */}
+        {/* TAB 4: EXPLORE (KHÁM PHÁ & KIẾN THỨC)                                     */}
         {/* ========================================================================= */}
         {activeTab === 'explore' && (
-          <div className="space-y-4 animate-fade-in">
+          <div className="space-y-3.5 animate-fade-in">
             <div>
               <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                Thư viện kiến thức • Y khoa thường thức
+                Thư viện kiến thức • Y khoa
               </span>
               <h1 className="text-xl font-black text-slate-900 mt-0.5">
                 Cẩm Nang Phục Hồi Khớp Gối
@@ -769,19 +883,19 @@ export default function AxvyraApp() {
               </p>
             </div>
 
-            {/* Search Input */}
+            {/* Search */}
             <div className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm bài viết, triệu chứng, lưu ý..."
+                placeholder="Tìm bài viết, câu hỏi, lưu ý..."
                 className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-2xl p-3 pl-10 text-xs font-medium text-slate-900 placeholder-slate-400 outline-none shadow-xs"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
 
-            {/* Categories Strip */}
+            {/* Category Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
               {[
                 { id: 'all', label: 'Tất cả' },
@@ -803,9 +917,9 @@ export default function AxvyraApp() {
               ))}
             </div>
 
-            {/* Article Modal Preview if selected */}
+            {/* Selected Article Detail */}
             {selectedArticle ? (
-              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-md space-y-3">
+              <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-3">
                 <button
                   onClick={() => setSelectedArticle(null)}
                   className="text-xs text-emerald-700 font-bold flex items-center gap-1 hover:underline mb-1"
@@ -832,25 +946,20 @@ export default function AxvyraApp() {
                 </div>
               </div>
             ) : (
-              /* Articles List */
               <div className="space-y-2.5">
                 {filteredArticles.map((art) => (
                   <div
                     key={art.id}
                     onClick={() => setSelectedArticle(art)}
-                    className="p-4 bg-white hover:bg-slate-50/80 border border-slate-100 rounded-3xl cursor-pointer transition shadow-xs space-y-1.5"
+                    className="p-4 bg-white hover:bg-slate-50/80 border border-slate-100 rounded-3xl cursor-pointer transition shadow-xs space-y-1"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        {art.category === 'safety'
-                          ? 'An toàn'
-                          : art.category === 'protocol'
-                          ? 'Phác đồ'
-                          : 'Dinh dưỡng'}
+                      <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        {art.category === 'safety' ? 'An toàn' : 'Phác đồ'}
                       </span>
                       <span className="text-[10px] text-slate-400">{art.readTime}</span>
                     </div>
-                    <h3 className="text-xs font-black text-slate-900 leading-snug">
+                    <h3 className="text-xs font-black text-slate-900">
                       {art.title}
                     </h3>
                     <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
@@ -895,57 +1004,64 @@ export default function AxvyraApp() {
         onClose={() => setShowOnboarding(false)}
       />
 
-      {/* Mobile Floating Bottom Navigation Bar (4 Primary Tabs) */}
-      <div className="fixed bottom-3 left-0 right-0 z-40 px-3 pointer-events-none max-w-[430px] mx-auto">
-        <nav className="w-full bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-xl rounded-full p-1.5 grid grid-cols-4 gap-1 pointer-events-auto">
+      {/* FLOATING BOTTOM DOCK WITH 4 TABS (EXACT REPLICA OF DESIGN) */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-2 pt-1 pointer-events-none max-w-[430px] mx-auto bg-gradient-to-t from-white/95 via-white/80 to-transparent">
+        <nav className="w-full bg-white/95 backdrop-blur-md border border-slate-100 shadow-lg shadow-slate-200/50 rounded-full py-1.5 px-2 flex items-center justify-between pointer-events-auto">
+          {/* Tab 1: Trang chủ (Active State) */}
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-full text-[10px] font-bold transition ${
+            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
               activeTab === 'home'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'bg-[#E8F8F0] text-[#059669]'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Home className="w-4 h-4 mb-0.5" />
-            <span>Trang chủ</span>
+            <Home className="w-4 h-4 fill-current" />
+            <span className="text-[11px]">Trang chủ</span>
           </button>
 
+          {/* Tab 2: Kế hoạch */}
           <button
             onClick={() => setActiveTab('plan')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-full text-[10px] font-bold transition ${
+            className={`flex flex-col items-center justify-center py-1 px-3 text-xs font-bold transition-all ${
               activeTab === 'plan'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'bg-[#E8F8F0] text-[#059669] rounded-full py-2 px-3.5 flex-row gap-1.5'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Dumbbell className="w-4 h-4 mb-0.5" />
-            <span>Kế hoạch</span>
+            <Calendar className="w-4 h-4" />
+            <span className="text-[10px] mt-0.5">Kế hoạch</span>
           </button>
 
+          {/* Tab 3: Tiến độ */}
           <button
             onClick={() => setActiveTab('progress')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-full text-[10px] font-bold transition ${
+            className={`flex flex-col items-center justify-center py-1 px-3 text-xs font-bold transition-all ${
               activeTab === 'progress'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'bg-[#E8F8F0] text-[#059669] rounded-full py-2 px-3.5 flex-row gap-1.5'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <TrendingUp className="w-4 h-4 mb-0.5" />
-            <span>Tiến độ</span>
+            <BarChart2 className="w-4 h-4" />
+            <span className="text-[10px] mt-0.5">Tiến độ</span>
           </button>
 
+          {/* Tab 4: Khám phá */}
           <button
             onClick={() => setActiveTab('explore')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-full text-[10px] font-bold transition ${
+            className={`flex flex-col items-center justify-center py-1 px-3 text-xs font-bold transition-all ${
               activeTab === 'explore'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'bg-[#E8F8F0] text-[#059669] rounded-full py-2 px-3.5 flex-row gap-1.5'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <BookOpen className="w-4 h-4 mb-0.5" />
-            <span>Khám phá</span>
+            <Compass className="w-4 h-4" />
+            <span className="text-[10px] mt-0.5">Khám phá</span>
           </button>
         </nav>
+
+        {/* iPhone Home Indicator Bar */}
+        <div className="w-32 h-1 bg-black/80 rounded-full mx-auto mt-2" />
       </div>
     </div>
   );

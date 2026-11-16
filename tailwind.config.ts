@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["'Readex Pro'", "sans-serif"],
+        sans: ["'Montserrat'", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
       },
       colors: {
         brand: {
