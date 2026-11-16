@@ -24,7 +24,6 @@ export function getOrCreateDefaultCase(
 ): RecoveryCase {
   const rehab = getRehabStatus(surgeryDate, surgeryType);
 
-  // Generate today's assigned session from protocols
   const dailySessions: DailyExerciseSession[] = [
     {
       id: `session-${surgeryDate}`,
@@ -84,11 +83,48 @@ export class AxvyraStore {
     }
   }
 
+  static async syncWithServer(): Promise<RecoveryCase | null> {
+    if (typeof window === 'undefined') return null;
+    try {
+      const activeCase = this.getRecoveryCase();
+      if (!activeCase) {
+        // Fetch from server if exists
+        const res = await fetch('/api/sync');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.connected && json.data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
+            return json.data;
+          }
+        }
+        return null;
+      }
+
+      // Sync activeCase to Neon server
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(activeCase),
+      }).catch(() => {});
+
+      return activeCase;
+    } catch {
+      return this.getRecoveryCase();
+    }
+  }
+
   static saveRecoveryCase(recoveryCase: RecoveryCase): void {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(recoveryCase));
       this.logAudit('UPDATE', 'RecoveryCase', recoveryCase.id, 'Cập nhật hồ sơ phục hồi');
+
+      // Sync to Neon in background
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recoveryCase),
+      }).catch(() => {});
     } catch (e) {
       console.error('Failed to save RecoveryCase', e);
     }
@@ -148,7 +184,6 @@ export class AxvyraStore {
       ...log,
     };
 
-    // Replace if same date exists, else append
     activeCase.dailyLogs = [newLog, ...activeCase.dailyLogs.filter((l) => l.date !== log.date)];
     this.saveRecoveryCase(activeCase);
     this.logAudit('ADD_LOG', 'RecoveryLog', newLog.id, `Pain: ${newLog.painScore}/10`);

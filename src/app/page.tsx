@@ -99,6 +99,11 @@ export default function AxvyraApp() {
       setShowOnboarding(true);
     }
     setRecoveryCase(currentCase);
+
+    // Sync with Neon Server
+    AxvyraStore.syncWithServer().then((serverCase) => {
+      if (serverCase) setRecoveryCase({ ...serverCase });
+    });
   }, []);
 
   // Compute live rehab clinical status
