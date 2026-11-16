@@ -1,0 +1,361 @@
+// AXVYRA V1 — Prisma Schema for Neon PostgreSQL
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  CLINICIAN
+  ADMIN
+}
+
+enum SurgeryCategory {
+  ACL_RECONSTRUCTION
+  MENISCUS_REPAIR
+  MENISCUS_TRIM
+  COMBINED_ACL_MENISCUS
+}
+
+enum MilestoneStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  AWAITING_ASSESSMENT
+  CONFIRMED
+}
+
+enum SwellingLevel {
+  NONE
+  MILD
+  MODERATE
+  SEVERE
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String?        @unique
+  phoneNumber   String?        @unique
+  fullName      String
+  role          Role           @default(PATIENT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  profile       PatientProfile?
+  recoveryCases RecoveryCase[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model PatientProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth         DateTime?
+  gender              String?
+  operatedKnee        String   // "LEFT" or "RIGHT"
+  activityGoals       String?
+  emergencyContact    String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("patient_profiles")
+}
+
+model RecoveryCase {
+  id                          String                @id @default(uuid())
+  userId                      String
+  user                        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surgeryDate                 DateTime
+  surgeryCategory             SurgeryCategory
+  currentPhase                Int                   @default(1)
+  clinicalPendingVerification Boolean               @default(false)
+  activePlanId                String?
+  activePlan                  PatientRecoveryPlan?  @relation(fields: [activePlanId], references: [id])
+  surgeries                   Surgery[]
+  restrictions                RecoveryRestriction[]
+  patientMilestones           PatientMilestone[]
+  exerciseSessions            ExerciseSession[]
+  recoveryLogs                RecoveryLog[]
+  romMeasurements             ROMMeasurement[]
+  symptomReports              SymptomReport[]
+  auditLogs                   AuditLog[]
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+
+  @@map("recovery_cases")
+}
+
+model Surgery {
+  id              String             @id @default(uuid())
+  recoveryCaseId  String
+  recoveryCase    RecoveryCase       @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  hospitalName    String?
+  surgeonName     String?
+  surgeryDate     DateTime
+  procedures      SurgicalProcedure[]
+  notes           String?
+  createdAt       DateTime           @default(now())
+
+  @@map("surgeries")
+}
+
+model SurgicalProcedure {
+  id          String   @id @default(uuid())
+  surgeryId   String
+  surgery     Surgery  @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+  code        String
+  name        String
+  graftType   String?  // e.g., "Hamstring", "Patellar Tendon", "Quadriceps"
+  meniscusZone String? // e.g., "Red-Red", "Red-White", "White-White"
+  createdAt   DateTime @default(now())
+
+  @@map("surgical_procedures")
+}
+
+model RecoveryRestriction {
+  id                  String       @id @default(uuid())
+  recoveryCaseId      String
+  recoveryCase        RecoveryCase @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  maxFlexionAngle     Int          @default(90) // e.g. strictly 90 for meniscus repair
+  targetExtensionAngle Int         @default(0)
+  weightBearingType   String       // NWB, PWB, FWB
+  braceInstruction    String
+  startDate           DateTime
+  endDate             DateTime?
+  isActive            Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+
+  @@map("recovery_restrictions")
+}
+
+model RecoveryProtocol {
+  id          String            @id @default(uuid())
+  name        String
+  category    SurgeryCategory
+  description String
+  versions    ProtocolVersion[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("recovery_protocols")
+}
+
+model ProtocolVersion {
+  id                  String             @id @default(uuid())
+  protocolId          String
+  protocol            RecoveryProtocol   @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  versionNumber       Int
+  isPublished         Boolean            @default(false)
+  phases              ProtocolPhase[]
+  patientPlans        PatientRecoveryPlan[]
+  createdAt           DateTime           @default(now())
+
+  @@unique([protocolId, versionNumber])
+  @@map("protocol_versions")
+}
+
+model ProtocolPhase {
+  id                  String              @id @default(uuid())
+  protocolVersionId   String
+  protocolVersion     ProtocolVersion     @relation(fields: [protocolVersionId], references: [id], onDelete: Cascade)
+  phaseNumber         Int
+  title               String
+  description         String
+  minWeeks            Int
+  maxWeeks            Int
+  milestones          RecoveryMilestone[]
+  createdAt           DateTime            @default(now())
+
+  @@map("protocol_phases")
+}
+
+model RecoveryMilestone {
+  id                String             @id @default(uuid())
+  protocolPhaseId   String
+  protocolPhase     ProtocolPhase      @relation(fields: [protocolPhaseId], references: [id], onDelete: Cascade)
+  title             String
+  targetCriteria    String
+  patientMilestones PatientMilestone[]
+  createdAt         DateTime           @default(now())
+
+  @@map("recovery_milestones")
+}
+
+model PatientRecoveryPlan {
+  id                  String           @id @default(uuid())
+  protocolVersionId   String
+  protocolVersion     ProtocolVersion  @relation(fields: [protocolVersionId], references: [id])
+  startDate           DateTime
+  assignedBy          String?          // Clinician user ID
+  recoveryCases       RecoveryCase[]
+  createdAt           DateTime         @default(now())
+
+  @@map("patient_recovery_plans")
+}
+
+model PatientMilestone {
+  id                  String            @id @default(uuid())
+  recoveryCaseId      String
+  recoveryCase        RecoveryCase      @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  milestoneId         String
+  milestone           RecoveryMilestone @relation(fields: [milestoneId], references: [id])
+  status              MilestoneStatus   @default(NOT_STARTED)
+  achievedAt          DateTime?
+  verifiedAt          DateTime?
+  verifiedBy          String?
+  patientNotes        String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("patient_milestones")
+}
+
+model Exercise {
+  id              String                 @id @default(uuid())
+  code            String                 @unique
+  title           String
+  vietnameseName  String
+  category        String
+  description     String
+  instructions    String[]
+  safetyWarning   String?
+  videoUrl        String?
+  prescriptions   ExercisePrescription[]
+  createdAt       DateTime               @default(now())
+
+  @@map("exercises")
+}
+
+model ExercisePrescription {
+  id              String            @id @default(uuid())
+  exerciseId      String
+  exercise        Exercise          @relation(fields: [exerciseId], references: [id])
+  targetSets      Int               @default(3)
+  targetReps      Int               @default(10)
+  holdSec         Int               @default(5)
+  restSec         Int               @default(10)
+  maxFlexion      Int?
+  sessionExercises SessionExercise[]
+  createdAt       DateTime          @default(now())
+
+  @@map("exercise_prescriptions")
+}
+
+model ExerciseSession {
+  id                  String             @id @default(uuid())
+  recoveryCaseId      String
+  recoveryCase        RecoveryCase       @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  dayNumber           Int
+  weekNumber          Int
+  title               String
+  estimatedMinutes    Int                @default(15)
+  completed           Boolean            @default(false)
+  completedAt         DateTime?
+  rpeScore            Int?               // 1-10
+  painScore           Int?               // 1-10
+  feedbackNotes       String?
+  sessionExercises    SessionExercise[]
+  createdAt           DateTime           @default(now())
+
+  @@map("exercise_sessions")
+}
+
+model SessionExercise {
+  id              String               @id @default(uuid())
+  sessionId       String
+  session         ExerciseSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  prescriptionId  String
+  prescription    ExercisePrescription @relation(fields: [prescriptionId], references: [id])
+  orderIndex      Int                  @default(0)
+  isCompleted     Boolean              @default(false)
+
+  @@map("session_exercises")
+}
+
+model RecoveryLog {
+  id                    String        @id @default(uuid())
+  recoveryCaseId        String
+  recoveryCase          RecoveryCase  @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  date                  DateTime      @default(now())
+  painScore             Int           // 1-10
+  swellingLevel         SwellingLevel
+  iceDone               Boolean       @default(false)
+  functionalConfidence  Int           @default(7) // 1-10
+  patientNotes          String?
+  createdAt             DateTime      @default(now())
+
+  @@map("recovery_logs")
+}
+
+model ROMMeasurement {
+  id              String       @id @default(uuid())
+  recoveryCaseId  String
+  recoveryCase    RecoveryCase @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  flexionAngle    Int
+  extensionAngle  Int          @default(0)
+  leg             String       // "LEFT" or "RIGHT"
+  isSafe          Boolean
+  safeLimit       Int
+  source          String       // "CAMERA_AI", "MANUAL", "PHOTO"
+  recordedAt      DateTime     @default(now())
+
+  @@map("rom_measurements")
+}
+
+model SymptomReport {
+  id              String       @id @default(uuid())
+  recoveryCaseId  String
+  recoveryCase    RecoveryCase @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  symptomType     String
+  severity        String
+  description     String
+  isAlertTrigger  Boolean      @default(false)
+  reportedAt      DateTime     @default(now())
+
+  @@map("symptom_reports")
+}
+
+model KnowledgeArticle {
+  id          String   @id @default(uuid())
+  title       String
+  summary     String
+  category    String
+  readTime    String
+  content     String[]
+  notice      String?
+  createdAt   DateTime @default(now())
+
+  @@map("knowledge_articles")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id              String        @id @default(uuid())
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+  recoveryCaseId  String?
+  recoveryCase    RecoveryCase? @relation(fields: [recoveryCaseId], references: [id])
+  action          String
+  entityType      String
+  entityId        String
+  details         String?
+  createdAt       DateTime      @default(now())
+
+  @@map("audit_logs")
+}
