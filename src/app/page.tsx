@@ -364,6 +364,50 @@ export default function AxvyraApp() {
   const todaySession = recoveryCase?.dailySessions?.[0] || null;
   const latestROM = recoveryCase?.romHistory?.[0] || null;
 
+  // Recovery progress calculations (0% - 100%)
+  const rehabProgressPercent = useMemo(() => {
+    // Protocol spans 16 weeks (112 days)
+    const pct = Math.round((rehabStatus.currentDay / 112) * 100);
+    return Math.min(100, Math.max(0, pct));
+  }, [rehabStatus.currentDay]);
+
+  const roadmapLineWidth = useMemo(() => {
+    if (rehabStatus.currentWeek <= 2) return 10;
+    if (rehabStatus.currentWeek <= 6) return 35;
+    if (rehabStatus.currentWeek <= 12) return 60;
+    if (rehabStatus.currentWeek <= 16) return 85;
+    return 100;
+  }, [rehabStatus.currentWeek]);
+
+  const ROADMAP_STEPS = [
+    { id: 1, label: 'Hậu phẫu', minWeek: 1, maxWeek: 2 },
+    { id: 2, label: 'Vận động', minWeek: 3, maxWeek: 6 },
+    { id: 3, label: 'Tăng cường', minWeek: 7, maxWeek: 12 },
+    { id: 4, label: 'Chạy & Nhảy', minWeek: 13, maxWeek: 16 },
+    { id: 5, label: 'Thể thao', minWeek: 17, maxWeek: 999 },
+  ];
+
+  // ROM Delta between last 2 measurements
+  const romDelta = useMemo(() => {
+    const list = recoveryCase?.romHistory || [];
+    if (list.length >= 2) {
+      return list[0].flexionAngle - list[1].flexionAngle;
+    }
+    return null;
+  }, [recoveryCase?.romHistory]);
+
+  // Strength adherence: count of actual completed sessions
+  const completedSessions = useMemo(() => {
+    return recoveryCase?.sessionFeedbacks?.length || 0;
+  }, [recoveryCase?.sessionFeedbacks]);
+
+  // Mobility score: 10 - painScore from latest daily recovery log
+  const latestDailyLog = recoveryCase?.dailyLogs?.[0];
+  const mobilityScore = useMemo(() => {
+    if (!latestDailyLog) return null;
+    return Math.max(1, 10 - latestDailyLog.painScore);
+  }, [latestDailyLog]);
+
   const userDisplayName = typeof authUser?.fullName === 'string' && authUser.fullName.trim()
     ? authUser.fullName.trim()
     : 'Bệnh nhân';
@@ -540,17 +584,17 @@ export default function AxvyraApp() {
                       cx="40"
                       cy="40"
                       r="32"
-                      className="text-emerald-500"
+                      className="text-emerald-500 transition-all duration-700"
                       strokeWidth="6"
                       strokeDasharray={2 * Math.PI * 32}
-                      strokeDashoffset={2 * Math.PI * 32 * (1 - 0.62)}
+                      strokeDashoffset={2 * Math.PI * 32 * (1 - rehabProgressPercent / 100)}
                       strokeLinecap="round"
                       stroke="currentColor"
                       fill="transparent"
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center justify-center text-center">
-                    <span className="text-base font-black text-slate-900">62%</span>
+                    <span className="text-base font-black text-slate-900">{rehabProgressPercent}%</span>
                     <span className="text-[7.5px] font-bold text-slate-400 uppercase leading-none mt-0.5">
                       Kế hoạch
                     </span>
@@ -563,55 +607,41 @@ export default function AxvyraApp() {
                   <div className="absolute top-2.5 left-2 right-2 h-0.5 bg-slate-200 z-0" />
                   <div
                     className="absolute top-2.5 left-2 h-0.5 bg-emerald-500 z-0 transition-all duration-500"
-                    style={{ width: '50%' }}
+                    style={{ width: `${roadmapLineWidth}%` }}
                   />
 
                   <div className="relative z-10 grid grid-cols-5 text-center gap-1">
-                    {/* Node 1: Hậu phẫu */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
-                      <span className="text-[9px] font-semibold text-slate-600 mt-1 leading-tight">
-                        Hậu phẫu
-                      </span>
-                    </div>
+                    {ROADMAP_STEPS.map((step) => {
+                      const isCompleted = rehabStatus.currentWeek > step.maxWeek;
+                      const isCurrent = rehabStatus.currentWeek >= step.minWeek && rehabStatus.currentWeek <= step.maxWeek;
 
-                    {/* Node 2: Vận động sớm */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
-                      <span className="text-[9px] font-semibold text-slate-600 mt-1 leading-tight">
-                        Vận động sớm
-                      </span>
-                    </div>
-
-                    {/* Node 3: Tăng cường (Active) */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-5 h-5 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center shadow-xs">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      </div>
-                      <span className="text-[9px] font-bold text-slate-900 mt-1 leading-tight">
-                        Tăng cường
-                      </span>
-                    </div>
-
-                    {/* Node 4: Chạy & Nhảy */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-5 h-5 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center" />
-                      <span className="text-[9px] font-medium text-slate-400 mt-1 leading-tight">
-                        Chạy & Nhảy
-                      </span>
-                    </div>
-
-                    {/* Node 5: Trở lại thể thao */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-5 h-5 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center" />
-                      <span className="text-[9px] font-medium text-slate-400 mt-1 leading-tight">
-                        Trở lại thể thao
-                      </span>
-                    </div>
+                      return (
+                        <div key={step.id} className="flex flex-col items-center">
+                          {isCompleted ? (
+                            <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            </div>
+                          ) : isCurrent ? (
+                            <div className="w-5 h-5 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center shadow-xs animate-pulse">
+                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center" />
+                          )}
+                          <span
+                            className={`text-[9px] mt-1 leading-tight ${
+                              isCurrent
+                                ? 'font-bold text-slate-900'
+                                : isCompleted
+                                ? 'font-semibold text-slate-600'
+                                : 'font-medium text-slate-400'
+                            }`}
+                          >
+                            {step.label}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -769,7 +799,10 @@ export default function AxvyraApp() {
               {/* 3 Metric Cards Grid */}
               <div className="grid grid-cols-3 gap-2">
                 {/* Metric 1: ROM Gối */}
-                <div className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative">
+                <div
+                  onClick={() => setActiveTab('progress')}
+                  className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative cursor-pointer hover:border-emerald-200 transition"
+                >
                   <div>
                     <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600">
                       <Compass className="w-3.5 h-3.5 text-emerald-600" />
@@ -777,72 +810,54 @@ export default function AxvyraApp() {
                     </div>
                     <div className="flex items-baseline gap-1 mt-2">
                       <span className="text-base font-black text-slate-900">
-                        {latestROM ? `${latestROM.flexionAngle}°` : '128°'}
+                        {latestROM ? `${latestROM.flexionAngle}°` : '--°'}
                       </span>
-                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded-md">
-                        ↑ +8°
-                      </span>
+                      {latestROM && romDelta !== null ? (
+                        <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ${
+                          romDelta >= 0 ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'
+                        }`}>
+                          {romDelta >= 0 ? `↑ +${romDelta}°` : `↓ ${romDelta}°`}
+                        </span>
+                      ) : (
+                        <span className="text-[8.5px] font-medium text-slate-400 bg-slate-50 px-1 py-0.2 rounded-md">
+                          {latestROM ? 'Đã đo' : 'Chưa đo'}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Green Sparkline Curve */}
-                  <div className="w-full h-7 mt-2">
-                    <svg viewBox="0 0 100 30" className="w-full h-full">
-                      <defs>
-                        <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      <path
-                        d="M0 25 Q25 22 50 15 T100 5 L100 30 L0 30 Z"
-                        fill="url(#greenGradient)"
-                      />
-                      <path
-                        d="M0 25 Q25 22 50 15 T100 5"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="2"
-                      />
-                    </svg>
+                  <div className="mt-3 pt-2 border-t border-slate-50 text-[9.5px] text-emerald-600 font-semibold flex items-center justify-between">
+                    <span>{latestROM ? 'Đo lại' : 'Đo AI'}</span>
+                    <ChevronRight className="w-3 h-3" />
                   </div>
                 </div>
 
                 {/* Metric 2: Sức mạnh */}
-                <div className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative">
+                <div
+                  onClick={() => setActiveTab('plan')}
+                  className="bg-white rounded-3xl p-3 border border-slate-100/90 shadow-sm flex flex-col justify-between overflow-hidden relative cursor-pointer hover:border-sky-200 transition"
+                >
                   <div>
                     <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600">
                       <Zap className="w-3.5 h-3.5 text-sky-600" />
                       <span>Sức mạnh</span>
                     </div>
                     <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-base font-black text-slate-900">76%</span>
-                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded-md">
-                        ↑ +12%
+                      <span className="text-base font-black text-slate-900">
+                        {completedSessions > 0 ? `${completedSessions}` : '0'}
+                      </span>
+                      <span className="text-[9px] text-slate-400">buổi</span>
+                      <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ml-auto ${
+                        completedSessions > 0 ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-50'
+                      }`}>
+                        {completedSessions > 0 ? 'Đã tập' : 'Chưa tập'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Blue Sparkline Curve */}
-                  <div className="w-full h-7 mt-2">
-                    <svg viewBox="0 0 100 30" className="w-full h-full">
-                      <defs>
-                        <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      <path
-                        d="M0 26 Q30 20 60 18 T100 8 L100 30 L0 30 Z"
-                        fill="url(#blueGradient)"
-                      />
-                      <path
-                        d="M0 26 Q30 20 60 18 T100 8"
-                        fill="none"
-                        stroke="#0ea5e9"
-                        strokeWidth="2"
-                      />
-                    </svg>
+                  <div className="mt-3 pt-2 border-t border-slate-50 text-[9.5px] text-sky-600 font-semibold flex items-center justify-between">
+                    <span>Tập ngay</span>
+                    <ChevronRight className="w-3 h-3" />
                   </div>
                 </div>
 
@@ -854,34 +869,28 @@ export default function AxvyraApp() {
                       <span>Khả năng</span>
                     </div>
                     <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-base font-black text-slate-900">7.8</span>
-                      <span className="text-[8.5px] text-slate-400">/10</span>
-                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded-md">
-                        ↑ +1.6
+                      {mobilityScore !== null ? (
+                        <>
+                          <span className="text-base font-black text-slate-900">
+                            {mobilityScore.toFixed(1)}
+                          </span>
+                          <span className="text-[8.5px] text-slate-400">/10</span>
+                        </>
+                      ) : (
+                        <span className="text-base font-black text-slate-900">
+                          --
+                        </span>
+                      )}
+                      <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ml-auto ${
+                        latestDailyLog ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-50'
+                      }`}>
+                        {latestDailyLog ? `Đau ${latestDailyLog.painScore}/10` : 'Chưa ghi'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Purple Sparkline Curve */}
-                  <div className="w-full h-7 mt-2">
-                    <svg viewBox="0 0 100 30" className="w-full h-full">
-                      <defs>
-                        <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#a855f7" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#a855f7" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      <path
-                        d="M0 28 Q35 22 65 14 T100 6 L100 30 L0 30 Z"
-                        fill="url(#purpleGradient)"
-                      />
-                      <path
-                        d="M0 28 Q35 22 65 14 T100 6"
-                        fill="none"
-                        stroke="#a855f7"
-                        strokeWidth="2"
-                      />
-                    </svg>
+                  <div className="mt-3 pt-2 border-t border-slate-50 text-[9.5px] text-purple-600 font-semibold truncate">
+                    {latestDailyLog ? `Sưng: ${latestDailyLog.swellingLevel}` : 'Nhật ký đau'}
                   </div>
                 </div>
               </div>

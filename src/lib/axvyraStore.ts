@@ -16,8 +16,8 @@ const STORAGE_KEY = 'axvyra_v1_case';
 const AUDIT_KEY = 'axvyra_v1_audit';
 
 export function getOrCreateDefaultCase(
-  patientName = 'Nguyễn Văn A',
-  surgeryDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+  patientName = 'Bệnh nhân',
+  surgeryDate = new Date().toISOString().split('T')[0],
   surgeryType: SurgeryType = 'ACL_MENISCUS_REPAIR',
   surgeryLeg: 'left' | 'right' = 'left',
   restrictions?: { weightBearing?: string; maxFlexion?: number }
