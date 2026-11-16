@@ -207,8 +207,58 @@ export default function AuthModal({
     }
   };
 
+  // Google Client ID
+  const GOOGLE_CLIENT_ID =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    '451917802570-bfkh9g6ft0k0uhi977s1oujihtquml05.apps.googleusercontent.com';
+
+  // Initialize Google One-Tap & OAuth SDK
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const initGsi = () => {
+      if ((window as any).google?.accounts?.id) {
+        try {
+          (window as any).google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: async (response: any) => {
+              if (response.credential) {
+                try {
+                  const base64Url = response.credential.split('.')[1];
+                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                  const jsonPayload = decodeURIComponent(
+                    atob(base64)
+                      .split('')
+                      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                      .join('')
+                  );
+                  const payload = JSON.parse(jsonPayload);
+                  if (payload.email) {
+                    await handleConfirmGoogleAuth(
+                      payload.email,
+                      payload.name || 'Bệnh nhân',
+                      payload.picture
+                    );
+                  }
+                } catch (e) {
+                  console.error('Failed to parse Google ID token:', e);
+                }
+              }
+            },
+          });
+        } catch (e) {
+          console.warn('GSI ID init error:', e);
+        }
+      }
+    };
+
+    initGsi();
+    const t = setTimeout(initGsi, 800);
+    return () => clearTimeout(t);
+  }, []);
+
   // Execute Google Authentication with selected or entered Gmail
-  const handleConfirmGoogleAuth = async (targetEmail: string, targetName: string) => {
+  const handleConfirmGoogleAuth = async (targetEmail: string, targetName: string, avatarUrl?: string) => {
     setIsLoading(true);
     setErrorMsg(null);
 
@@ -219,7 +269,7 @@ export default function AuthModal({
         body: JSON.stringify({
           email: targetEmail,
           fullName: targetName,
-          avatarUrl: '/images/knee-hero.png',
+          avatarUrl: avatarUrl || '/images/knee-hero.png',
         }),
       });
 
@@ -247,6 +297,60 @@ export default function AuthModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Launch official Google OAuth popup window
+  const handleGoogleSignIn = () => {
+    setErrorMsg(null);
+
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
+      try {
+        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
+              console.warn('Google OAuth error:', tokenResponse.error);
+              setErrorMsg('Đăng nhập Google bị hủy hoặc gặp lỗi: ' + tokenResponse.error);
+              return;
+            }
+
+            if (tokenResponse.access_token) {
+              setIsLoading(true);
+              try {
+                const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                });
+                const gUser = await userInfoRes.json();
+
+                if (!gUser.email) {
+                  throw new Error('Không lấy được thông tin email từ tài khoản Google.');
+                }
+
+                await handleConfirmGoogleAuth(
+                  gUser.email,
+                  gUser.name || gUser.given_name || 'Bệnh nhân',
+                  gUser.picture
+                );
+              } catch (err: any) {
+                setErrorMsg(err.message || 'Lỗi khi đồng bộ tài khoản Google.');
+              } finally {
+                setIsLoading(false);
+              }
+            }
+          },
+        });
+
+        // Opens official Google Sign-In popup!
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err: any) {
+        console.warn('initTokenClient failed, fallback to manual prompt:', err);
+      }
+    }
+
+    // Fallback if Google CDN is blocked or offline
+    setMode('GOOGLE_PROMPT');
   };
 
   const handleOtpChange = (val: string, index: number) => {
@@ -672,10 +776,10 @@ export default function AuthModal({
                 </span>
               </div>
 
-              {/* Full Width Google / Gmail Button */}
+              {/* Full Width Google Button */}
               <button
                 type="button"
-                onClick={() => setMode('GOOGLE_PROMPT')}
+                onClick={handleGoogleSignIn}
                 disabled={isLoading}
                 className="w-full py-3.5 px-4 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] border border-slate-200 shadow-xs flex items-center justify-center gap-2.5 text-xs font-bold text-slate-800 transition"
               >
