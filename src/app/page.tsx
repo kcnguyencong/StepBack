@@ -350,20 +350,6 @@ export default function AxvyraApp() {
     });
   }, [searchQuery, selectedCategory]);
 
-  if (!mounted || !recoveryCase) {
-    return (
-      <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex items-center justify-center p-4">
-        <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
-          <Activity className="w-5 h-5 animate-spin" />
-          Đang tải AXVYRA...
-        </div>
-      </div>
-    );
-  }
-
-  const todaySession = recoveryCase?.dailySessions?.[0] || null;
-  const latestROM = recoveryCase?.romHistory?.[0] || null;
-
   // Recovery progress calculations (0% - 100%)
   const rehabProgressPercent = useMemo(() => {
     // Protocol spans 16 weeks (112 days)
@@ -408,10 +394,24 @@ export default function AxvyraApp() {
     return Math.max(1, 10 - latestDailyLog.painScore);
   }, [latestDailyLog]);
 
+  const todaySession = recoveryCase?.dailySessions?.[0] || null;
+  const latestROM = recoveryCase?.romHistory?.[0] || null;
+
   const userDisplayName = typeof authUser?.fullName === 'string' && authUser.fullName.trim()
     ? authUser.fullName.trim()
     : 'Bệnh nhân';
   const userShortName = userDisplayName.split(' ').pop() || 'User';
+
+  if (!mounted || !recoveryCase) {
+    return (
+      <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex items-center justify-center p-4">
+        <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+          <Activity className="w-5 h-5 animate-spin" />
+          Đang tải AXVYRA...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex flex-col justify-between font-sans relative select-none">
