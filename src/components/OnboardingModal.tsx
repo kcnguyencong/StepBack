@@ -48,13 +48,27 @@ export default function OnboardingModal({
 }: OnboardingModalProps) {
   const [step, setStep] = useState<number>(0);
   const [name, setName] = useState<string>(initialProfile.name || '');
-  const [surgeryDate, setSurgeryDate] = useState<string>(
-    initialProfile.surgeryDate || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
-  );
-  const [surgeryLeg, setSurgeryLeg] = useState<'left' | 'right'>(initialProfile.surgeryLeg || 'left');
-  const [surgeryType, setSurgeryType] = useState<SurgeryType>(
-    initialProfile.surgeryType || 'ACL_MENISCUS_REPAIR'
-  );
+  const [surgeryDate, setSurgeryDate] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('surgeryDate');
+      if (stored) return stored;
+    }
+    return initialProfile.surgeryDate || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  });
+  const [surgeryLeg, setSurgeryLeg] = useState<'left' | 'right'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('operatedLeg') as 'left' | 'right';
+      if (stored) return stored;
+    }
+    return initialProfile.surgeryLeg || 'left';
+  });
+  const [surgeryType, setSurgeryType] = useState<SurgeryType>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('surgeryType') as SurgeryType;
+      if (stored) return stored;
+    }
+    return initialProfile.surgeryType || 'ACL_MENISCUS_REPAIR';
+  });
   const [weightBearing, setWeightBearing] = useState<string>(
     initialProfile.surgeryType === 'ACL_MENISCUS_REPAIR' ? 'NWB' : 'PWB'
   );
@@ -79,6 +93,12 @@ export default function OnboardingModal({
         spread: 70,
         origin: { y: 0.6 },
       });
+      try {
+        localStorage.setItem('surgeryDate', surgeryDate);
+        localStorage.setItem('surgeryType', surgeryType);
+        localStorage.setItem('operatedLeg', surgeryLeg);
+      } catch {}
+
       const finishedProfile: UserProfile = {
         name: name.trim() || 'Bệnh nhân',
         surgeryDate,
@@ -483,7 +503,7 @@ export default function OnboardingModal({
               <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
                 <span className="text-slate-500">Tiến độ:</span>
                 <span className="font-bold text-emerald-700">
-                  Ngày {previewStatus.currentDay} • Tuần {previewStatus.currentWeek} (Giai đoạn {previewStatus.phase.phaseNumber})
+                  Ngày {previewStatus.currentDay} • Tuần {previewStatus.currentWeek} (Giai đoạn {previewStatus.phase.phase})
                 </span>
               </div>
 

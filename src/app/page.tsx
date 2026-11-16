@@ -17,6 +17,8 @@ import {
   TrendingUp,
   Sparkles,
   ShieldAlert,
+  ShieldCheck,
+  AlertTriangle,
   RotateCcw,
   Pause,
   Award,
@@ -93,6 +95,23 @@ export default function AxvyraApp() {
       AxvyraStore.saveRecoveryCase(currentCase);
       setShowOnboarding(true);
     }
+
+    // Sync with LocalStorage custom surgery fields if set
+    try {
+      const storedDate = localStorage.getItem('surgeryDate');
+      const storedType = localStorage.getItem('surgeryType') as SurgeryType;
+      const storedLeg = localStorage.getItem('operatedLeg') as 'left' | 'right';
+      if (storedDate || storedType || storedLeg) {
+        currentCase = {
+          ...currentCase,
+          surgeryDate: storedDate || currentCase.surgeryDate,
+          surgeryType: storedType || currentCase.surgeryType,
+          surgeryLeg: storedLeg || currentCase.surgeryLeg,
+        };
+        AxvyraStore.saveRecoveryCase(currentCase);
+      }
+    } catch {}
+
     setRecoveryCase(currentCase);
 
     // Load Auth User - enforce Auth if none exists
@@ -190,6 +209,12 @@ export default function AxvyraApp() {
 
   // Onboarding Completion
   const handleOnboardingComplete = (profile: UserProfile) => {
+    try {
+      localStorage.setItem('surgeryDate', profile.surgeryDate);
+      localStorage.setItem('surgeryType', profile.surgeryType);
+      localStorage.setItem('operatedLeg', profile.surgeryLeg);
+    } catch {}
+
     const updated = getOrCreateDefaultCase(
       profile.name,
       profile.surgeryDate,
@@ -205,24 +230,22 @@ export default function AxvyraApp() {
     setShowOnboarding(false);
   };
 
-  // Start Session
-  const handleStartTodaySession = (session: DailyExerciseSession) => {
-    setActiveSessionId(session.id);
-    setFeedbackSessionTitle(session.title);
+  // Start Session with guided interval timer
+  const handleStartTodaySession = (session?: DailyExerciseSession) => {
+    const sessionTitle = session?.title || `Buổi tập Phục hồi • ${rehabStatus.phase.title}`;
+    setActiveSessionId(session?.id || `ses-${Date.now()}`);
+    setFeedbackSessionTitle(sessionTitle);
 
-    const exercisesForPlayer: Exercise[] = session.exercises.map((e) => ({
-      id: e.exerciseId,
-      name: e.title,
-      vietnameseName: e.vietnameseName,
-      category: 'activation',
-      targetSets: e.targetSets,
-      targetReps: e.targetReps,
-      holdSec: e.holdSec,
-      restSec: e.restSec,
-      description: e.instructions[0] || '',
-      instructions: e.instructions,
-      safetyWarning: e.safetyNote,
-      maxFlexionAngle: e.maxFlexionAngle,
+    // Wire up clinical exercises from getRehabStatus
+    const exercisesForPlayer: Exercise[] = rehabStatus.exercises.map((e) => ({
+      ...e,
+      vietnameseName: e.name,
+      targetSets: e.sets,
+      targetReps: e.reps,
+      holdSec: e.holdSeconds,
+      restSec: e.restSeconds,
+      safetyWarning: e.contraindications,
+      description: e.instructions[0] || e.targetGoal,
     }));
 
     setActiveWorkoutExercises(exercisesForPlayer);
@@ -550,69 +573,127 @@ export default function AxvyraApp() {
               </div>
             </div>
 
-            {/* CARD 2: BÀI TẬP HÔM NAY (EXACT REPLICA OF DESIGN) */}
-            {todaySession && (
-              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100/90 space-y-3">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-                      <Dumbbell className="w-4 h-4 text-teal-600" />
-                    </div>
-                    <span className="font-bold text-[13px] text-slate-900">
-                      Bài tập hôm nay
-                    </span>
+            {/* CLINICAL SAFETY LIMITS & GUIDELINES */}
+            <div className="bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/30 rounded-3xl p-4 shadow-sm border border-emerald-100/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
                   </div>
-                  <button
-                    onClick={() => setActiveTab('plan')}
-                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
-                  >
-                    <span>Ước tính {todaySession.estimatedMinutes} phút • {todaySession.exercises.length} bài tập</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Content: Thumbnail, Title, Start Button */}
-                <div className="flex items-center gap-3 bg-slate-50/60 p-2.5 rounded-2xl border border-slate-100">
-                  {/* Exercise Video Thumbnail */}
-                  <div
-                    onClick={() => handleStartTodaySession(todaySession)}
-                    className="relative w-24 h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 cursor-pointer group shadow-xs"
-                  >
-                    <Image
-                      src="/images/knee-hero.png"
-                      alt="Exercise Thumbnail"
-                      fill
-                      className="object-cover opacity-80 group-hover:scale-105 transition"
-                    />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <div className="w-6 h-6 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md">
-                        <Play className="w-3 h-3 fill-current ml-0.5 text-slate-800" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Title & Desc */}
-                  <div className="flex-1 min-w-0 pr-1">
-                    <h3 className="text-xs font-bold text-slate-900 truncate">
-                      Buổi tập ngày {rehabStatus.currentDay}
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 leading-tight">
+                      Quy chuẩn an toàn • {rehabStatus.phase.title}
                     </h3>
-                    <p className="text-[10.5px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                      Tăng sức mạnh gối và kiểm soát vận động
+                    <p className="text-[10px] text-emerald-700 font-semibold">
+                      Tuần {rehabStatus.phase.weekRange[0]} - {rehabStatus.phase.weekRange[1]} • {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel}
                     </p>
                   </div>
-
-                  {/* Start Button */}
-                  <button
-                    onClick={() => handleStartTodaySession(todaySession)}
-                    className="py-2 px-3.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-500/20 flex items-center gap-1 shrink-0 transition"
-                  >
-                    <span>Bắt đầu</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 font-medium block">Góc gập tối đa</span>
+                  <span className="text-sm font-black text-emerald-700">{rehabStatus.allowedFlexionMax}°</span>
                 </div>
               </div>
-            )}
+
+              {/* Safety Badges Grid */}
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-xs">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Tỳ đè & Chống chân</span>
+                  <p className="font-semibold text-slate-800 leading-snug">{rehabStatus.weightBearingSummary}</p>
+                </div>
+                <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-xs">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Quy định nẹp gối</span>
+                  <p className="font-semibold text-slate-800 leading-snug">{rehabStatus.braceSummary}</p>
+                </div>
+              </div>
+
+              {/* Milestones Criteria */}
+              {rehabStatus.milestoneCriteria.length > 0 && (
+                <div className="pt-1 border-t border-slate-100 text-[11px]">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tiêu chí hoàn thành giai đoạn:</span>
+                  <ul className="space-y-1 text-slate-700 font-medium pl-4 list-disc">
+                    {rehabStatus.milestoneCriteria.map((criterion, idx) => (
+                      <li key={idx}>{criterion}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* CLINICAL RED FLAGS WARNING */}
+            <div className="bg-rose-50/90 rounded-3xl p-3.5 border border-rose-200/80 space-y-2">
+              <div className="flex items-center gap-2 text-rose-900 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>CẢNH BÁO CỜ ĐỎ (RED FLAGS) - LIÊN HỆ BÁC SĨ NGAY</span>
+              </div>
+              <ul className="space-y-1 text-[11px] text-rose-800 font-medium pl-5 list-disc leading-relaxed">
+                {rehabStatus.redFlags.map((flag, idx) => (
+                  <li key={idx}>{flag}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* CARD 2: BÀI TẬP HÔM NAY (EXACT REPLICA OF DESIGN) */}
+            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100/90 space-y-3">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                    <Dumbbell className="w-4 h-4 text-teal-600" />
+                  </div>
+                  <span className="font-bold text-[13px] text-slate-900">
+                    Bài tập hôm nay
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveTab('plan')}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-0.5"
+                >
+                  <span>{rehabStatus.exercises.length} bài tập • Guided Timer</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Content: Thumbnail, Title, Start Button */}
+              <div className="flex items-center gap-3 bg-slate-50/60 p-2.5 rounded-2xl border border-slate-100">
+                {/* Exercise Video Thumbnail */}
+                <div
+                  onClick={() => handleStartTodaySession()}
+                  className="relative w-24 h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 cursor-pointer group shadow-xs"
+                >
+                  <Image
+                    src="/images/knee-hero.png"
+                    alt="Exercise Thumbnail"
+                    fill
+                    className="object-cover opacity-80 group-hover:scale-105 transition"
+                  />
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md">
+                      <Play className="w-3 h-3 fill-current ml-0.5 text-slate-800" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Title & Desc */}
+                <div className="flex-1 min-w-0 pr-1">
+                  <h3 className="text-xs font-bold text-slate-900 truncate">
+                    Buổi tập Phase {rehabStatus.phase.phase} • Ngày {rehabStatus.currentDay}
+                  </h3>
+                  <p className="text-[10.5px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                    {rehabStatus.exercises[0]?.name || 'Tăng sức mạnh gối và kiểm soát vận động'}
+                  </p>
+                </div>
+
+                {/* Start Button */}
+                <button
+                  onClick={() => handleStartTodaySession()}
+                  className="py-2 px-3.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-500/20 flex items-center gap-1 shrink-0 transition"
+                >
+                  <span>Bắt đầu</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
 
             {/* CARD 3: TIẾN BỘ GẦN ĐÂY (EXACT REPLICA WITH 3 SPARKLINE CARDS) */}
             <div className="space-y-2">
@@ -789,13 +870,13 @@ export default function AxvyraApp() {
           <div className="space-y-3.5 animate-fade-in">
             <div>
               <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                Kế hoạch phục hồi • Phase {rehabStatus.phase.phaseNumber}
+                Kế hoạch phục hồi • Phase {rehabStatus.phase.phase}
               </span>
               <h1 className="text-xl font-black text-slate-900 mt-0.5">
-                Lịch Tập Theo Tuần
+                {rehabStatus.phase.title}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Chỉ thực hiện các bài tập được phân quyền bởi bác sĩ và phác đồ.
+                Phác đồ lâm sàng chuẩn y khoa cho {SURGERY_DETAILS[recoveryCase.surgeryType].shortLabel}.
               </p>
             </div>
 
@@ -817,55 +898,75 @@ export default function AxvyraApp() {
             </div>
 
             {/* Session Detail */}
-            {todaySession && (
-              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xs font-bold text-emerald-700 uppercase">
-                      Buổi tập hôm nay
-                    </h2>
-                    <h3 className="text-sm font-black text-slate-900 mt-0.5">
-                      {todaySession.title}
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => handleStartTodaySession(todaySession)}
-                    className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full text-xs flex items-center gap-1 shadow-sm transition"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Tập ngay</span>
-                  </button>
+            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xs font-bold text-emerald-700 uppercase">
+                    Bài tập chỉ định giai đoạn {rehabStatus.phase.phase}
+                  </h2>
+                  <h3 className="text-sm font-black text-slate-900 mt-0.5">
+                    {rehabStatus.exercises.length} bài tập phục hồi chức năng
+                  </h3>
                 </div>
+                <button
+                  onClick={() => handleStartTodaySession()}
+                  className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full text-xs flex items-center gap-1 shadow-sm transition"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Tập với Audio Timer</span>
+                </button>
+              </div>
 
-                <div className="divide-y divide-slate-100">
-                  {todaySession.exercises.map((item, idx) => (
-                    <div key={item.exerciseId} className="py-3 first:pt-1 last:pb-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center justify-center border border-emerald-200">
-                            {idx + 1}
-                          </span>
+              <div className="divide-y divide-slate-100">
+                {rehabStatus.exercises.map((item, idx) => (
+                  <div key={item.id} className="py-3 first:pt-1 last:pb-1 space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <span className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center justify-center border border-emerald-200 shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <div>
                           <h4 className="text-xs font-bold text-slate-900">
-                            {item.vietnameseName}
+                            {item.name}
                           </h4>
+                          <span className="text-[10px] text-slate-400 italic">
+                            {item.englishName}
+                          </span>
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-500">
-                          {item.targetSets} hiệp × {item.targetReps} lần
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full block">
+                          {item.sets} hiệp × {item.reps} lần
+                        </span>
+                        <span className="text-[9px] text-slate-400 block mt-0.5">
+                          Giữ {item.holdSeconds}s • Nghỉ {item.restSeconds}s
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1 pl-7 leading-relaxed">
-                        {item.instructions[0]}
-                      </p>
-                      {item.safetyNote && (
-                        <div className="mt-1 pl-7 text-[10px] text-rose-600 font-semibold">
-                          ⚠️ {item.safetyNote}
-                        </div>
-                      )}
                     </div>
-                  ))}
-                </div>
+
+                    <p className="text-[11px] text-slate-600 pl-7 leading-relaxed font-medium">
+                      🎯 <strong>Mục tiêu:</strong> {item.targetGoal}
+                    </p>
+
+                    <div className="pl-7 text-[10.5px] text-slate-500 space-y-0.5">
+                      {item.instructions.map((inst, i) => (
+                        <p key={i}>• {inst}</p>
+                      ))}
+                    </div>
+
+                    {item.contraindications && (
+                      <div className="mt-1 pl-7 text-[10px] text-rose-600 font-semibold bg-rose-50/60 p-1.5 rounded-xl border border-rose-100">
+                        ⚠️ <strong>Lưu ý:</strong> {item.contraindications}
+                      </div>
+                    )}
+
+                    <div className="pl-7 pt-0.5 text-[9.5px] text-slate-400">
+                      Nguồn y khoa: {item.medicalSource}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
 
