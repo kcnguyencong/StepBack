@@ -387,19 +387,34 @@ export default function AxvyraApp() {
     { id: 5, label: 'Thể thao', minWeek: 17, maxWeek: 999 },
   ];
 
-  // ROM Delta between last 2 measurements
-  const romDelta = useMemo(() => {
-    const list = recoveryCase?.romHistory || [];
-    if (list.length >= 2) {
-      return list[0].flexionAngle - list[1].flexionAngle;
-    }
-    return null;
-  }, [recoveryCase?.romHistory]);
-
   // Strength adherence: count of actual completed sessions
   const completedSessions = useMemo(() => {
     return recoveryCase?.sessionFeedbacks?.length || 0;
   }, [recoveryCase?.sessionFeedbacks]);
+
+  // Tính 7 ngày trong tuần phục hồi hiện tại
+  const currentWeekDays = useMemo(() => {
+    const curDay = rehabStatus.currentDay;
+    const weekStartDay = Math.max(1, (rehabStatus.currentWeek - 1) * 7 + 1);
+    const dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+    return [0, 1, 2, 3, 4, 5, 6].map((offset) => {
+      const dayNum = weekStartDay + offset;
+      const isToday = dayNum === curDay;
+      const isPast = dayNum < curDay;
+      const isFuture = dayNum > curDay;
+      const isDone = isPast || (isToday && completedSessions > 0);
+
+      return {
+        label: dayLabels[offset],
+        dayNum,
+        isToday,
+        isPast,
+        isFuture,
+        isDone,
+      };
+    });
+  }, [rehabStatus.currentDay, rehabStatus.currentWeek, completedSessions]);
 
   // Mobility score: 10 - painScore from latest daily recovery log
   const latestDailyLog = recoveryCase?.dailyLogs?.[0];
@@ -705,7 +720,109 @@ export default function AxvyraApp() {
                 </div>
 
                 {/* =================================================================== */}
-                {/* KHỐI 2: RECOVERY DASHBOARD - BENTO GRID CHỈ SỐ PHỤC HỒI            */}
+                {/* KHỐI 2: TIẾN TRÌNH THEO NGÀY (DAILY RECOVERY TIMELINE & TRACKER)   */}
+                {/* =================================================================== */}
+                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4">
+                  {/* Header: Ngày hiện tại & Lộ trình tổng thể */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100/80">
+                        <Calendar className="w-4 h-4 text-teal-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-slate-900 leading-tight">
+                          Tiến trình theo ngày sau mổ
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">
+                          Hôm nay: <strong className="text-teal-700 font-bold">Ngày {rehabStatus.currentDay}</strong> • Tuần {rehabStatus.currentWeek}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-black text-slate-900">{rehabProgressPercent}%</span>
+                      <span className="text-[10px] text-slate-400 block -mt-0.5 font-medium">Lộ trình 112 ngày</span>
+                    </div>
+                  </div>
+
+                  {/* Thanh tiến độ ngày mượt mà */}
+                  <div className="space-y-1.5">
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-700 shadow-xs"
+                        style={{ width: `${rehabProgressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400 font-semibold px-0.5">
+                      <span>Ngày 1 (Mổ)</span>
+                      <span>Ngày 14</span>
+                      <span>Ngày 42</span>
+                      <span>Ngày 84</span>
+                      <span>Ngày 112+</span>
+                    </div>
+                  </div>
+
+                  {/* Dải 7 ngày theo dõi tuần phục hồi (Daily Week Tracker) */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-xs font-bold text-slate-700">
+                        Lịch tập Tuần {rehabStatus.currentWeek} (Từng ngày)
+                      </span>
+                      <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+                        {completedSessions} buổi hoàn thành
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1.5 text-center">
+                      {currentWeekDays.map((item) => (
+                        <div
+                          key={item.dayNum}
+                          className={`flex flex-col items-center py-2 px-1 rounded-2xl transition ${
+                            item.isToday
+                              ? 'bg-teal-50 border-2 border-teal-500/80 shadow-xs'
+                              : 'bg-slate-50/70 border border-slate-100'
+                          }`}
+                        >
+                          <span
+                            className={`text-[10px] font-bold ${
+                              item.isToday ? 'text-teal-800' : 'text-slate-400'
+                            }`}
+                          >
+                            {item.label}
+                          </span>
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
+                              item.isToday
+                                ? 'bg-teal-700 text-white shadow-xs'
+                                : item.isDone
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-white text-slate-400 border border-slate-200'
+                            }`}
+                          >
+                            {item.isDone && !item.isToday ? (
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            ) : (
+                              item.dayNum
+                            )}
+                          </div>
+                          <span
+                            className={`text-[9px] font-medium leading-none ${
+                              item.isToday
+                                ? 'text-teal-700 font-bold'
+                                : item.isDone
+                                ? 'text-emerald-700 font-semibold'
+                                : 'text-slate-400'
+                            }`}
+                          >
+                            {item.isToday ? 'Hôm nay' : item.isDone ? 'Xong' : `N${item.dayNum}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* =================================================================== */}
+                {/* KHỐI 3: RECOVERY DASHBOARD - BENTO GRID CHỈ SỐ PHỤC HỒI            */}
                 {/* =================================================================== */}
                 <div className="grid grid-cols-2 gap-3">
                   {/* Ô 1: Biên độ gập gối (ROM) & Đo Camera AI */}
@@ -733,30 +850,27 @@ export default function AxvyraApp() {
                     </div>
                   </div>
 
-                  {/* Ô 2: Lộ trình & Tuần phục hồi */}
+                  {/* Ô 2: Mức đau & Khả năng vận động */}
                   <div
                     onClick={() => setActiveTab('progress')}
                     className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/70 flex flex-col justify-between cursor-pointer hover:border-teal-300 transition group"
                   >
                     <div>
                       <div className="flex items-center justify-between text-slate-500">
-                        <span className="text-xs font-bold text-slate-700">Lộ trình 16 tuần</span>
-                        <Layers className="w-4 h-4 text-teal-600" />
+                        <span className="text-xs font-bold text-slate-700">Mức đau & Sưng</span>
+                        <Zap className="w-4 h-4 text-amber-500" />
                       </div>
                       <div className="mt-3">
                         <div className="text-2xl font-black text-slate-900 tracking-tight">
-                          Tuần {rehabStatus.currentWeek}
+                          {latestDailyLog ? `${latestDailyLog.painScore}/10` : '3/10'}
                         </div>
-                        <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
-                          <div
-                            className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${rehabProgressPercent}%` }}
-                          />
-                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium mt-0.5 block capitalize">
+                          Sưng: {latestDailyLog ? latestDailyLog.swellingLevel : 'Nhẹ'}
+                        </span>
                       </div>
                     </div>
                     <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-700 group-hover:text-teal-800">
-                      <span>{completedSessions} buổi hoàn thành</span>
+                      <span>Theo dõi triệu chứng</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </div>
                   </div>
