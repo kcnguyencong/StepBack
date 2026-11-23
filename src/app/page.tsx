@@ -44,6 +44,7 @@ import {
   getSafeSurgeryType,
   getAgeGroupDetails,
   getSurgeryDetails,
+  PHASE_RULES,
   Exercise
 } from '@/data/rehabProtocols';
 import {
@@ -691,10 +692,10 @@ export default function AxvyraApp() {
                       </div>
                       <div>
                         <h3 className="text-sm font-black text-slate-900 leading-tight">
-                          Tiến trình theo ngày sau mổ
+                          Tiến trình phục hồi theo ngày
                         </h3>
                         <p className="text-xs text-slate-500 font-medium mt-0.5">
-                          Hôm nay: <strong className="text-teal-700 font-bold">Ngày {rehabStatus.currentDay}</strong> • Tuần {rehabStatus.currentWeek}
+                          Hôm nay: <strong className="text-teal-700 font-bold">Ngày {rehabStatus.currentDay}</strong> • {rehabStatus.phase.daysLabel || 'GĐ 1: 14 ngày (Ngày 1 – 14)'}
                         </p>
                       </div>
                     </div>
@@ -712,12 +713,12 @@ export default function AxvyraApp() {
                         style={{ width: `${rehabProgressPercent}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 font-semibold px-0.5">
-                      <span>Ngày 1 (Mổ)</span>
-                      <span>Ngày 14</span>
-                      <span>Ngày 42</span>
-                      <span>Ngày 84</span>
-                      <span>Ngày 112+</span>
+                    <div className="flex justify-between text-[9px] text-slate-400 font-semibold px-0.5">
+                      <span>Mổ (N1)</span>
+                      <span>Hết GĐ 1 (14 ngày • N14)</span>
+                      <span>Hết GĐ 2 (28 ngày • N42)</span>
+                      <span>Hết GĐ 3 (42 ngày • N84)</span>
+                      <span>GĐ 4 (N112+)</span>
                     </div>
                   </div>
 
@@ -789,7 +790,7 @@ export default function AxvyraApp() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
                       <Activity className="w-3.5 h-3.5 text-teal-600" />
-                      Giai đoạn {rehabStatus.phase.phase} • Ngày {rehabStatus.currentDay}
+                      Giai đoạn {rehabStatus.phase.phase} ({rehabStatus.phase.durationDays || 14} ngày: {rehabStatus.phase.daysRange ? `Ngày ${rehabStatus.phase.daysRange[0]}–${rehabStatus.phase.daysRange[1]}` : 'Ngày 1–14'})
                     </span>
                     <span className="text-xs font-semibold text-slate-500">
                       Gập tối đa: <strong className="text-teal-700 font-bold">{rehabStatus.allowedFlexionMax}°</strong>
@@ -802,7 +803,7 @@ export default function AxvyraApp() {
                       {rehabStatus.phase.title}
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      {rehabStatus.exercises.length} bài tập phục hồi • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
+                      {rehabStatus.exercises.length} bài tập phục hồi • Thời lượng GĐ: <strong className="text-slate-700 font-bold">{rehabStatus.phase.durationDays || 14} ngày</strong> • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
                     </p>
                   </div>
 
@@ -962,32 +963,60 @@ export default function AxvyraApp() {
         {activeTab === 'plan' && (
           <div className="space-y-3.5 animate-fade-in">
             <div>
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                Kế hoạch phục hồi • Phase {rehabStatus.phase.phase}
+              <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                Giai đoạn {rehabStatus.phase.phase} • {rehabStatus.phase.daysLabel || '14 ngày (Ngày 1 – 14 sau mổ)'}
               </span>
-              <h1 className="text-xl font-black text-slate-900 mt-0.5">
+              <h1 className="text-xl font-black text-slate-900 mt-1.5">
                 {rehabStatus.phase.title}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Phác đồ lâm sàng chuẩn y khoa cho {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} ({getAgeGroupDetails(ageGroup).shortLabel}).
+                Thời lượng: <strong className="text-slate-800">{rehabStatus.phase.durationDays || 14} ngày</strong> (Tuần {rehabStatus.phase.weekRange[0]} – {rehabStatus.phase.weekRange[1]} sau mổ) • {getSurgeryDetails(rehabStatus.surgeryType).shortLabel}.
               </p>
             </div>
 
-            {/* Day Selector Strip */}
-            <div className="bg-white rounded-3xl p-2.5 border border-slate-100 shadow-sm flex items-center justify-between text-center">
-              {[1, 2, 3, 4, 5, 6].map((d) => (
-                <div
-                  key={d}
-                  className={`p-2 rounded-2xl flex flex-col items-center flex-1 cursor-pointer transition ${
-                    d === 1
-                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                      : 'text-slate-500 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="text-[8.5px] uppercase tracking-wider">T.{d + 1}</span>
-                  <span className="text-xs font-black mt-0.5">{d}</span>
-                </div>
-              ))}
+            {/* BẢNG 4 GIAI ĐOẠN PHỤC HỒI & SỐ NGÀY CHI TIẾT */}
+            <div className="bg-white rounded-3xl p-3.5 border border-slate-200/80 shadow-sm space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                  Chi tiết 4 giai đoạn phục hồi (112 ngày)
+                </span>
+                <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+                  Đang ở GĐ {rehabStatus.phase.phase}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {PHASE_RULES.map((p) => {
+                  const isCurrent = p.phase === rehabStatus.phase.phase;
+                  return (
+                    <div
+                      key={p.phase}
+                      className={`p-2.5 rounded-2xl border transition ${
+                        isCurrent
+                          ? 'bg-teal-50/90 border-teal-500 shadow-xs ring-1 ring-teal-500/30'
+                          : 'bg-slate-50/70 border-slate-200/70'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-black uppercase ${isCurrent ? 'text-teal-800' : 'text-slate-500'}`}>
+                          Giai đoạn {p.phase}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[8.5px] font-bold bg-teal-700 text-white px-1.5 py-0.2 rounded-full">
+                            Hiện tại
+                          </span>
+                        )}
+                      </div>
+                      <div className={`text-xs font-bold mt-1 ${isCurrent ? 'text-teal-950 font-black' : 'text-slate-800'}`}>
+                        {p.durationDays || (p.phase === 1 ? 14 : p.phase === 2 ? 28 : p.phase === 3 ? 42 : 28)} ngày
+                      </div>
+                      <span className="text-[9.5px] text-slate-500 block leading-tight mt-0.5">
+                        {p.daysRange ? `Ngày ${p.daysRange[0]} – ${p.daysRange[1]}` : (p.phase === 1 ? 'Ngày 1 – 14' : p.phase === 2 ? 'Ngày 15 – 42' : p.phase === 3 ? 'Ngày 43 – 84' : 'Ngày 85 – 112')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Session Detail */}

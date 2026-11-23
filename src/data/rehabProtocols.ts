@@ -35,6 +35,9 @@ export interface PhaseRule {
   phaseNumber?: 1 | 2 | 3 | 4;
   title: string;
   weekRange: [number, number];
+  durationDays?: number;
+  daysRange?: [number, number];
+  daysLabel?: string;
   maxFlexionAngle: Record<SurgeryType, number>;
   weightBearingStatus: Record<SurgeryType, string>;
   braceRule: Record<SurgeryType, string>;
@@ -56,6 +59,9 @@ export const PHASE_RULES: PhaseRule[] = [
     phase: 1,
     title: 'Giai đoạn 1: Kiểm soát sưng đau & Đánh thức cơ đùi',
     weekRange: [1, 2],
+    durationDays: 14,
+    daysRange: [1, 14],
+    daysLabel: '14 ngày (Ngày 1 – 14 sau mổ)',
     maxFlexionAngle: {
       ACL_ONLY: 90,
       ACL_MENISCUS_REPAIR: 90,
@@ -86,6 +92,9 @@ export const PHASE_RULES: PhaseRule[] = [
     phase: 2,
     title: 'Giai đoạn 2: Phục hồi biên độ vận động & Bỏ nạng',
     weekRange: [3, 6],
+    durationDays: 28,
+    daysRange: [15, 42],
+    daysLabel: '28 ngày (Ngày 15 – 42 sau mổ)',
     maxFlexionAngle: {
       ACL_ONLY: 125,
       ACL_MENISCUS_REPAIR: 90,
@@ -115,6 +124,9 @@ export const PHASE_RULES: PhaseRule[] = [
     phase: 3,
     title: 'Giai đoạn 3: Tăng cường sức mạnh cơ & Thăng bằng',
     weekRange: [7, 12],
+    durationDays: 42,
+    daysRange: [43, 84],
+    daysLabel: '42 ngày (Ngày 43 – 84 sau mổ)',
     maxFlexionAngle: {
       ACL_ONLY: 135,
       ACL_MENISCUS_REPAIR: 125,
@@ -144,6 +156,9 @@ export const PHASE_RULES: PhaseRule[] = [
     phase: 4,
     title: 'Giai đoạn 4: Phục hồi sức bền & Chạy bộ cơ bản',
     weekRange: [13, 24],
+    durationDays: 28,
+    daysRange: [85, 112],
+    daysLabel: '28+ ngày (Ngày 85 – 112+ sau mổ)',
     maxFlexionAngle: {
       ACL_ONLY: 145,
       ACL_MENISCUS_REPAIR: 135,
