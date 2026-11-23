@@ -32,7 +32,8 @@ import {
   Home,
   ChevronDown,
   ChevronUp,
-  ArrowRight
+  ArrowRight,
+  ArrowUpRight
 } from 'lucide-react';
 import {
   SurgeryType,
@@ -445,8 +446,8 @@ export default function AxvyraApp() {
 
   if (!mounted || !recoveryCase) {
     return (
-      <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex items-center justify-center p-4">
-        <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+      <div className="min-h-screen bg-[#0C0D11] text-white flex items-center justify-center p-4">
+        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
           <Activity className="w-5 h-5 animate-spin" />
           Đang tải AXVYRA...
         </div>
@@ -455,13 +456,13 @@ export default function AxvyraApp() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2F7F9] text-slate-800 flex flex-col justify-between font-sans relative select-none">
+    <div className="min-h-screen bg-[#0C0D11] text-white flex flex-col justify-between font-sans relative select-none">
       {/* ========================================================================= */}
-      {/* HEADER: NATURAL FULL-BLEED (Using /images/home-header-bg.jpg)             */}
+      {/* HEADER: ATMOSPHERIC DARK GRAPHITE WITH 3D KNEE GLOW                       */}
       {/* ========================================================================= */}
       <header className="relative w-full z-20 shrink-0">
-        {/* Background 3D Translucent Knee & Wave Image */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Background 3D Translucent Knee Image with deep obsidian gradient */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-30">
           <Image
             src="/images/home-header-bg.jpg"
             alt="AXVYRA Medical Background"
@@ -469,122 +470,75 @@ export default function AxvyraApp() {
             className="object-cover object-top"
             priority
           />
-          {/* Natural soft gradient fade-out at the bottom into page background #F2F7F9 */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-[#F2F7F9]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0C0D11]/30 via-[#0C0D11]/80 to-[#0C0D11]" />
         </div>
 
         {/* Top App Bar Row: Logo + Auth / Logout + Notification Bell */}
-        <div className="relative z-10 px-5 pt-4 pb-2 flex items-center justify-between">
+        <div className="relative z-10 px-5 pt-5 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowOnboarding(true)}>
-            {/* Stylized Brand Logo */}
-            <div className="w-5 h-5 relative flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 drop-shadow-[0_1px_3px_rgba(16,185,129,0.3)]">
-                <path
-                  d="M12 3L22 20H2L12 3Z"
-                  fill="#84CC16"
-                  stroke="#10B981"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-                <path d="M12 8L18 19H6L12 8Z" fill="#10B981" />
-              </svg>
+            <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             </div>
-            <span className="font-black text-lg tracking-wider text-slate-900">
+            <span className="font-black text-lg tracking-wider text-white">
               AXVYRA
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {authUser ? (
               <button
                 onClick={handleLogout}
                 title="Nhấn để đăng xuất"
-                className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-white/80 hover:bg-white backdrop-blur-md border border-white/90 text-slate-800 text-[11px] font-bold shadow-xs transition"
+                className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/10 text-slate-200 text-xs font-bold transition"
               >
-                <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="max-w-[80px] truncate">{userShortName}</span>
                 <LogOut className="w-3 h-3 text-slate-400 ml-0.5" />
               </button>
             ) : (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-1 py-1 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs transition"
+                className="flex items-center gap-1.5 py-1.5 px-4 rounded-full bg-white hover:bg-slate-100 text-slate-950 text-xs font-black transition shadow-lg shadow-white/5"
               >
-                <LogIn className="w-3.5 h-3.5 text-white" />
+                <LogIn className="w-3.5 h-3.5" />
                 <span>Đăng nhập</span>
               </button>
             )}
 
             <button
               onClick={() => setShowOnboarding(true)}
-              className="relative w-9 h-9 rounded-full bg-white/80 hover:bg-white backdrop-blur-md border border-white/90 flex items-center justify-center text-slate-700 hover:text-slate-900 transition shadow-xs"
+              className="relative w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition"
               aria-label="Thông báo & Hồ sơ"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0C0D11]" />
             </button>
           </div>
         </div>
 
-        {/* Home Specific Greeting & Clinical Profile Row */}
+        {/* Home Specific Greeting & Headline (Screen 2 Inspiration) */}
         {activeTab === 'home' && (
-          <div className="relative z-10 px-5 pt-2 pb-5 flex items-center justify-between">
-            <div
-              className="flex items-center gap-3 cursor-pointer"
-              onClick={() => {
-                if (!authUser) setShowAuthModal(true);
-                else setShowOnboarding(true);
-              }}
-            >
-              {/* User Avatar with glowing border */}
-              <div className="relative">
-                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white shadow-sm ring-2 ring-emerald-400/40 shrink-0 bg-white flex items-center justify-center">
-                  <Image
-                    src={authUser?.avatarUrl || '/images/knee-hero.png'}
-                    alt="Avatar"
-                    width={44}
-                    height={44}
-                    className="object-cover scale-125"
-                  />
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+          <div className="relative z-10 px-5 pt-2 pb-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                onClick={() => setShowOnboarding(true)}
+                className="w-11 h-11 rounded-full overflow-hidden border border-white/15 bg-white/5 flex items-center justify-center shrink-0 cursor-pointer shadow-lg shadow-black/40"
+              >
+                <Image
+                  src={authUser?.avatarUrl || '/images/knee-hero.png'}
+                  alt="Avatar"
+                  width={44}
+                  height={44}
+                  className="object-cover scale-125"
+                />
               </div>
-
-              {/* Name & Clinical Status Tag */}
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h2 className="text-[15px] font-black text-slate-900 leading-tight">
-                    Chào {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bệnh nhân')}
-                  </h2>
-                  {!authUser && (
-                    <span className="text-[9.5px] text-emerald-700 font-bold bg-emerald-100/90 border border-emerald-300/60 px-2 py-0.5 rounded-full">
-                      Khách
-                    </span>
-                  )}
-                </div>
-
-                {hasCompletedProfile ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/85 backdrop-blur-md border border-white/90 shadow-xs text-[11px] font-bold text-slate-700">
-                      Ngày {rehabStatus.currentDay} • {getSurgeryDetails(recoveryCase?.surgeryType).shortLabel} • {getAgeGroupDetails(ageGroup).shortLabel}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowOnboarding(true);
-                      }}
-                      className="text-[10px] font-bold text-teal-800 hover:text-teal-950 bg-teal-100/80 hover:bg-teal-200/90 border border-teal-200/80 px-2 py-0.5 rounded-full transition shadow-xs"
-                    >
-                      Sửa
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-1">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50/95 border border-amber-200/80 shadow-xs text-[11px] font-bold text-amber-800">
-                      ⚠️ Chưa thiết lập hồ sơ mổ
-                    </span>
-                  </div>
-                )}
+                <p className="text-xs text-slate-400 font-medium">
+                  Xin chào, {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bạn')} 👋
+                </p>
+                <h1 className="text-2xl font-black text-white tracking-tight leading-tight mt-0.5">
+                  Kế hoạch hồi phục hôm nay
+                </h1>
               </div>
             </div>
           </div>
@@ -592,353 +546,291 @@ export default function AxvyraApp() {
       </header>
 
       {/* Main Scrollable View */}
-      <main className="flex-1 px-4 pt-1.5 pb-28 space-y-3.5 overflow-y-auto relative z-10">
+      <main className="flex-1 px-4 pt-1 pb-28 space-y-3.5 overflow-y-auto relative z-10">
         {/* ========================================================================= */}
-        {/* TAB 1: HOME (MATCHING THE UPLOADED DESIGN IMAGE)                          */}
+        {/* TAB 1: HOME (LUXURY DARK BENTO STYLE MATCHING REFERENCE)                  */}
         {/* ========================================================================= */}
         {activeTab === 'home' && (
           <div className="space-y-3.5 animate-fade-in">
 
             {/* ========================================================================= */}
-            {/* TRƯỜNG HỢP 1: USER CHƯA THIẾT LẬP HỒ SƠ -> CARD ĐẦU TIÊN LÀ THIẾT LẬP HỒ SƠ */}
+            {/* TRƯỜNG HỢP 1: USER CHƯA THIẾT LẬP HỒ SƠ -> THIẾT LẬP HỒ SƠ                 */}
             {/* ========================================================================= */}
             {!hasCompletedProfile ? (
               <div className="space-y-3 animate-fade-in">
-                {/* HERO CARD 1: THIẾT LẬP HỒ SƠ PHỤC HỒI */}
-                <div className="bg-gradient-to-br from-slate-900 via-teal-950 to-[#0e272a] rounded-3xl p-6 text-white shadow-xl shadow-teal-950/20 space-y-5 border border-teal-500/30 relative overflow-hidden">
-                  <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
-
+                <div className="bg-[#16181F] rounded-[32px] p-6 text-white shadow-2xl border border-white/[0.08] space-y-5 relative overflow-hidden">
                   <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                       Khởi tạo lộ trình phục hồi
                     </span>
-                    <span className="text-xs text-teal-200/70 font-semibold">1 phút</span>
+                    <span className="text-xs text-slate-400 font-semibold">1 phút</span>
                   </div>
 
-                  <div className="space-y-2 relative z-10">
+                  <div className="space-y-1.5 relative z-10">
                     <h2 className="text-xl font-black text-white leading-tight">
                       Cá nhân hóa hồ sơ phẫu thuật
                     </h2>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      Kích hoạt phác đồ chuẩn y khoa (MOON / MGH) dựa trên ngày phẫu thuật, can thiệp dây chằng & sụn chêm để tự động khóa góc an toàn và cá nhân hóa bài tập hàng ngày.
+                    <p className="text-xs text-slate-400 leading-relaxed font-normal">
+                      Kích hoạt phác đồ chuẩn y khoa dựa trên ngày mổ để tự động bảo vệ khớp gối và thiết lập bài tập hàng ngày.
                     </p>
-                  </div>
-
-                  {/* 3 Value Pillars */}
-                  <div className="grid grid-cols-3 gap-2 py-1 text-center text-xs">
-                    <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                      <Calendar className="w-4 h-4 text-teal-400 mx-auto" />
-                      <strong className="block text-white font-bold text-[11px]">Ngày phẫu thuật</strong>
-                      <span className="text-[10px] text-slate-400 block">Đếm ngày tự động</span>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400 mx-auto" />
-                      <strong className="block text-white font-bold text-[11px]">Bảo vệ sụn chêm</strong>
-                      <span className="text-[10px] text-slate-400 block">Khóa góc & tỳ lực</span>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                      <Activity className="w-4 h-4 text-teal-300 mx-auto" />
-                      <strong className="block text-white font-bold text-[11px]">Lộ trình 16 tuần</strong>
-                      <span className="text-[10px] text-slate-400 block">Trở lại thể thao</span>
-                    </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setShowOnboarding(true)}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 active:scale-[0.99] text-slate-950 font-black text-sm shadow-lg shadow-teal-500/25 flex items-center justify-center gap-2 transition"
+                    className="w-full py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-black text-sm shadow-xl shadow-white/5 flex items-center justify-center gap-2 transition"
                   >
                     <span>Thiết lập hồ sơ ngay</span>
                     <ArrowRight className="w-4 h-4 text-slate-950" />
                   </button>
                 </div>
-
-                {/* Giới thiệu tiêu chuẩn y tế */}
-                <div className="bg-white rounded-3xl p-4 border border-slate-200/70 shadow-sm space-y-2">
-                  <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
-                    <ShieldCheck className="w-4 h-4 text-teal-600" />
-                    <span>Chuẩn Phục hồi Chức năng Y học Thể thao Quốc tế</span>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Hệ thống tích hợp đếm nhịp bằng âm thanh, đếm ngược thời gian giữ cơ và ứng dụng Camera AI theo dõi góc gối theo thời gian thực.
-                  </p>
-                </div>
               </div>
             ) : (
               /* ========================================================================= */
-              /* TRƯỜNG HỢP 2: ĐÃ THIẾT LẬP HỒ SƠ -> GIAO DIỆN TINH GỌN, KHÔNG HỀ BỊ RỐI    */
+              /* TRƯỜNG HỢP 2: ĐÃ THIẾT LẬP HỒ SƠ -> GIAO DIỆN DARK BENTO CAO CẤP           */
               /* ========================================================================= */
-              <div className="space-y-4 animate-fade-in">
+              <div className="space-y-3.5 animate-fade-in">
                 {/* Cảnh báo an toàn đặc biệt (nếu có khâu sụn chêm) */}
                 {rehabStatus.isMeniscusRepairStrictLimit && (
-                  <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-xs flex items-center gap-3">
-                    <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 shadow-sm flex items-center gap-3">
+                    <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
                     <div className="text-xs leading-relaxed">
-                      <strong className="font-bold text-amber-950">Chỉ định khâu sụn chêm:</strong> Giữ góc gập ≤ 90° và đi 2 nạng không tỳ lực trong giai đoạn đầu ({recoveryCase?.weightBearingStatus || 'NWB'}).
+                      <strong className="font-bold text-amber-200">Khâu sụn chêm:</strong> Giữ góc gập ≤ 90° và đi 2 nạng không tỳ lực ({recoveryCase?.weightBearingStatus || 'NWB'}).
                     </div>
                   </div>
                 )}
 
                 {/* =================================================================== */}
-                {/* KHỐI 1: TIẾN TRÌNH THEO NGÀY (CLEAN & MINIMALIST)                   */}
+                {/* KHỐI 1: HERO ACTION CARD (DARK BENTO MEDITATION STYLE)             */}
                 {/* =================================================================== */}
-                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-3.5">
-                  {/* Header: Ngày hiện tại & Lộ trình tổng thể */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100/80">
-                        <Calendar className="w-4 h-4 text-teal-600" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-slate-900 leading-tight">
-                            Ngày {rehabStatus.currentDay} sau mổ
-                          </h3>
-                          <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full">
-                            GĐ {rehabStatus.phase.phase} (14 ngày đầu)
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-400 font-medium mt-0.5">
-                          Tuần {rehabStatus.currentWeek} • Lộ trình 112 ngày ({rehabProgressPercent}%)
-                        </p>
-                      </div>
+                <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-4 shadow-2xl relative overflow-hidden group">
+                  {/* Card Header: Title + Arrow */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-white leading-snug">
+                        {rehabStatus.phase.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {rehabStatus.exercises.length} bài tập phục hồi chức năng
+                      </p>
                     </div>
+                    <button
+                      onClick={() => setActiveTab('plan')}
+                      className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:border-white/20 transition"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  {/* Thanh tiến độ ngày mượt mà */}
-                  <div className="space-y-1">
-                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  {/* Tag Pills Row (Minimal & Elegant) */}
+                  <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                    <span className="text-[11px] font-bold text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full">
+                      GĐ {rehabStatus.phase.phase} • 14 ngày đầu
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                      15 phút
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-400 bg-white/[0.04] border border-white/[0.06] px-3 py-1 rounded-full">
+                      {rehabStatus.phase.phase === 1 ? '3–4 cữ/ngày' : '2 cữ/ngày'}
+                    </span>
+                  </div>
+
+                  {/* Minimal Ruler / Flexion Gauge (Inspired by reference audio wave / ruler) */}
+                  <div className="py-2.5 px-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-slate-400 font-medium">Góc gập an toàn:</span>
+                    </div>
+                    <span className="text-white font-black text-sm">
+                      ≤ {rehabStatus.allowedFlexionMax}°
+                    </span>
+                  </div>
+
+                  {/* Primary Action Button (Screen 1 & 2 Let's Explore style) */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => handleStartTodaySession()}
+                      className="flex-1 py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-white/5 transition"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Bắt đầu buổi tập</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('plan')}
+                      title="Xem toàn bộ bài tập"
+                      className="w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
+                    >
+                      <Calendar className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* =================================================================== */}
+                {/* KHỐI 2: TIẾN TRÌNH TUẦN (SCREEN 3 CALENDAR SCHEDULE STYLE)         */}
+                {/* =================================================================== */}
+                <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-3.5 shadow-2xl">
+                  {/* Header: Title + Day & Progress Pill */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-black text-white">
+                        Lịch trình hồi phục
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Ngày {rehabStatus.currentDay} sau mổ • Tuần {rehabStatus.currentWeek}
+                      </p>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                      {rehabProgressPercent}% Lộ trình
+                    </span>
+                  </div>
+
+                  {/* 7 Days Minimal Grid (Screen 3 Calendar style) */}
+                  <div className="grid grid-cols-7 gap-1.5 text-center pt-1">
+                    {currentWeekDays.map((item) => (
                       <div
-                        className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-700"
-                        style={{ width: `${rehabProgressPercent}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 font-semibold px-0.5">
-                      <span>Mổ</span>
-                      <span>Ngày 14</span>
-                      <span>Ngày 42</span>
-                      <span>Ngày 84</span>
-                      <span>112 ngày</span>
-                    </div>
-                  </div>
-
-                  {/* Dải 7 ngày theo dõi tuần phục hồi (Gọn gàng, tinh tế) */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <div className="grid grid-cols-7 gap-1.5 text-center">
-                      {currentWeekDays.map((item) => (
-                        <div
-                          key={item.dayNum}
-                          className={`flex flex-col items-center py-2 px-1 rounded-2xl transition ${
-                            item.isToday
-                              ? 'bg-teal-50 border-2 border-teal-600 shadow-xs'
-                              : 'bg-slate-50/70 border border-slate-100'
-                          }`}
-                        >
-                          <span
-                            className={`text-[10px] font-bold ${
-                              item.isToday ? 'text-teal-800' : 'text-slate-400'
-                            }`}
-                          >
-                            N{item.dayInWeek}
-                          </span>
-                          <div
-                            className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
-                              item.isToday
-                                ? 'bg-teal-700 text-white shadow-xs'
-                                : item.isDone
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-white text-slate-400 border border-slate-200'
-                            }`}
-                          >
-                            {item.isDone && !item.isToday ? (
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            ) : (
-                              item.dayNum
-                            )}
-                          </div>
-                          <span
-                            className={`text-[9px] font-bold h-3 flex items-center ${
-                              item.isToday ? 'text-teal-700' : 'text-transparent'
-                            }`}
-                          >
-                            {item.isToday ? 'Hôm nay' : '•'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* =================================================================== */}
-                {/* KHỐI 2: HERO ACTION CARD - BUỔI TẬP PHỤC HỒI HÔM NAY                */}
-                {/* =================================================================== */}
-                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4 relative overflow-hidden">
-                  {/* Card Header: Phase Tag & Safe Flexion Limit */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
-                      <Activity className="w-3.5 h-3.5 text-teal-600" />
-                      Giai đoạn {rehabStatus.phase.phase} • 14 ngày đầu
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500">
-                      Gập tối đa: <strong className="text-teal-700 font-bold">{rehabStatus.allowedFlexionMax}°</strong>
-                    </span>
-                  </div>
-
-                  {/* Focus Title & Details */}
-                  <div className="space-y-1">
-                    <h3 className="text-base font-black text-slate-900 leading-snug">
-                      {rehabStatus.phase.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {rehabStatus.exercises.length} bài tập phục hồi • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
-                    </p>
-                  </div>
-
-                  {/* Safety Guidance Strip */}
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Tỳ đè</span>
-                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
-                        {rehabStatus.weightBearingSummary}
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Nẹp gối</span>
-                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
-                        {rehabStatus.braceSummary}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Big Primary CTA Button */}
-                  <button
-                    onClick={() => handleStartTodaySession()}
-                    className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] text-white font-black text-sm shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 transition"
-                  >
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>Bắt đầu buổi tập hôm nay</span>
-                  </button>
-                </div>
-
-                {/* =================================================================== */}
-                {/* KHỐI 3: RECOVERY DASHBOARD - BENTO GRID CHỈ SỐ PHỤC HỒI            */}
-                {/* =================================================================== */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Ô 1: Biên độ gập gối (ROM) & Đo Camera AI */}
-                  <div
-                    onClick={() => setActiveTab('progress')}
-                    className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/70 flex flex-col justify-between cursor-pointer hover:border-teal-300 transition group"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between text-slate-500">
-                        <span className="text-xs font-bold text-slate-700">Biên độ ROM</span>
-                        <Compass className="w-4 h-4 text-teal-600" />
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl font-black text-slate-900 tracking-tight">
-                          {latestROM ? `${latestROM.flexionAngle}°` : '--°'}
-                        </div>
-                        <span className="text-[11px] text-slate-400 font-medium mt-0.5 block">
-                          Giới hạn: {rehabStatus.allowedFlexionMax}°
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-700 group-hover:text-teal-800">
-                      <span>{latestROM ? 'Đo lại AI' : 'Đo góc AI'}</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-
-                  {/* Ô 2: Mức đau & Khả năng vận động */}
-                  <div
-                    onClick={() => setActiveTab('progress')}
-                    className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/70 flex flex-col justify-between cursor-pointer hover:border-teal-300 transition group"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between text-slate-500">
-                        <span className="text-xs font-bold text-slate-700">Mức đau & Sưng</span>
-                        <Zap className="w-4 h-4 text-amber-500" />
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl font-black text-slate-900 tracking-tight">
-                          {latestDailyLog ? `${latestDailyLog.painScore}/10` : '3/10'}
-                        </div>
-                        <span className="text-[11px] text-slate-400 font-medium mt-0.5 block capitalize">
-                          Sưng: {latestDailyLog ? latestDailyLog.swellingLevel : 'Nhẹ'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-700 group-hover:text-teal-800">
-                      <span>Theo dõi triệu chứng</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-
-
-
-                {/* =================================================================== */}
-                {/* KHỐI 3: POST-OP PROTOCOL & CARE - CHĂM SÓC HẬU PHẪU                 */}
-                {/* =================================================================== */}
-                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4">
-                  {/* Cryotherapy Ice Timer Widget */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
-                        <Clock className="w-5 h-5 text-teal-600" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900">Chườm đá lạnh (Cryotherapy)</h4>
-                        <p className="text-xs text-slate-500">15 phút giúp giảm phù nề & chống viêm</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-lg font-black tabular-nums text-slate-800 font-mono">
-                        {formatTimer(iceSeconds)}
-                      </span>
-                      <button
-                        onClick={() => setIsIceRunning(!isIceRunning)}
-                        className={`py-2 px-4 rounded-xl text-xs font-bold transition shadow-xs ${
-                          isIceRunning
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-teal-700 hover:bg-teal-800 text-white'
+                        key={item.dayNum}
+                        className={`flex flex-col items-center py-2 px-1 rounded-2xl transition ${
+                          item.isToday
+                            ? 'bg-white text-slate-950 shadow-lg shadow-white/10'
+                            : 'bg-white/[0.03] border border-white/[0.06] text-slate-400'
                         }`}
                       >
-                        {isIceRunning ? 'Tạm dừng' : 'Bắt đầu'}
-                      </button>
+                        <span
+                          className={`text-[10px] font-bold ${
+                            item.isToday ? 'text-slate-950 font-black' : 'text-slate-500'
+                          }`}
+                        >
+                          N{item.dayInWeek}
+                        </span>
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
+                            item.isToday
+                              ? 'bg-slate-950 text-white'
+                              : item.isDone
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'text-slate-400'
+                          }`}
+                        >
+                          {item.isDone && !item.isToday ? (
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ) : (
+                            item.dayNum
+                          )}
+                        </div>
+                        <span
+                          className={`text-[9px] font-bold h-2.5 flex items-center ${
+                            item.isToday ? 'text-slate-950' : item.isDone ? 'text-emerald-400' : 'text-transparent'
+                          }`}
+                        >
+                          •
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* =================================================================== */}
+                {/* KHỐI 3: BENTO VITALS (SCREEN 2 YOGA / BREATH STYLE)                */}
+                {/* =================================================================== */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Ô 1: Biên độ gập gối (ROM) */}
+                  <div
+                    onClick={() => setActiveTab('progress')}
+                    className="bg-[#16181F] border border-white/[0.08] rounded-[28px] p-4 flex flex-col justify-between cursor-pointer hover:border-white/20 transition group min-h-[148px]"
+                  >
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span className="text-xs font-bold text-slate-300">Góc gập ROM</span>
+                      <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
+                    </div>
+                    <div className="my-2">
+                      <div className="text-3xl font-black text-white tracking-tight">
+                        {latestROM ? `${latestROM.flexionAngle}°` : '--°'}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 bg-white/[0.05] border border-white/10 px-2.5 py-1 rounded-full w-fit">
+                      Tối đa: {rehabStatus.allowedFlexionMax}°
+                    </span>
+                  </div>
+
+                  {/* Ô 2: Mức đau & Sưng */}
+                  <div
+                    onClick={() => setActiveTab('progress')}
+                    className="bg-[#16181F] border border-white/[0.08] rounded-[28px] p-4 flex flex-col justify-between cursor-pointer hover:border-white/20 transition group min-h-[148px]"
+                  >
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span className="text-xs font-bold text-slate-300">Mức đau</span>
+                      <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition" />
+                    </div>
+                    <div className="my-2">
+                      <div className="text-3xl font-black text-white tracking-tight">
+                        {latestDailyLog ? `${latestDailyLog.painScore}/10` : '2/10'}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full w-fit">
+                      Sưng: {latestDailyLog ? latestDailyLog.swellingLevel : 'Nhẹ'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* =================================================================== */}
+                {/* KHỐI 4: CHƯỜM ĐÁ LẠNH (POST-OP CARE)                               */}
+                {/* =================================================================== */}
+                <div className="bg-[#16181F] border border-white/[0.08] rounded-[28px] p-4 flex items-center justify-between shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Chườm đá lạnh</h4>
+                      <p className="text-xs text-slate-400">15 phút giảm sưng & viêm</p>
                     </div>
                   </div>
 
-                  {/* Red Flags / Emergency Warning Drawer */}
-                  <div className="pt-3 border-t border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base font-black tabular-nums text-white font-mono">
+                      {formatTimer(iceSeconds)}
+                    </span>
                     <button
-                      type="button"
-                      onClick={() => setShowRedFlags(!showRedFlags)}
-                      className="w-full flex items-center justify-between text-left text-xs font-bold text-slate-600 hover:text-rose-700 transition"
+                      onClick={() => setIsIceRunning(!isIceRunning)}
+                      className={`py-2 px-4 rounded-full text-xs font-bold transition ${
+                        isIceRunning
+                          ? 'bg-amber-500 text-slate-950 font-black'
+                          : 'bg-white hover:bg-slate-100 text-slate-950 font-black shadow-md'
+                      }`}
                     >
-                      <span className="flex items-center gap-2 text-rose-700 font-bold">
-                        <AlertTriangle className="w-4 h-4 text-rose-600" />
-                        <span>Dấu hiệu bất thường (Cờ đỏ) cần liên hệ bác sĩ</span>
-                      </span>
-                      {showRedFlags ? (
-                        <ChevronUp className="w-4 h-4 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
-                      )}
+                      {isIceRunning ? 'Tạm dừng' : 'Bắt đầu'}
                     </button>
-
-                    {showRedFlags && (
-                      <div className="mt-3 p-3.5 rounded-2xl bg-rose-50/80 border border-rose-200/80 text-xs text-rose-900 space-y-1.5 animate-fade-in">
-                        <ul className="pl-4 list-disc space-y-1.5 leading-relaxed">
-                          {rehabStatus.redFlags.map((flag, idx) => (
-                            <li key={idx}>{flag}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
+                </div>
+
+                {/* Red Flags / Emergency Warning Drawer */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowRedFlags(!showRedFlags)}
+                    className="w-full flex items-center justify-between text-left text-xs font-semibold text-slate-400 hover:text-rose-400 transition py-2 px-1"
+                  >
+                    <span className="flex items-center gap-2 text-rose-400 font-bold">
+                      <AlertTriangle className="w-4 h-4 text-rose-400" />
+                      <span>Dấu hiệu bất thường cần liên hệ bác sĩ</span>
+                    </span>
+                    {showRedFlags ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+
+                  {showRedFlags && (
+                    <div className="mt-2 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 space-y-1.5 animate-fade-in">
+                      <ul className="pl-4 list-disc space-y-1.5 leading-relaxed">
+                        {rehabStatus.redFlags.map((flag, idx) => (
+                          <li key={idx}>{flag}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -946,66 +838,66 @@ export default function AxvyraApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: PLAN (KẾ HOẠCH BÀI TẬP)                                           */}
+        {/* TAB 2: PLAN (KẾ HOẠCH BÀI TẬP - DARK BENTO)                              */}
         {/* ========================================================================= */}
         {activeTab === 'plan' && (
           <div className="space-y-3.5 animate-fade-in">
-            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-1.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
-                <Activity className="w-3.5 h-3.5 text-teal-600" />
+            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold tracking-wide uppercase">
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
                 Giai đoạn {rehabStatus.phase.phase} • 14 ngày đầu (Tuần {rehabStatus.phase.weekRange[0]} – {rehabStatus.phase.weekRange[1]})
               </span>
-              <h1 className="text-xl font-black text-slate-900 mt-1">
+              <h1 className="text-xl font-black text-white mt-1">
                 {rehabStatus.phase.title}
               </h1>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Phác đồ phục hồi {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} ({getAgeGroupDetails(ageGroup).shortLabel}) • Tần suất chỉ định: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : '2 lần/ngày'}</strong>.
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Phác đồ phục hồi {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} • Tần suất chỉ định: <strong className="text-emerald-400 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : '2 lần/ngày'}</strong>.
               </p>
             </div>
 
             {/* Session Detail */}
-            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xs font-bold text-emerald-700 uppercase">
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Bài tập chỉ định giai đoạn {rehabStatus.phase.phase}
                   </h2>
-                  <h3 className="text-sm font-black text-slate-900 mt-0.5">
+                  <h3 className="text-sm font-black text-white mt-0.5">
                     {rehabStatus.exercises.length} bài tập phục hồi chức năng
                   </h3>
                 </div>
                 <button
                   onClick={() => handleStartTodaySession()}
-                  className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full text-xs flex items-center gap-1 shadow-sm transition"
+                  className="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-950 font-black rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Tập với Audio Timer</span>
+                  <span>Tập ngay</span>
                 </button>
               </div>
 
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-white/[0.06]">
                 {rehabStatus.exercises.map((item, idx) => (
-                  <div key={item.id} className="py-3 first:pt-1 last:pb-1 space-y-1">
+                  <div key={item.id} className="py-3.5 first:pt-1 last:pb-1 space-y-2">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center justify-center border border-emerald-200 shrink-0 mt-0.5">
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-6 h-6 rounded-full bg-white/5 text-slate-300 text-[11px] font-bold flex items-center justify-center border border-white/10 shrink-0 mt-0.5">
                           {idx + 1}
                         </span>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-900">
+                          <h4 className="text-sm font-bold text-white">
                             {item.name}
                           </h4>
                           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                            <span className="text-[10px] text-slate-400 italic">
+                            <span className="text-[10.5px] text-slate-400 italic">
                               {item.englishName}
                             </span>
                             {item.startTiming && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded-full">
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-300 bg-white/[0.06] border border-white/10 px-2 py-0.5 rounded-full">
                                 ⏱ Bắt đầu: {item.startTiming}
                               </span>
                             )}
                             {item.frequencyPerDay && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-teal-700 bg-teal-50 border border-teal-200/80 px-1.5 py-0.2 rounded-full">
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                                 📅 {item.frequencyPerDay} lần/ngày
                               </span>
                             )}
@@ -1013,34 +905,30 @@ export default function AxvyraApp() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full block">
+                        <span className="text-[10px] font-bold text-white bg-white/10 px-2.5 py-0.5 rounded-full block">
                           {item.sets} hiệp × {item.reps} lần
                         </span>
-                        <span className="text-[9px] text-slate-400 block mt-0.5">
+                        <span className="text-[9.5px] text-slate-400 block mt-0.5">
                           Giữ {item.holdSeconds}s • Nghỉ {item.restSeconds}s
                         </span>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-slate-600 pl-7 leading-relaxed font-medium">
-                      🎯 <strong>Mục tiêu:</strong> {item.targetGoal}
+                    <p className="text-[11.5px] text-slate-300 pl-8 leading-relaxed font-medium">
+                      🎯 <strong className="text-white">Mục tiêu:</strong> {item.targetGoal}
                     </p>
 
-                    <div className="pl-7 text-[10.5px] text-slate-500 space-y-0.5">
+                    <div className="pl-8 text-[11px] text-slate-400 space-y-0.5">
                       {item.instructions.map((inst, i) => (
                         <p key={i}>• {inst}</p>
                       ))}
                     </div>
 
                     {item.contraindications && (
-                      <div className="mt-1 pl-7 text-[10px] text-rose-600 font-semibold bg-rose-50/60 p-1.5 rounded-xl border border-rose-100">
-                        ⚠️ <strong>Lưu ý:</strong> {item.contraindications}
+                      <div className="mt-1 pl-8 text-[10.5px] text-rose-300 font-semibold bg-rose-500/10 p-2 rounded-xl border border-rose-500/20">
+                        ⚠️ <strong className="text-rose-200">Lưu ý:</strong> {item.contraindications}
                       </div>
                     )}
-
-                    <div className="pl-7 pt-0.5 text-[9.5px] text-slate-400">
-                      Nguồn y khoa: {item.medicalSource}
-                    </div>
                   </div>
                 ))}
               </div>
@@ -1049,24 +937,24 @@ export default function AxvyraApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: PROGRESS (TIẾN ĐỘ & CAMERA AI)                                     */}
+        {/* TAB 3: PROGRESS (TIẾN ĐỘ & CAMERA AI - DARK BENTO)                        */}
         {/* ========================================================================= */}
         {activeTab === 'progress' && (
           <div className="space-y-3.5 animate-fade-in">
-            <div>
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-1">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                 Theo dõi phục hồi • Camera AI
               </span>
-              <h1 className="text-xl font-black text-slate-900 mt-0.5">
+              <h1 className="text-xl font-black text-white mt-0.5">
                 Tiến Độ & Biên Độ Góc Gối
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Nhận diện góc gập duỗi qua MediaPipe PoseLandmarker chuẩn xác.
               </p>
             </div>
 
             {/* AI Knee Camera Module */}
-            <div className="bg-slate-900 rounded-3xl p-3 shadow-md border border-slate-800">
+            <div className="bg-[#16181F] rounded-[32px] p-3 shadow-2xl border border-white/[0.08]">
               <KneeAngleCamera
                 safeMaxFlexion={recoveryCase.maxSafeFlexion}
                 selectedLeg={recoveryCase.surgeryLeg}
@@ -1075,27 +963,27 @@ export default function AxvyraApp() {
             </div>
 
             {/* Milestone Timeline */}
-            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-2.5">
-              <h2 className="text-xs font-black text-slate-900 uppercase">
+            <div className="bg-[#16181F] rounded-[32px] p-5 shadow-2xl border border-white/[0.08] space-y-3">
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">
                 Cột Mốc Phục Hồi Lâm Sàng
               </h2>
               <div className="space-y-2">
                 {(recoveryCase?.milestones || []).map((m) => (
                   <div
                     key={m.id}
-                    className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between gap-2"
+                    className="p-3.5 bg-white/[0.03] rounded-2xl border border-white/[0.06] flex items-center justify-between gap-2"
                   >
                     <div>
-                      <div className="text-xs font-bold text-slate-900">{m.title}</div>
-                      <div className="text-[10.5px] text-slate-500 mt-0.5">{m.targetCriteria}</div>
+                      <div className="text-xs font-bold text-white">{m.title}</div>
+                      <div className="text-[10.5px] text-slate-400 mt-0.5">{m.targetCriteria}</div>
                     </div>
                     <span
-                      className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                      className={`text-[9.5px] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${
                         m.status === 'CONFIRMED'
-                          ? 'bg-emerald-100 text-emerald-700'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                           : m.status === 'IN_PROGRESS'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-slate-200 text-slate-600'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : 'bg-white/10 text-slate-400'
                       }`}
                     >
                       {m.status === 'CONFIRMED'
@@ -1112,19 +1000,19 @@ export default function AxvyraApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: EXPLORE (KHÁM PHÁ & KIẾN THỨC)                                     */}
+        {/* TAB 4: EXPLORE (KHÁM PHÁ & KIẾN THỨC - DARK BENTO)                        */}
         {/* ========================================================================= */}
         {activeTab === 'explore' && (
           <div className="space-y-3.5 animate-fade-in">
-            <div>
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-1">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                 Thư viện kiến thức • Y khoa
               </span>
-              <h1 className="text-xl font-black text-slate-900 mt-0.5">
+              <h1 className="text-xl font-black text-white mt-0.5">
                 Cẩm Nang Phục Hồi Khớp Gối
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Kiến thức chính xác từ chuyên gia phục hồi chức năng và chấn thương chỉnh hình.
+              <p className="text-xs text-slate-400 mt-0.5">
+                Kiến thức từ chuyên gia phục hồi chức năng và chấn thương chỉnh hình.
               </p>
             </div>
 
@@ -1135,7 +1023,7 @@ export default function AxvyraApp() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm bài viết, câu hỏi, lưu ý..."
-                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-2xl p-3 pl-10 text-xs font-medium text-slate-900 placeholder-slate-400 outline-none shadow-xs"
+                className="w-full bg-[#16181F] border border-white/10 focus:border-white/30 rounded-full p-3.5 pl-10 text-xs font-medium text-white placeholder-slate-500 outline-none shadow-md"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -1151,10 +1039,10 @@ export default function AxvyraApp() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`py-1.5 px-3 rounded-full font-bold whitespace-nowrap transition ${
+                  className={`py-2 px-4 rounded-full font-bold whitespace-nowrap transition text-xs ${
                     selectedCategory === cat.id
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? 'bg-white text-slate-950 shadow-md'
+                      : 'bg-[#16181F] border border-white/10 text-slate-400 hover:text-white'
                   }`}
                 >
                   {cat.label}
@@ -1164,14 +1052,14 @@ export default function AxvyraApp() {
 
             {/* Selected Article Detail */}
             {selectedArticle ? (
-              <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-3">
+              <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 shadow-2xl space-y-3 text-white">
                 <button
                   onClick={() => setSelectedArticle(null)}
-                  className="text-xs text-emerald-700 font-bold flex items-center gap-1 hover:underline mb-1"
+                  className="text-xs text-emerald-400 font-bold flex items-center gap-1 hover:underline mb-1"
                 >
                   &larr; Quay lại danh sách
                 </button>
-                <h2 className="text-base font-black text-slate-900">
+                <h2 className="text-base font-black text-white">
                   {selectedArticle.title}
                 </h2>
                 <div className="text-[11px] text-slate-400">
@@ -1179,12 +1067,12 @@ export default function AxvyraApp() {
                 </div>
 
                 {selectedArticle.importantNotice && (
-                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 font-bold">
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 font-bold">
                     ⚠️ {selectedArticle.importantNotice}
                   </div>
                 )}
 
-                <div className="space-y-2 text-xs text-slate-700 leading-relaxed">
+                <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
                   {selectedArticle.content.map((p, i) => (
                     <p key={i}>{p}</p>
                   ))}
@@ -1196,18 +1084,18 @@ export default function AxvyraApp() {
                   <div
                     key={art.id}
                     onClick={() => setSelectedArticle(art)}
-                    className="p-4 bg-white hover:bg-slate-50/80 border border-slate-100 rounded-3xl cursor-pointer transition shadow-xs space-y-1"
+                    className="p-4 bg-[#16181F] hover:bg-[#1C1F28] border border-white/[0.08] rounded-[28px] cursor-pointer transition shadow-sm space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span className="text-[9.5px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                         {art.category === 'safety' ? 'An toàn' : 'Phác đồ'}
                       </span>
                       <span className="text-[10px] text-slate-400">{art.readTime}</span>
                     </div>
-                    <h3 className="text-xs font-black text-slate-900">
+                    <h3 className="text-xs font-black text-white">
                       {art.title}
                     </h3>
-                    <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
                       {art.summary}
                     </p>
                   </div>
@@ -1260,16 +1148,16 @@ export default function AxvyraApp() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      {/* FLOATING BOTTOM DOCK WITH 4 TABS (EXACT REPLICA OF DESIGN) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-2 pt-1 pointer-events-none max-w-[430px] mx-auto bg-gradient-to-t from-white/95 via-white/80 to-transparent">
-        <nav className="w-full bg-white/95 backdrop-blur-md border border-slate-100 shadow-lg shadow-slate-200/50 rounded-full py-1.5 px-2 flex items-center justify-between pointer-events-auto">
-          {/* Tab 1: Trang chủ (Active State) */}
+      {/* FLOATING BOTTOM DOCK WITH 4 TABS (MATCHING REFERENCE DARK SCREENSHOT) */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-3 pt-2 pointer-events-none max-w-[430px] mx-auto bg-gradient-to-t from-[#0C0D11] via-[#0C0D11]/90 to-transparent">
+        <nav className="w-full bg-[#16181F]/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-full py-1.5 px-2 flex items-center justify-between pointer-events-auto">
+          {/* Tab 1: Trang chủ */}
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 py-2 px-4 rounded-full text-xs font-bold transition-all ${
               activeTab === 'home'
-                ? 'bg-[#E8F8F0] text-[#059669]'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-950 font-black shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Home className="w-4 h-4 fill-current" />
@@ -1279,45 +1167,45 @@ export default function AxvyraApp() {
           {/* Tab 2: Kế hoạch */}
           <button
             onClick={() => setActiveTab('plan')}
-            className={`flex flex-col items-center justify-center py-1 px-3 text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
               activeTab === 'plan'
-                ? 'bg-[#E8F8F0] text-[#059669] rounded-full py-2 px-3.5 flex-row gap-1.5'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-950 font-black shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span className="text-[10px] mt-0.5">Kế hoạch</span>
+            <span className="text-[11px]">Kế hoạch</span>
           </button>
 
           {/* Tab 3: Tiến độ */}
           <button
             onClick={() => setActiveTab('progress')}
-            className={`flex flex-col items-center justify-center py-1 px-3 text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
               activeTab === 'progress'
-                ? 'bg-[#E8F8F0] text-[#059669] rounded-full py-2 px-3.5 flex-row gap-1.5'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-950 font-black shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <BarChart2 className="w-4 h-4" />
-            <span className="text-[10px] mt-0.5">Tiến độ</span>
+            <span className="text-[11px]">Tiến độ</span>
           </button>
 
           {/* Tab 4: Khám phá */}
           <button
             onClick={() => setActiveTab('explore')}
-            className={`flex flex-col items-center justify-center py-1 px-3 text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
               activeTab === 'explore'
-                ? 'bg-[#E8F8F0] text-[#059669] rounded-full py-2 px-3.5 flex-row gap-1.5'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-950 font-black shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Compass className="w-4 h-4" />
-            <span className="text-[10px] mt-0.5">Khám phá</span>
+            <span className="text-[11px]">Khám phá</span>
           </button>
         </nav>
 
         {/* iPhone Home Indicator Bar */}
-        <div className="w-32 h-1 bg-black/80 rounded-full mx-auto mt-2" />
+        <div className="w-32 h-1 bg-white/20 rounded-full mx-auto mt-2" />
       </div>
     </div>
   );
