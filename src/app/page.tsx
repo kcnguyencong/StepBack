@@ -689,7 +689,7 @@ export default function AxvyraApp() {
                       {rehabStatus.phase.title}
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      {rehabStatus.exercises.length} bài tập phục hồi chức năng • Hướng dẫn đếm nhịp bằng giọng nói
+                      {rehabStatus.exercises.length} bài tập phục hồi • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
                     </p>
                   </div>
 
@@ -1018,6 +1018,11 @@ export default function AxvyraApp() {
                             {item.startTiming && (
                               <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded-full">
                                 ⏱ Bắt đầu: {item.startTiming}
+                              </span>
+                            )}
+                            {item.frequencyPerDay && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-teal-700 bg-teal-50 border border-teal-200/80 px-1.5 py-0.2 rounded-full">
+                                📅 {item.frequencyPerDay} lần/ngày
                               </span>
                             )}
                           </div>

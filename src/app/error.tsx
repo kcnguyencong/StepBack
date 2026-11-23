@@ -14,6 +14,15 @@ export default function ErrorBoundary({
     console.error('AXVYRA Client-Side Error Boundary caught:', error);
   }, [error]);
 
+  const handleReload = () => {
+    try {
+      reset();
+    } catch {}
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
+
   const handleHardReset = () => {
     try {
       localStorage.removeItem('axvyra_v1_case');
@@ -23,7 +32,9 @@ export default function ErrorBoundary({
       localStorage.removeItem('surgeryType');
       localStorage.removeItem('operatedLeg');
     } catch {}
-    window.location.href = '/';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   return (
@@ -57,7 +68,7 @@ export default function ErrorBoundary({
         <div className="space-y-2 pt-1">
           <button
             type="button"
-            onClick={() => reset()}
+            onClick={handleReload}
             className="w-full py-3 px-4 rounded-full bg-gradient-to-r from-[#4ade80] via-[#22c55e] to-[#0d9488] text-white text-xs font-bold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 transition"
           >
             <RotateCcw className="w-4 h-4" />
