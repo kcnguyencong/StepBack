@@ -192,12 +192,12 @@ export default function OnboardingModal({
         {/* STEP 0: HERO WELCOME */}
         {step === 0 && (
           <div className="flex flex-col items-center text-center space-y-4 pt-1">
-            <div className="relative w-full h-56 rounded-[32px] overflow-hidden shadow-2xl bg-[#16181F] border border-white/[0.08] flex items-center justify-center">
+            <div className="relative w-full h-60 rounded-[32px] overflow-hidden shadow-2xl bg-[#16181F] border border-white/[0.08] flex items-center justify-center">
               <Image
-                src="/images/knee-hero.png"
-                alt="AXVYRA Knee"
+                src="/images/rehab-hero.jpg"
+                alt="AXVYRA Rehabilitation"
                 fill
-                className="object-cover scale-110 opacity-70"
+                className="object-cover object-center scale-105 opacity-85"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0C0D11] via-[#0C0D11]/30 to-transparent" />
@@ -207,9 +207,9 @@ export default function OnboardingModal({
                 Chuẩn Y Khoa ACL & Meniscus
               </div>
 
-              <div className="absolute bottom-3 right-3 bg-[#16181F]/80 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[10px] font-medium text-sky-300">
-                <Activity className="w-3 h-3 text-sky-400" />
-                Đo góc AI thời gian thực
+              <div className="absolute bottom-3 right-3 bg-[#16181F]/80 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[10px] font-medium text-amber-300">
+                <Activity className="w-3 h-3 text-amber-400" />
+                Chuyên gia nắn chỉnh gối 1-1
               </div>
             </div>
 

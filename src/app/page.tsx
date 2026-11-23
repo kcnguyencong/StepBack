@@ -468,15 +468,15 @@ export default function AxvyraApp() {
       {/* ========================================================================= */}
       <header className="relative w-full z-20 shrink-0">
         {/* Background 3D Translucent Knee Image with deep obsidian gradient */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-30">
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-25">
           <Image
-            src="/images/home-header-bg.jpg"
+            src="/images/rehab-hero.jpg"
             alt="AXVYRA Medical Background"
             fill
-            className="object-cover object-top"
+            className="object-cover object-center"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0C0D11]/30 via-[#0C0D11]/80 to-[#0C0D11]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0C0D11]/30 via-[#0C0D11]/85 to-[#0C0D11]" />
         </div>
 
         {/* Top App Bar Row: Logo + Auth / Logout + Notification Bell */}
@@ -560,36 +560,56 @@ export default function AxvyraApp() {
           <div className="space-y-3.5 animate-fade-in">
 
             {/* ========================================================================= */}
-            {/* TRƯỜNG HỢP 1: USER CHƯA THIẾT LẬP HỒ SƠ -> THIẾT LẬP HỒ SƠ                 */}
+            {/* TRƯỜNG HỢP 1: USER CHƯA THIẾT LẬP HỒ SƠ -> MÀN CHÀO ĐÓN CINEMATIC (SCREEN 1) */}
             {/* ========================================================================= */}
             {!hasCompletedProfile ? (
-              <div className="space-y-3 animate-fade-in">
-                <div className="bg-[#16181F] rounded-[32px] p-6 text-white shadow-2xl border border-white/[0.08] space-y-5 relative overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <span className="px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-medium text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                      Khởi tạo lộ trình phục hồi
-                    </span>
-                    <span className="text-xs text-slate-400 font-light">1 phút</span>
-                  </div>
+              <div className="relative rounded-[36px] overflow-hidden shadow-2xl border border-white/[0.08] min-h-[500px] flex flex-col justify-end p-6 animate-fade-in group">
+                {/* Full-bleed Cinematic Image */}
+                <Image
+                  src="/images/rehab-hero.jpg"
+                  alt="AXVYRA Rehabilitation"
+                  fill
+                  className="object-cover object-center scale-105"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0C0D11] via-[#0C0D11]/75 to-black/20" />
 
-                  <div className="space-y-1.5 relative z-10">
-                    <h2 className="text-xl font-light text-white leading-tight">
-                      Cá nhân hóa hồ sơ phẫu thuật
+                {/* Content Overlay at bottom (Screen 1 Awaken style) */}
+                <div className="relative z-10 space-y-4">
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-medium tracking-widest text-amber-300 uppercase flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
+                      AXVYRA Rehabilitation
+                    </span>
+                    <h2 className="text-3xl font-light text-white tracking-tight leading-tight">
+                      Tái thiết sức mạnh.
+                      <br />
+                      Tự tin trở lại thể thao.
                     </h2>
-                    <p className="text-xs text-slate-400 leading-relaxed font-light">
-                      Kích hoạt phác đồ chuẩn y khoa dựa trên ngày mổ để tự động bảo vệ khớp gối và thiết lập bài tập hàng ngày.
+                    <p className="text-xs text-slate-300 font-light leading-relaxed pt-0.5">
+                      Phác đồ phục hồi chuẩn y khoa cho dây chằng và sụn chêm, kết hợp đo góc gập bằng Camera AI thời gian thực.
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowOnboarding(true)}
-                    className="w-full py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm shadow-xl flex items-center justify-center gap-2 transition"
-                  >
-                    <span>Thiết lập hồ sơ ngay</span>
-                    <ArrowRight className="w-4 h-4 text-slate-950" />
-                  </button>
+                  {/* Dual Action CTA (Screen 1 Pill + Circle style) */}
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowOnboarding(true)}
+                      className="flex-1 py-4 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm shadow-2xl flex items-center justify-center gap-2 transition"
+                    >
+                      <span>Bắt đầu thiết lập phác đồ</span>
+                      <ArrowRight className="w-4 h-4 text-slate-950" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowOnboarding(true)}
+                      title="Khám phá ngay"
+                      className="w-13 h-13 p-3.5 rounded-full bg-white/[0.08] hover:bg-white/15 border border-white/15 flex items-center justify-center text-white transition shrink-0"
+                    >
+                      <ArrowUpRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -845,6 +865,46 @@ export default function AxvyraApp() {
                     >
                       {isIceRunning ? 'Tạm dừng' : 'Bắt đầu'}
                     </button>
+                  </div>
+                </div>
+
+                {/* =================================================================== */}
+                {/* KHỐI 5: THẺ CHUYÊN GIA PHỤC HỒI CHỨC NĂNG (SCREEN 3 TRAINER STYLE) */}
+                {/* =================================================================== */}
+                <div
+                  onClick={() => setShowOnboarding(true)}
+                  className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-4 flex items-center justify-between shadow-2xl relative overflow-hidden group cursor-pointer hover:border-white/20 transition"
+                >
+                  <div className="space-y-1.5 z-10 pr-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+                        Chuyên gia Phục hồi chức năng
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-light text-white tracking-tight">
+                        Đồng hành giám sát 1-1
+                      </h4>
+                      <p className="text-xs text-slate-400 font-light mt-0.5">
+                        Kiểm soát góc gập & phác đồ chuẩn y khoa
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full mt-1">
+                      Cập nhật phác đồ
+                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition" />
+                    </span>
+                  </div>
+
+                  {/* Visual of Therapist gently guiding the knee */}
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden border border-white/10 relative shrink-0 shadow-lg">
+                    <Image
+                      src="/images/rehab-hero.jpg"
+                      alt="Chuyên gia PHCN"
+                      fill
+                      className="object-cover object-center group-hover:scale-105 transition duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#16181F]/70 via-transparent to-transparent" />
                   </div>
                 </div>
 
