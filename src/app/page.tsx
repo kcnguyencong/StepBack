@@ -680,58 +680,7 @@ export default function AxvyraApp() {
                 )}
 
                 {/* =================================================================== */}
-                {/* KHỐI 1: HERO ACTION CARD - BUỔI TẬP PHỤC HỒI HÔM NAY                */}
-                {/* =================================================================== */}
-                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4 relative overflow-hidden">
-                  {/* Card Header: Phase Tag & Safe Flexion Limit */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
-                      <Activity className="w-3.5 h-3.5 text-teal-600" />
-                      Giai đoạn {rehabStatus.phase.phase} • Ngày {rehabStatus.currentDay}
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500">
-                      Gập tối đa: <strong className="text-teal-700 font-bold">{rehabStatus.allowedFlexionMax}°</strong>
-                    </span>
-                  </div>
-
-                  {/* Focus Title & Details */}
-                  <div className="space-y-1">
-                    <h3 className="text-base font-black text-slate-900 leading-snug">
-                      {rehabStatus.phase.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {rehabStatus.exercises.length} bài tập phục hồi • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
-                    </p>
-                  </div>
-
-                  {/* Safety Guidance Strip */}
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Tỳ đè</span>
-                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
-                        {rehabStatus.weightBearingSummary}
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Nẹp gối</span>
-                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
-                        {rehabStatus.braceSummary}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Big Primary CTA Button */}
-                  <button
-                    onClick={() => handleStartTodaySession()}
-                    className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] text-white font-black text-sm shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 transition"
-                  >
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>Bắt đầu buổi tập hôm nay</span>
-                  </button>
-                </div>
-
-                {/* =================================================================== */}
-                {/* KHỐI 2: TIẾN TRÌNH THEO NGÀY (DAILY RECOVERY TIMELINE & TRACKER)   */}
+                {/* KHỐI 1: TIẾN TRÌNH THEO NGÀY (DAILY RECOVERY TIMELINE & TRACKER)   */}
                 {/* =================================================================== */}
                 <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4">
                   {/* Header: Ngày hiện tại & Lộ trình tổng thể */}
@@ -830,6 +779,57 @@ export default function AxvyraApp() {
                       ))}
                     </div>
                   </div>
+                </div>
+
+                {/* =================================================================== */}
+                {/* KHỐI 2: HERO ACTION CARD - BUỔI TẬP PHỤC HỒI HÔM NAY                */}
+                {/* =================================================================== */}
+                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4 relative overflow-hidden">
+                  {/* Card Header: Phase Tag & Safe Flexion Limit */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
+                      <Activity className="w-3.5 h-3.5 text-teal-600" />
+                      Giai đoạn {rehabStatus.phase.phase} • Ngày {rehabStatus.currentDay}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      Gập tối đa: <strong className="text-teal-700 font-bold">{rehabStatus.allowedFlexionMax}°</strong>
+                    </span>
+                  </div>
+
+                  {/* Focus Title & Details */}
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-slate-900 leading-snug">
+                      {rehabStatus.phase.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {rehabStatus.exercises.length} bài tập phục hồi • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
+                    </p>
+                  </div>
+
+                  {/* Safety Guidance Strip */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Tỳ đè</span>
+                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
+                        {rehabStatus.weightBearingSummary}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Nẹp gối</span>
+                      <span className="font-semibold text-slate-800 line-clamp-2 leading-tight">
+                        {rehabStatus.braceSummary}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Big Primary CTA Button */}
+                  <button
+                    onClick={() => handleStartTodaySession()}
+                    className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] text-white font-black text-sm shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 transition"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Bắt đầu buổi tập hôm nay</span>
+                  </button>
                 </div>
 
                 {/* =================================================================== */}
