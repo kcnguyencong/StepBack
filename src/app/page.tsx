@@ -602,7 +602,71 @@ export default function AxvyraApp() {
                 )}
 
                 {/* =================================================================== */}
-                {/* KHỐI 1: HERO ACTION CARD (DARK BENTO MEDITATION STYLE)             */}
+                {/* KHỐI 1: TIẾN TRÌNH TUẦN (SCREEN 3 CALENDAR SCHEDULE STYLE) - ĐƯA LÊN ĐẦU */}
+                {/* =================================================================== */}
+                <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-3.5 shadow-2xl">
+                  {/* Header: Title + Day & Progress Pill */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-black text-white">
+                        Lịch trình hồi phục
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Ngày {rehabStatus.currentDay} sau mổ • Tuần {rehabStatus.currentWeek}
+                      </p>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                      {rehabProgressPercent}% Lộ trình
+                    </span>
+                  </div>
+
+                  {/* 7 Days Minimal Grid (Screen 3 Calendar style) */}
+                  <div className="grid grid-cols-7 gap-1.5 text-center pt-1">
+                    {currentWeekDays.map((item) => (
+                      <div
+                        key={item.dayNum}
+                        className={`flex flex-col items-center py-2 px-1 rounded-2xl transition ${
+                          item.isToday
+                            ? 'bg-white text-slate-950 shadow-lg shadow-white/10'
+                            : 'bg-white/[0.03] border border-white/[0.06] text-slate-400'
+                        }`}
+                      >
+                        <span
+                          className={`text-[10px] font-bold ${
+                            item.isToday ? 'text-slate-950 font-black' : 'text-slate-500'
+                          }`}
+                        >
+                          N{item.dayInWeek}
+                        </span>
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
+                            item.isToday
+                              ? 'bg-slate-950 text-white'
+                              : item.isDone
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'text-slate-400'
+                          }`}
+                        >
+                          {item.isDone && !item.isToday ? (
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ) : (
+                            item.dayNum
+                          )}
+                        </div>
+                        <span
+                          className={`text-[9px] font-bold h-2.5 flex items-center ${
+                            item.isToday ? 'text-slate-950' : item.isDone ? 'text-emerald-400' : 'text-transparent'
+                          }`}
+                        >
+                          •
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* =================================================================== */}
+                {/* KHỐI 2: HERO ACTION CARD (DARK BENTO MEDITATION STYLE)             */}
                 {/* =================================================================== */}
                 <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-4 shadow-2xl relative overflow-hidden group">
                   {/* Card Header: Title + Arrow */}
@@ -663,70 +727,6 @@ export default function AxvyraApp() {
                     >
                       <Calendar className="w-5 h-5" />
                     </button>
-                  </div>
-                </div>
-
-                {/* =================================================================== */}
-                {/* KHỐI 2: TIẾN TRÌNH TUẦN (SCREEN 3 CALENDAR SCHEDULE STYLE)         */}
-                {/* =================================================================== */}
-                <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-3.5 shadow-2xl">
-                  {/* Header: Title + Day & Progress Pill */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-black text-white">
-                        Lịch trình hồi phục
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Ngày {rehabStatus.currentDay} sau mổ • Tuần {rehabStatus.currentWeek}
-                      </p>
-                    </div>
-                    <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                      {rehabProgressPercent}% Lộ trình
-                    </span>
-                  </div>
-
-                  {/* 7 Days Minimal Grid (Screen 3 Calendar style) */}
-                  <div className="grid grid-cols-7 gap-1.5 text-center pt-1">
-                    {currentWeekDays.map((item) => (
-                      <div
-                        key={item.dayNum}
-                        className={`flex flex-col items-center py-2 px-1 rounded-2xl transition ${
-                          item.isToday
-                            ? 'bg-white text-slate-950 shadow-lg shadow-white/10'
-                            : 'bg-white/[0.03] border border-white/[0.06] text-slate-400'
-                        }`}
-                      >
-                        <span
-                          className={`text-[10px] font-bold ${
-                            item.isToday ? 'text-slate-950 font-black' : 'text-slate-500'
-                          }`}
-                        >
-                          N{item.dayInWeek}
-                        </span>
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
-                            item.isToday
-                              ? 'bg-slate-950 text-white'
-                              : item.isDone
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'text-slate-400'
-                          }`}
-                        >
-                          {item.isDone && !item.isToday ? (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          ) : (
-                            item.dayNum
-                          )}
-                        </div>
-                        <span
-                          className={`text-[9px] font-bold h-2.5 flex items-center ${
-                            item.isToday ? 'text-slate-950' : item.isDone ? 'text-emerald-400' : 'text-transparent'
-                          }`}
-                        >
-                          •
-                        </span>
-                      </div>
-                    ))}
                   </div>
                 </div>
 
