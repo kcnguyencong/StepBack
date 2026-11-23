@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#EBF4F6",
+  themeColor: "#0C0D11",
 };
 
 export default function RootLayout({
@@ -27,19 +27,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" className="dark bg-[#050508]">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
         <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
-      <body className="min-h-screen bg-slate-900 sm:bg-slate-950 flex justify-center text-slate-800 antialiased select-none sm:py-6">
+      <body className="min-h-screen bg-[#050508] sm:bg-[#050508] flex justify-center text-slate-100 antialiased select-none sm:py-6">
         {/* Strict iPhone 16 Pro Mobile Frame Container */}
-        <div className="w-full max-w-[430px] min-h-screen sm:min-h-[880px] bg-[#F2F7F9] relative flex flex-col sm:rounded-[50px] shadow-2xl overflow-hidden sm:border-4 sm:border-slate-800/80">
+        <div className="w-full max-w-[430px] min-h-screen sm:min-h-[880px] bg-[#0C0D11] relative flex flex-col sm:rounded-[50px] shadow-2xl overflow-hidden sm:border sm:border-white/10">
           {children}
         </div>
       </body>

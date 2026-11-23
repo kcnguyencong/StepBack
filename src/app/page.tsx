@@ -479,7 +479,7 @@ export default function AxvyraApp() {
             <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             </div>
-            <span className="font-black text-lg tracking-wider text-white">
+            <span className="font-medium text-lg tracking-widest text-white">
               AXVYRA
             </span>
           </div>
@@ -489,7 +489,7 @@ export default function AxvyraApp() {
               <button
                 onClick={handleLogout}
                 title="Nhấn để đăng xuất"
-                className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/10 text-slate-200 text-xs font-bold transition"
+                className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/10 text-slate-200 text-xs font-medium transition"
               >
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="max-w-[80px] truncate">{userShortName}</span>
@@ -498,7 +498,7 @@ export default function AxvyraApp() {
             ) : (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-1.5 py-1.5 px-4 rounded-full bg-white hover:bg-slate-100 text-slate-950 text-xs font-black transition shadow-lg shadow-white/5"
+                className="flex items-center gap-1.5 py-1.5 px-4 rounded-full bg-white hover:bg-slate-100 text-slate-950 text-xs font-medium transition shadow-lg shadow-white/5"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Đăng nhập</span>
@@ -518,26 +518,26 @@ export default function AxvyraApp() {
 
         {/* Home Specific Greeting & Headline (Screen 2 Inspiration) */}
         {activeTab === 'home' && (
-          <div className="relative z-10 px-5 pt-2 pb-4">
-            <div className="flex items-center gap-3 mb-2">
+          <div className="relative z-10 px-5 pt-3 pb-3">
+            <div className="flex items-center gap-3.5 mb-1">
               <div
                 onClick={() => setShowOnboarding(true)}
-                className="w-11 h-11 rounded-full overflow-hidden border border-white/15 bg-white/5 flex items-center justify-center shrink-0 cursor-pointer shadow-lg shadow-black/40"
+                className="w-11 h-11 rounded-full overflow-hidden border border-white/20 bg-white/5 flex items-center justify-center shrink-0 cursor-pointer shadow-lg shadow-black/50"
               >
                 <Image
                   src={authUser?.avatarUrl || '/images/knee-hero.png'}
                   alt="Avatar"
                   width={44}
                   height={44}
-                  className="object-cover scale-125"
+                  className="object-cover scale-110"
                 />
               </div>
               <div>
-                <p className="text-xs text-slate-400 font-medium">
-                  Xin chào, {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bạn')} 👋
+                <p className="text-xs text-slate-400 font-light tracking-wide">
+                  Xin chào, {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bạn')} ☺
                 </p>
-                <h1 className="text-2xl font-black text-white tracking-tight leading-tight mt-0.5">
-                  Kế hoạch hồi phục hôm nay
+                <h1 className="text-2xl sm:text-3xl font-light text-white tracking-tight leading-tight mt-0.5">
+                  Lộ trình hồi phục của bạn
                 </h1>
               </div>
             </div>
@@ -560,18 +560,18 @@ export default function AxvyraApp() {
               <div className="space-y-3 animate-fade-in">
                 <div className="bg-[#16181F] rounded-[32px] p-6 text-white shadow-2xl border border-white/[0.08] space-y-5 relative overflow-hidden">
                   <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-medium text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                       Khởi tạo lộ trình phục hồi
                     </span>
-                    <span className="text-xs text-slate-400 font-semibold">1 phút</span>
+                    <span className="text-xs text-slate-400 font-light">1 phút</span>
                   </div>
 
                   <div className="space-y-1.5 relative z-10">
-                    <h2 className="text-xl font-black text-white leading-tight">
+                    <h2 className="text-xl font-light text-white leading-tight">
                       Cá nhân hóa hồ sơ phẫu thuật
                     </h2>
-                    <p className="text-xs text-slate-400 leading-relaxed font-normal">
+                    <p className="text-xs text-slate-400 leading-relaxed font-light">
                       Kích hoạt phác đồ chuẩn y khoa dựa trên ngày mổ để tự động bảo vệ khớp gối và thiết lập bài tập hàng ngày.
                     </p>
                   </div>
@@ -579,7 +579,7 @@ export default function AxvyraApp() {
                   <button
                     type="button"
                     onClick={() => setShowOnboarding(true)}
-                    className="w-full py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-black text-sm shadow-xl shadow-white/5 flex items-center justify-center gap-2 transition"
+                    className="w-full py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm shadow-xl flex items-center justify-center gap-2 transition"
                   >
                     <span>Thiết lập hồ sơ ngay</span>
                     <ArrowRight className="w-4 h-4 text-slate-950" />
@@ -595,27 +595,27 @@ export default function AxvyraApp() {
                 {rehabStatus.isMeniscusRepairStrictLimit && (
                   <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 shadow-sm flex items-center gap-3">
                     <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
-                    <div className="text-xs leading-relaxed">
-                      <strong className="font-bold text-amber-200">Khâu sụn chêm:</strong> Giữ góc gập ≤ 90° và đi 2 nạng không tỳ lực ({recoveryCase?.weightBearingStatus || 'NWB'}).
+                    <div className="text-xs leading-relaxed font-light">
+                      <strong className="font-semibold text-amber-200">Khâu sụn chêm:</strong> Giữ góc gập ≤ 90° và đi 2 nạng không tỳ lực ({recoveryCase?.weightBearingStatus || 'NWB'}).
                     </div>
                   </div>
                 )}
 
                 {/* =================================================================== */}
-                {/* KHỐI 1: TIẾN TRÌNH TUẦN (SCREEN 3 CALENDAR SCHEDULE STYLE) - ĐƯA LÊN ĐẦU */}
+                {/* KHỐI 1: TIẾN TRÌNH TUẦN (SCREEN 3 CALENDAR SCHEDULE STYLE)         */}
                 {/* =================================================================== */}
                 <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-3.5 shadow-2xl">
                   {/* Header: Title + Day & Progress Pill */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-black text-white">
+                      <h4 className="text-lg font-light text-white tracking-tight">
                         Lịch trình hồi phục
                       </h4>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-400 font-light mt-0.5">
                         Ngày {rehabStatus.currentDay} sau mổ • Tuần {rehabStatus.currentWeek}
                       </p>
                     </div>
-                    <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                    <span className="text-xs font-normal text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1 rounded-full whitespace-nowrap">
                       {rehabProgressPercent}% Lộ trình
                     </span>
                   </div>
@@ -627,34 +627,34 @@ export default function AxvyraApp() {
                         key={item.dayNum}
                         className={`flex flex-col items-center py-2 px-1 rounded-2xl transition ${
                           item.isToday
-                            ? 'bg-white text-slate-950 shadow-lg shadow-white/10'
+                            ? 'bg-white text-slate-950 shadow-xl shadow-white/10'
                             : 'bg-white/[0.03] border border-white/[0.06] text-slate-400'
                         }`}
                       >
                         <span
-                          className={`text-[10px] font-bold ${
-                            item.isToday ? 'text-slate-950 font-black' : 'text-slate-500'
+                          className={`text-[10px] uppercase tracking-wider ${
+                            item.isToday ? 'text-slate-950 font-semibold' : 'text-slate-500 font-light'
                           }`}
                         >
-                          N{item.dayInWeek}
+                          T{item.dayInWeek === 7 ? 'CN' : item.dayInWeek + 1}
                         </span>
                         <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
+                          className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs transition ${
                             item.isToday
-                              ? 'bg-slate-950 text-white'
+                              ? 'bg-slate-950 text-white font-semibold'
                               : item.isDone
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'text-slate-400'
+                              ? 'bg-emerald-500/20 text-emerald-400 font-medium'
+                              : 'text-slate-300 font-light'
                           }`}
                         >
                           {item.isDone && !item.isToday ? (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                           ) : (
                             item.dayNum
                           )}
                         </div>
                         <span
-                          className={`text-[9px] font-bold h-2.5 flex items-center ${
+                          className={`text-[9px] font-bold h-2 flex items-center ${
                             item.isToday ? 'text-slate-950' : item.isDone ? 'text-emerald-400' : 'text-transparent'
                           }`}
                         >
@@ -662,6 +662,19 @@ export default function AxvyraApp() {
                         </span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Status Capsule (Screen 3 "Sickness / Works day" pill style) */}
+                  <div className="py-2.5 px-3.5 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                      <span className="text-slate-300 font-light truncate max-w-[240px]">
+                        GĐ {rehabStatus.phase.phase}: {rehabStatus.phase.title}
+                      </span>
+                    </div>
+                    <span className="text-slate-500 text-[11px] font-light shrink-0">
+                      14 ngày đầu
+                    </span>
                   </div>
                 </div>
 
@@ -672,16 +685,16 @@ export default function AxvyraApp() {
                   {/* Card Header: Title + Arrow */}
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-lg font-black text-white leading-snug">
+                      <h3 className="text-xl font-light text-white leading-snug tracking-tight">
                         {rehabStatus.phase.title}
                       </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-400 font-light mt-0.5">
                         {rehabStatus.exercises.length} bài tập phục hồi chức năng
                       </p>
                     </div>
                     <button
                       onClick={() => setActiveTab('plan')}
-                      className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:border-white/20 transition"
+                      className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:border-white/20 transition shrink-0"
                     >
                       <ArrowUpRight className="w-4 h-4" />
                     </button>
@@ -689,33 +702,52 @@ export default function AxvyraApp() {
 
                   {/* Tag Pills Row (Minimal & Elegant) */}
                   <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                    <span className="text-[11px] font-bold text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full">
+                    <span className="text-[11px] font-medium text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full whitespace-nowrap">
                       GĐ {rehabStatus.phase.phase} • 14 ngày đầu
                     </span>
-                    <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                    <span className="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap">
                       15 phút
                     </span>
-                    <span className="text-[11px] font-semibold text-slate-400 bg-white/[0.04] border border-white/[0.06] px-3 py-1 rounded-full">
+                    <span className="text-[11px] font-light text-slate-400 bg-white/[0.04] border border-white/[0.06] px-3 py-1 rounded-full whitespace-nowrap">
                       {rehabStatus.phase.phase === 1 ? '3–4 cữ/ngày' : '2 cữ/ngày'}
                     </span>
                   </div>
 
-                  {/* Minimal Ruler / Flexion Gauge (Inspired by reference audio wave / ruler) */}
-                  <div className="py-2.5 px-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-slate-400 font-medium">Góc gập an toàn:</span>
+                  {/* Visual Ruler / Audio-wave Ticks (Screen 2 Meditation Style) */}
+                  <div className="py-3 px-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-slate-400 font-light">Góc gập an toàn:</span>
+                      </div>
+                      <span className="text-white font-medium text-sm">
+                        ≤ {rehabStatus.allowedFlexionMax}°
+                      </span>
                     </div>
-                    <span className="text-white font-black text-sm">
-                      ≤ {rehabStatus.allowedFlexionMax}°
-                    </span>
+
+                    {/* Minimal Audio-wave / Gauge Ticks */}
+                    <div className="flex items-center justify-between h-6 px-1 pt-1 opacity-75">
+                      {[10, 14, 18, 12, 16, 22, 26, 20, 14, 18, 26, 22, 16, 12, 18, 14, 22, 16, 10, 14, 12].map((h, i) => (
+                        <div
+                          key={i}
+                          style={{ height: `${h}px` }}
+                          className={`w-[2px] rounded-full transition-all ${
+                            i === 10
+                              ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] w-[3px]'
+                              : i >= 8 && i <= 12
+                              ? 'bg-white/70'
+                              : 'bg-white/20'
+                          }`}
+                        />
+                      ))}
+                    </div>
                   </div>
 
                   {/* Primary Action Button (Screen 1 & 2 Let's Explore style) */}
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={() => handleStartTodaySession()}
-                      className="flex-1 py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-white/5 transition"
+                      className="flex-1 py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm flex items-center justify-center gap-2 shadow-xl whitespace-nowrap transition"
                     >
                       <Play className="w-4 h-4 fill-current" />
                       <span>Bắt đầu buổi tập</span>
@@ -740,15 +772,18 @@ export default function AxvyraApp() {
                     className="bg-[#16181F] border border-white/[0.08] rounded-[28px] p-4 flex flex-col justify-between cursor-pointer hover:border-white/20 transition group min-h-[148px]"
                   >
                     <div className="flex items-center justify-between text-slate-400">
-                      <span className="text-xs font-bold text-slate-300">Góc gập ROM</span>
+                      <div>
+                        <span className="text-sm font-light text-white block">Góc gập ROM</span>
+                        <span className="text-[11px] text-slate-500 font-light">Biên độ gối</span>
+                      </div>
                       <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
                     </div>
                     <div className="my-2">
-                      <div className="text-3xl font-black text-white tracking-tight">
+                      <div className="text-3xl font-light text-white tracking-tight">
                         {latestROM ? `${latestROM.flexionAngle}°` : '--°'}
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400 bg-white/[0.05] border border-white/10 px-2.5 py-1 rounded-full w-fit">
+                    <span className="text-[10px] font-normal text-slate-300 bg-white/[0.05] border border-white/10 px-3 py-1 rounded-full w-fit whitespace-nowrap">
                       Tối đa: {rehabStatus.allowedFlexionMax}°
                     </span>
                   </div>
@@ -759,15 +794,18 @@ export default function AxvyraApp() {
                     className="bg-[#16181F] border border-white/[0.08] rounded-[28px] p-4 flex flex-col justify-between cursor-pointer hover:border-white/20 transition group min-h-[148px]"
                   >
                     <div className="flex items-center justify-between text-slate-400">
-                      <span className="text-xs font-bold text-slate-300">Mức đau</span>
+                      <div>
+                        <span className="text-sm font-light text-white block">Mức đau</span>
+                        <span className="text-[11px] text-slate-500 font-light">Thang VAS</span>
+                      </div>
                       <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition" />
                     </div>
                     <div className="my-2">
-                      <div className="text-3xl font-black text-white tracking-tight">
+                      <div className="text-3xl font-light text-emerald-400 tracking-tight">
                         {latestDailyLog ? `${latestDailyLog.painScore}/10` : '2/10'}
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full w-fit">
+                    <span className="text-[10px] font-normal text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full w-fit whitespace-nowrap">
                       Sưng: {latestDailyLog ? latestDailyLog.swellingLevel : 'Nhẹ'}
                     </span>
                   </div>
@@ -782,21 +820,21 @@ export default function AxvyraApp() {
                       <Clock className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-white">Chườm đá lạnh</h4>
-                      <p className="text-xs text-slate-400">15 phút giảm sưng & viêm</p>
+                      <h4 className="text-sm font-medium text-white">Chườm đá lạnh</h4>
+                      <p className="text-xs text-slate-400 font-light">15 phút giảm sưng & viêm</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2.5">
-                    <span className="text-base font-black tabular-nums text-white font-mono">
+                    <span className="text-base font-light tabular-nums text-white font-mono">
                       {formatTimer(iceSeconds)}
                     </span>
                     <button
                       onClick={() => setIsIceRunning(!isIceRunning)}
-                      className={`py-2 px-4 rounded-full text-xs font-bold transition ${
+                      className={`py-2 px-4 rounded-full text-xs font-medium transition whitespace-nowrap ${
                         isIceRunning
-                          ? 'bg-amber-500 text-slate-950 font-black'
-                          : 'bg-white hover:bg-slate-100 text-slate-950 font-black shadow-md'
+                          ? 'bg-amber-500 text-slate-950 font-semibold'
+                          : 'bg-white hover:bg-slate-100 text-slate-950 font-semibold shadow-md'
                       }`}
                     >
                       {isIceRunning ? 'Tạm dừng' : 'Bắt đầu'}
@@ -843,15 +881,15 @@ export default function AxvyraApp() {
         {activeTab === 'plan' && (
           <div className="space-y-3.5 animate-fade-in">
             <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold tracking-wide uppercase">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium tracking-wide uppercase">
                 <Activity className="w-3.5 h-3.5 text-emerald-400" />
                 Giai đoạn {rehabStatus.phase.phase} • 14 ngày đầu (Tuần {rehabStatus.phase.weekRange[0]} – {rehabStatus.phase.weekRange[1]})
               </span>
-              <h1 className="text-xl font-black text-white mt-1">
+              <h1 className="text-2xl font-light text-white tracking-tight mt-1">
                 {rehabStatus.phase.title}
               </h1>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Phác đồ phục hồi {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} • Tần suất chỉ định: <strong className="text-emerald-400 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : '2 lần/ngày'}</strong>.
+              <p className="text-xs text-slate-400 leading-relaxed font-light">
+                Phác đồ phục hồi {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} • Tần suất chỉ định: <strong className="text-emerald-400 font-medium">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : '2 lần/ngày'}</strong>.
               </p>
             </div>
 
@@ -859,16 +897,16 @@ export default function AxvyraApp() {
             <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
                     Bài tập chỉ định giai đoạn {rehabStatus.phase.phase}
                   </h2>
-                  <h3 className="text-sm font-black text-white mt-0.5">
+                  <h3 className="text-sm font-medium text-white mt-0.5">
                     {rehabStatus.exercises.length} bài tập phục hồi chức năng
                   </h3>
                 </div>
                 <button
                   onClick={() => handleStartTodaySession()}
-                  className="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-950 font-black rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition"
+                  className="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Tập ngay</span>
@@ -942,13 +980,13 @@ export default function AxvyraApp() {
         {activeTab === 'progress' && (
           <div className="space-y-3.5 animate-fade-in">
             <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-1">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+              <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
                 Theo dõi phục hồi • Camera AI
               </span>
-              <h1 className="text-xl font-black text-white mt-0.5">
+              <h1 className="text-2xl font-light text-white tracking-tight mt-0.5">
                 Tiến Độ & Biên Độ Góc Gối
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 font-light mt-0.5">
                 Nhận diện góc gập duỗi qua MediaPipe PoseLandmarker chuẩn xác.
               </p>
             </div>
@@ -964,7 +1002,7 @@ export default function AxvyraApp() {
 
             {/* Milestone Timeline */}
             <div className="bg-[#16181F] rounded-[32px] p-5 shadow-2xl border border-white/[0.08] space-y-3">
-              <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
                 Cột Mốc Phục Hồi Lâm Sàng
               </h2>
               <div className="space-y-2">
@@ -1005,13 +1043,13 @@ export default function AxvyraApp() {
         {activeTab === 'explore' && (
           <div className="space-y-3.5 animate-fade-in">
             <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-1">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+              <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
                 Thư viện kiến thức • Y khoa
               </span>
-              <h1 className="text-xl font-black text-white mt-0.5">
+              <h1 className="text-2xl font-light text-white tracking-tight mt-0.5">
                 Cẩm Nang Phục Hồi Khớp Gối
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 font-light mt-0.5">
                 Kiến thức từ chuyên gia phục hồi chức năng và chấn thương chỉnh hình.
               </p>
             </div>
@@ -1023,7 +1061,7 @@ export default function AxvyraApp() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm bài viết, câu hỏi, lưu ý..."
-                className="w-full bg-[#16181F] border border-white/10 focus:border-white/30 rounded-full p-3.5 pl-10 text-xs font-medium text-white placeholder-slate-500 outline-none shadow-md"
+                className="w-full bg-[#16181F] border border-white/10 focus:border-white/30 rounded-full p-3.5 pl-10 text-xs font-normal text-white placeholder-slate-500 outline-none shadow-md"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -1039,7 +1077,7 @@ export default function AxvyraApp() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`py-2 px-4 rounded-full font-bold whitespace-nowrap transition text-xs ${
+                  className={`py-2 px-4 rounded-full font-medium whitespace-nowrap transition text-xs ${
                     selectedCategory === cat.id
                       ? 'bg-white text-slate-950 shadow-md'
                       : 'bg-[#16181F] border border-white/10 text-slate-400 hover:text-white'
@@ -1055,24 +1093,24 @@ export default function AxvyraApp() {
               <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 shadow-2xl space-y-3 text-white">
                 <button
                   onClick={() => setSelectedArticle(null)}
-                  className="text-xs text-emerald-400 font-bold flex items-center gap-1 hover:underline mb-1"
+                  className="text-xs text-emerald-400 font-medium flex items-center gap-1 hover:underline mb-1"
                 >
                   &larr; Quay lại danh sách
                 </button>
-                <h2 className="text-base font-black text-white">
+                <h2 className="text-lg font-light text-white">
                   {selectedArticle.title}
                 </h2>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-slate-400 font-light">
                   {selectedArticle.readTime}
                 </div>
 
                 {selectedArticle.importantNotice && (
-                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 font-bold">
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 font-medium">
                     ⚠️ {selectedArticle.importantNotice}
                   </div>
                 )}
 
-                <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
+                <div className="space-y-2 text-xs text-slate-300 font-light leading-relaxed">
                   {selectedArticle.content.map((p, i) => (
                     <p key={i}>{p}</p>
                   ))}
@@ -1087,12 +1125,12 @@ export default function AxvyraApp() {
                     className="p-4 bg-[#16181F] hover:bg-[#1C1F28] border border-white/[0.08] rounded-[28px] cursor-pointer transition shadow-sm space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[9.5px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      <span className="text-[9.5px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                         {art.category === 'safety' ? 'An toàn' : 'Phác đồ'}
                       </span>
-                      <span className="text-[10px] text-slate-400">{art.readTime}</span>
+                      <span className="text-[10px] text-slate-400 font-light">{art.readTime}</span>
                     </div>
-                    <h3 className="text-xs font-black text-white">
+                    <h3 className="text-xs font-medium text-white">
                       {art.title}
                     </h3>
                     <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
@@ -1148,59 +1186,63 @@ export default function AxvyraApp() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      {/* FLOATING BOTTOM DOCK WITH 4 TABS (MATCHING REFERENCE DARK SCREENSHOT) */}
+      {/* FLOATING BOTTOM DOCK WITH DYNAMIC EXPANDING PILL (LUXURY WELLNESS STYLE) */}
       <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-3 pt-2 pointer-events-none max-w-[430px] mx-auto bg-gradient-to-t from-[#0C0D11] via-[#0C0D11]/90 to-transparent">
-        <nav className="w-full bg-[#16181F]/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-full py-1.5 px-2 flex items-center justify-between pointer-events-auto">
+        <nav className="w-full bg-[#16181F]/90 backdrop-blur-2xl border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.6)] rounded-full py-1.5 px-2.5 flex items-center justify-around pointer-events-auto">
           {/* Tab 1: Trang chủ */}
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex items-center gap-1.5 py-2 px-4 rounded-full text-xs font-bold transition-all ${
+            aria-label="Trang chủ"
+            className={`flex items-center gap-2 py-2 rounded-full text-xs transition-all shrink-0 whitespace-nowrap ${
               activeTab === 'home'
-                ? 'bg-white text-slate-950 font-black shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-slate-950 font-medium px-4 shadow-lg'
+                : 'text-slate-400 hover:text-white px-3'
             }`}
           >
-            <Home className="w-4 h-4 fill-current" />
-            <span className="text-[11px]">Trang chủ</span>
+            <Home className="w-4 h-4 fill-current shrink-0" />
+            {activeTab === 'home' && <span className="text-xs font-medium tracking-tight whitespace-nowrap">Trang chủ</span>}
           </button>
 
           {/* Tab 2: Kế hoạch */}
           <button
             onClick={() => setActiveTab('plan')}
-            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
+            aria-label="Kế hoạch tập luyện"
+            className={`flex items-center gap-2 py-2 rounded-full text-xs transition-all shrink-0 whitespace-nowrap ${
               activeTab === 'plan'
-                ? 'bg-white text-slate-950 font-black shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-slate-950 font-medium px-4 shadow-lg'
+                : 'text-slate-400 hover:text-white px-3'
             }`}
           >
-            <Calendar className="w-4 h-4" />
-            <span className="text-[11px]">Kế hoạch</span>
+            <Calendar className="w-4 h-4 shrink-0" />
+            {activeTab === 'plan' && <span className="text-xs font-medium tracking-tight whitespace-nowrap">Kế hoạch</span>}
           </button>
 
           {/* Tab 3: Tiến độ */}
           <button
             onClick={() => setActiveTab('progress')}
-            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
+            aria-label="Tiến độ hồi phục"
+            className={`flex items-center gap-2 py-2 rounded-full text-xs transition-all shrink-0 whitespace-nowrap ${
               activeTab === 'progress'
-                ? 'bg-white text-slate-950 font-black shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-slate-950 font-medium px-4 shadow-lg'
+                : 'text-slate-400 hover:text-white px-3'
             }`}
           >
-            <BarChart2 className="w-4 h-4" />
-            <span className="text-[11px]">Tiến độ</span>
+            <BarChart2 className="w-4 h-4 shrink-0" />
+            {activeTab === 'progress' && <span className="text-xs font-medium tracking-tight whitespace-nowrap">Tiến độ</span>}
           </button>
 
           {/* Tab 4: Khám phá */}
           <button
             onClick={() => setActiveTab('explore')}
-            className={`flex items-center gap-1.5 py-2 px-3.5 rounded-full text-xs font-bold transition-all ${
+            aria-label="Khám phá kiến thức"
+            className={`flex items-center gap-2 py-2 rounded-full text-xs transition-all shrink-0 whitespace-nowrap ${
               activeTab === 'explore'
-                ? 'bg-white text-slate-950 font-black shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-slate-950 font-medium px-4 shadow-lg'
+                : 'text-slate-400 hover:text-white px-3'
             }`}
           >
-            <Compass className="w-4 h-4" />
-            <span className="text-[11px]">Khám phá</span>
+            <Compass className="w-4 h-4 shrink-0" />
+            {activeTab === 'explore' && <span className="text-xs font-medium tracking-tight whitespace-nowrap">Khám phá</span>}
           </button>
         </nav>
 
