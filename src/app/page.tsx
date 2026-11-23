@@ -681,9 +681,9 @@ export default function AxvyraApp() {
                 )}
 
                 {/* =================================================================== */}
-                {/* KHỐI 1: TIẾN TRÌNH THEO NGÀY (DAILY RECOVERY TIMELINE & TRACKER)   */}
+                {/* KHỐI 1: TIẾN TRÌNH THEO NGÀY (CLEAN & MINIMALIST)                   */}
                 {/* =================================================================== */}
-                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-4">
+                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/70 space-y-3.5">
                   {/* Header: Ngày hiện tại & Lộ trình tổng thể */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -691,64 +691,56 @@ export default function AxvyraApp() {
                         <Calendar className="w-4 h-4 text-teal-600" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-black text-slate-900 leading-tight">
-                          Tiến trình phục hồi theo ngày
-                        </h3>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">
-                          Hôm nay: <strong className="text-teal-700 font-bold">Ngày {rehabStatus.currentDay}</strong> • {rehabStatus.phase.daysLabel || 'GĐ 1: 14 ngày (Ngày 1 – 14)'}
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-slate-900 leading-tight">
+                            Ngày {rehabStatus.currentDay} sau mổ
+                          </h3>
+                          <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full">
+                            GĐ {rehabStatus.phase.phase} (14 ngày đầu)
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">
+                          Tuần {rehabStatus.currentWeek} • Lộ trình 112 ngày ({rehabProgressPercent}%)
                         </p>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-base font-black text-slate-900">{rehabProgressPercent}%</span>
-                      <span className="text-[10px] text-slate-400 block -mt-0.5 font-medium">Lộ trình 112 ngày</span>
                     </div>
                   </div>
 
                   {/* Thanh tiến độ ngày mượt mà */}
-                  <div className="space-y-1.5">
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="space-y-1">
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-700 shadow-xs"
+                        className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-700"
                         style={{ width: `${rehabProgressPercent}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[9px] text-slate-400 font-semibold px-0.5">
-                      <span>Mổ (N1)</span>
-                      <span>Hết GĐ 1 (14 ngày • N14)</span>
-                      <span>Hết GĐ 2 (28 ngày • N42)</span>
-                      <span>Hết GĐ 3 (42 ngày • N84)</span>
-                      <span>GĐ 4 (N112+)</span>
+                    <div className="flex justify-between text-[10px] text-slate-400 font-semibold px-0.5">
+                      <span>Mổ</span>
+                      <span>Ngày 14</span>
+                      <span>Ngày 42</span>
+                      <span>Ngày 84</span>
+                      <span>112 ngày</span>
                     </div>
                   </div>
 
-                  {/* Dải 7 ngày theo dõi tuần phục hồi (Daily Week Tracker) */}
+                  {/* Dải 7 ngày theo dõi tuần phục hồi (Gọn gàng, tinh tế) */}
                   <div className="pt-2 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-xs font-bold text-slate-700">
-                        Lịch tập Tuần {rehabStatus.currentWeek} (Từng ngày)
-                      </span>
-                      <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
-                        {completedSessions} buổi hoàn thành
-                      </span>
-                    </div>
-
                     <div className="grid grid-cols-7 gap-1.5 text-center">
                       {currentWeekDays.map((item) => (
                         <div
                           key={item.dayNum}
                           className={`flex flex-col items-center py-2 px-1 rounded-2xl transition ${
                             item.isToday
-                              ? 'bg-teal-50 border-2 border-teal-500/80 shadow-xs'
+                              ? 'bg-teal-50 border-2 border-teal-600 shadow-xs'
                               : 'bg-slate-50/70 border border-slate-100'
                           }`}
                         >
                           <span
                             className={`text-[10px] font-bold ${
-                              item.isToday ? 'text-teal-800' : 'text-slate-500'
+                              item.isToday ? 'text-teal-800' : 'text-slate-400'
                             }`}
                           >
-                            Ngày {item.dayInWeek}
+                            N{item.dayInWeek}
                           </span>
                           <div
                             className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
@@ -756,7 +748,7 @@ export default function AxvyraApp() {
                                 ? 'bg-teal-700 text-white shadow-xs'
                                 : item.isDone
                                 ? 'bg-emerald-500 text-white'
-                                : 'bg-white text-slate-500 border border-slate-200'
+                                : 'bg-white text-slate-400 border border-slate-200'
                             }`}
                           >
                             {item.isDone && !item.isToday ? (
@@ -766,15 +758,11 @@ export default function AxvyraApp() {
                             )}
                           </div>
                           <span
-                            className={`text-[9px] font-medium leading-none ${
-                              item.isToday
-                                ? 'text-teal-700 font-bold'
-                                : item.isDone
-                                ? 'text-emerald-700 font-semibold'
-                                : 'text-slate-400'
+                            className={`text-[9px] font-bold h-3 flex items-center ${
+                              item.isToday ? 'text-teal-700' : 'text-transparent'
                             }`}
                           >
-                            {item.isToday ? 'Hôm nay' : item.isDone ? 'Xong' : item.realDayName ? `${item.realDayName}` : `N${item.dayNum}`}
+                            {item.isToday ? 'Hôm nay' : '•'}
                           </span>
                         </div>
                       ))}
@@ -790,7 +778,7 @@ export default function AxvyraApp() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
                       <Activity className="w-3.5 h-3.5 text-teal-600" />
-                      Giai đoạn {rehabStatus.phase.phase} ({rehabStatus.phase.durationDays || 14} ngày: {rehabStatus.phase.daysRange ? `Ngày ${rehabStatus.phase.daysRange[0]}–${rehabStatus.phase.daysRange[1]}` : 'Ngày 1–14'})
+                      Giai đoạn {rehabStatus.phase.phase} • 14 ngày đầu
                     </span>
                     <span className="text-xs font-semibold text-slate-500">
                       Gập tối đa: <strong className="text-teal-700 font-bold">{rehabStatus.allowedFlexionMax}°</strong>
@@ -803,7 +791,7 @@ export default function AxvyraApp() {
                       {rehabStatus.phase.title}
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      {rehabStatus.exercises.length} bài tập phục hồi • Thời lượng GĐ: <strong className="text-slate-700 font-bold">{rehabStatus.phase.durationDays || 14} ngày</strong> • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
+                      {rehabStatus.exercises.length} bài tập phục hồi • Tần suất: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : rehabStatus.phase.phase === 2 ? '2 lần/ngày' : '1 lần/ngày'}</strong>
                     </p>
                   </div>
 
@@ -962,61 +950,17 @@ export default function AxvyraApp() {
         {/* ========================================================================= */}
         {activeTab === 'plan' && (
           <div className="space-y-3.5 animate-fade-in">
-            <div>
-              <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Giai đoạn {rehabStatus.phase.phase} • {rehabStatus.phase.daysLabel || '14 ngày (Ngày 1 – 14 sau mổ)'}
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-1.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold tracking-wide uppercase">
+                <Activity className="w-3.5 h-3.5 text-teal-600" />
+                Giai đoạn {rehabStatus.phase.phase} • 14 ngày đầu (Tuần {rehabStatus.phase.weekRange[0]} – {rehabStatus.phase.weekRange[1]})
               </span>
-              <h1 className="text-xl font-black text-slate-900 mt-1.5">
+              <h1 className="text-xl font-black text-slate-900 mt-1">
                 {rehabStatus.phase.title}
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Thời lượng: <strong className="text-slate-800">{rehabStatus.phase.durationDays || 14} ngày</strong> (Tuần {rehabStatus.phase.weekRange[0]} – {rehabStatus.phase.weekRange[1]} sau mổ) • {getSurgeryDetails(rehabStatus.surgeryType).shortLabel}.
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Phác đồ phục hồi {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} ({getAgeGroupDetails(ageGroup).shortLabel}) • Tần suất chỉ định: <strong className="text-teal-700 font-bold">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : '2 lần/ngày'}</strong>.
               </p>
-            </div>
-
-            {/* BẢNG 4 GIAI ĐOẠN PHỤC HỒI & SỐ NGÀY CHI TIẾT */}
-            <div className="bg-white rounded-3xl p-3.5 border border-slate-200/80 shadow-sm space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                  Chi tiết 4 giai đoạn phục hồi (112 ngày)
-                </span>
-                <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
-                  Đang ở GĐ {rehabStatus.phase.phase}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {PHASE_RULES.map((p) => {
-                  const isCurrent = p.phase === rehabStatus.phase.phase;
-                  return (
-                    <div
-                      key={p.phase}
-                      className={`p-2.5 rounded-2xl border transition ${
-                        isCurrent
-                          ? 'bg-teal-50/90 border-teal-500 shadow-xs ring-1 ring-teal-500/30'
-                          : 'bg-slate-50/70 border-slate-200/70'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[10px] font-black uppercase ${isCurrent ? 'text-teal-800' : 'text-slate-500'}`}>
-                          Giai đoạn {p.phase}
-                        </span>
-                        {isCurrent && (
-                          <span className="text-[8.5px] font-bold bg-teal-700 text-white px-1.5 py-0.2 rounded-full">
-                            Hiện tại
-                          </span>
-                        )}
-                      </div>
-                      <div className={`text-xs font-bold mt-1 ${isCurrent ? 'text-teal-950 font-black' : 'text-slate-800'}`}>
-                        {p.durationDays || (p.phase === 1 ? 14 : p.phase === 2 ? 28 : p.phase === 3 ? 42 : 28)} ngày
-                      </div>
-                      <span className="text-[9.5px] text-slate-500 block leading-tight mt-0.5">
-                        {p.daysRange ? `Ngày ${p.daysRange[0]} – ${p.daysRange[1]}` : (p.phase === 1 ? 'Ngày 1 – 14' : p.phase === 2 ? 'Ngày 15 – 42' : p.phase === 3 ? 'Ngày 43 – 84' : 'Ngày 85 – 112')}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
 
             {/* Session Detail */}
