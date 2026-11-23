@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, Heart, Award, X, MessageSquare, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Award, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface SessionFeedbackModalProps {
@@ -50,21 +50,21 @@ export default function SessionFeedbackModal({
   };
 
   return (
-    <div className="fixed sm:absolute inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl w-full max-w-sm p-5 space-y-4 text-slate-800">
+    <div className="fixed sm:absolute inset-0 z-50 bg-[#0C0D11]/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
+      <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] shadow-2xl w-full max-w-sm p-6 space-y-4 text-white">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 text-emerald-400 flex items-center justify-center">
               <Award className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Đánh Giá Buổi Tập</h3>
-              <p className="text-[10px] text-slate-500 line-clamp-1">{sessionTitle}</p>
+              <h3 className="text-sm font-light text-white tracking-tight">Đánh Giá Buổi Tập</h3>
+              <p className="text-[11px] text-slate-400 font-light line-clamp-1">{sessionTitle}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full"
+            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -72,12 +72,12 @@ export default function SessionFeedbackModal({
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           {/* RPE Scale (1-10) */}
-          <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+          <div className="space-y-2 bg-white/[0.03] p-3.5 rounded-2xl border border-white/[0.06]">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-700 text-[11px]">
+              <span className="font-light text-slate-300 text-[11px]">
                 Mức độ gắng sức (RPE 1-10):
               </span>
-              <span className="font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-lg text-[11px]">
+              <span className="font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px]">
                 {rpeScore} - {getRpeLabel(rpeScore)}
               </span>
             </div>
@@ -87,23 +87,23 @@ export default function SessionFeedbackModal({
               max="10"
               value={rpeScore}
               onChange={(e) => setRpeScore(parseInt(e.target.value, 10))}
-              className="w-full accent-emerald-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+              className="w-full accent-white h-1.5 bg-white/10 rounded-lg cursor-pointer"
             />
           </div>
 
           {/* Pain Scale during session (1-10) */}
-          <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+          <div className="space-y-2 bg-white/[0.03] p-3.5 rounded-2xl border border-white/[0.06]">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-700 text-[11px]">
+              <span className="font-light text-slate-300 text-[11px]">
                 Đau trong lúc tập (VAS 1-10):
               </span>
               <span
-                className={`font-black px-2 py-0.5 rounded-lg text-[11px] ${
+                className={`font-medium px-2.5 py-0.5 rounded-full text-[10px] ${
                   painDuringSession <= 3
-                    ? 'bg-emerald-100 text-emerald-700'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                     : painDuringSession <= 6
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-rose-100 text-rose-700'
+                    ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                    : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
                 }`}
               >
                 {painDuringSession}/10
@@ -115,13 +115,13 @@ export default function SessionFeedbackModal({
               max="10"
               value={painDuringSession}
               onChange={(e) => setPainDuringSession(parseInt(e.target.value, 10))}
-              className="w-full accent-emerald-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+              className="w-full accent-white h-1.5 bg-white/10 rounded-lg cursor-pointer"
             />
           </div>
 
           {/* Patient notes */}
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700 text-[11px] block">
+          <div className="space-y-1.5">
+            <label className="font-light text-slate-300 text-[11px] block">
               Ghi chú cảm giác / Bất thường:
             </label>
             <textarea
@@ -129,13 +129,13 @@ export default function SessionFeedbackModal({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ví dụ: Cơ đùi gồng tốt, hơi căng nhẹ vùng bánh chè khi duỗi..."
               rows={2}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-white/30"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold rounded-xl text-xs transition shadow-md shadow-emerald-600/25 flex items-center justify-center gap-1.5"
+            className="w-full py-3.5 bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium rounded-full text-xs transition shadow-xl flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             Lưu Kết Quả & Hoàn Tất

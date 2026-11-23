@@ -79,10 +79,12 @@ export interface KnowledgeArticle {
 
 export interface RecoveryCase {
   id: string;
+  userId?: string;
   patientName: string;
   surgeryDate: string;
   surgeryType: SurgeryType;
   surgeryLeg: 'left' | 'right';
+  ageGroup?: string;
   currentPhase: number;
   weightBearingStatus: string;
   braceRequirement: string;

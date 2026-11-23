@@ -54,7 +54,7 @@ import {
   KNOWLEDGE_ARTICLES,
   KnowledgeArticle
 } from '@/data/axvyraDomain';
-import { AxvyraStore, getOrCreateDefaultCase } from '@/lib/axvyraStore';
+import { AxvyraStore, getOrCreateDefaultCase, updateOrCreateCase } from '@/lib/axvyraStore';
 import WorkoutPlayer from '@/components/WorkoutPlayer';
 import KneeAngleCamera, { AngleRecord } from '@/components/KneeAngleCamera';
 import OnboardingModal, { UserProfile } from '@/components/OnboardingModal';
@@ -189,6 +189,7 @@ export default function AxvyraApp() {
       if (recoveryCase) {
         const updated = AxvyraStore.sanitizeCase({
           ...recoveryCase,
+          userId: safeUser.id,
           patientName: safeName,
         });
         AxvyraStore.saveRecoveryCase(updated);
@@ -256,7 +257,7 @@ export default function AxvyraApp() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Onboarding Completion
+  // Onboarding Completion & Protocol Dynamic Re-assignment
   const handleOnboardingComplete = (profile: UserProfile) => {
     setHasCompletedProfile(true);
     try {
@@ -270,11 +271,16 @@ export default function AxvyraApp() {
       }
     } catch {}
 
-    const updated = getOrCreateDefaultCase(
-      profile.name,
-      profile.surgeryDate,
-      profile.surgeryType,
-      profile.surgeryLeg,
+    const updated = updateOrCreateCase(
+      recoveryCase,
+      {
+        name: profile.name,
+        surgeryDate: profile.surgeryDate,
+        surgeryType: profile.surgeryType,
+        surgeryLeg: profile.surgeryLeg,
+        ageGroup: profile.ageGroup,
+        userId: authUser?.id,
+      },
       {
         weightBearing: profile.weightBearingRestriction,
         maxFlexion: profile.maxFlexionRestriction,

@@ -15,6 +15,96 @@ import { SurgeryType, getRehabStatus, SURGERY_DETAILS, getSafeSurgeryType } from
 const STORAGE_KEY = 'axvyra_v1_case';
 const AUDIT_KEY = 'axvyra_v1_audit';
 
+export function updateOrCreateCase(
+  existingCase: RecoveryCase | null | undefined,
+  profile: {
+    name: string;
+    surgeryDate: string;
+    surgeryType: SurgeryType;
+    surgeryLeg: 'left' | 'right';
+    ageGroup?: string;
+    userId?: string;
+  },
+  restrictions?: { weightBearing?: string; maxFlexion?: number }
+): RecoveryCase {
+  const rehab = getRehabStatus(profile.surgeryDate, profile.surgeryType, profile.ageGroup as any);
+
+  const dailySessions: DailyExerciseSession[] = [
+    {
+      id: `session-${profile.surgeryDate}`,
+      dayNumber: rehab.currentDay,
+      weekNumber: rehab.currentWeek,
+      title: `Buổi tập Phục hồi GĐ ${rehab.phase.phase}`,
+      focus: rehab.phase.milestoneCriteria[0] || 'Kiểm soát sưng nề & Kích hoạt cơ',
+      estimatedMinutes: Math.min(25, rehab.exercises.length * 4),
+      exercises: rehab.exercises.map((e) => ({
+        exerciseId: e.id,
+        title: e.name,
+        vietnameseName: e.vietnameseName || e.name,
+        targetSets: e.targetSets,
+        targetReps: e.targetReps,
+        holdSec: e.holdSec,
+        restSec: e.restSec,
+        instructions: e.instructions,
+        safetyNote: e.safetyWarning,
+        maxFlexionAngle: e.maxFlexionAngle,
+      })),
+      completed: false,
+    },
+  ];
+
+  if (existingCase) {
+    return {
+      ...existingCase,
+      patientName: profile.name,
+      surgeryDate: profile.surgeryDate,
+      surgeryType: profile.surgeryType,
+      surgeryLeg: profile.surgeryLeg,
+      ageGroup: profile.ageGroup || existingCase.ageGroup,
+      userId: profile.userId || existingCase.userId,
+      currentPhase: rehab.phase.phase,
+      weightBearingStatus:
+        restrictions?.weightBearing || rehab.weightBearingSummary,
+      braceRequirement: rehab.braceSummary,
+      maxSafeFlexion:
+        restrictions?.maxFlexion !== undefined
+          ? restrictions.maxFlexion
+          : rehab.allowedFlexionMax,
+      dailySessions,
+      // CRITICAL: Preserve all patient records (ROM records, daily logs, session feedbacks, milestones)
+      milestones: existingCase.milestones && existingCase.milestones.length > 0 ? existingCase.milestones : INITIAL_MILESTONES,
+      sessionFeedbacks: existingCase.sessionFeedbacks || [],
+      romHistory: existingCase.romHistory || [],
+      dailyLogs: existingCase.dailyLogs || [],
+      clinicalPendingVerification: false,
+    };
+  }
+
+  return {
+    id: `case-${Date.now()}`,
+    userId: profile.userId,
+    patientName: profile.name,
+    surgeryDate: profile.surgeryDate,
+    surgeryType: profile.surgeryType,
+    surgeryLeg: profile.surgeryLeg,
+    ageGroup: profile.ageGroup,
+    currentPhase: rehab.phase.phase,
+    weightBearingStatus:
+      restrictions?.weightBearing || rehab.weightBearingSummary,
+    braceRequirement: rehab.braceSummary,
+    maxSafeFlexion:
+      restrictions?.maxFlexion !== undefined
+        ? restrictions.maxFlexion
+        : rehab.allowedFlexionMax,
+    milestones: INITIAL_MILESTONES,
+    dailySessions,
+    sessionFeedbacks: [],
+    romHistory: [],
+    dailyLogs: [],
+    clinicalPendingVerification: false,
+  };
+}
+
 export function getOrCreateDefaultCase(
   patientName = 'Bệnh nhân',
   surgeryDate = new Date().toISOString().split('T')[0],

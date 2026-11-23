@@ -400,9 +400,9 @@ export default function AuthModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed sm:absolute inset-0 z-50 bg-[#E8F3F6] flex flex-col justify-between overflow-y-auto animate-fade-in font-sans">
+    <div className="fixed sm:absolute inset-0 z-50 bg-[#0C0D11] text-white flex flex-col justify-between overflow-y-auto animate-fade-in font-sans">
       {/* Background Image: auth-bg.jpg with Glowing 3D Knee & Wave */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-25">
         <Image
           src="/images/auth-bg.jpg"
           alt="AXVYRA Medical Background"
@@ -410,48 +410,38 @@ export default function AuthModal({
           className="object-cover object-top"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-sky-50/20 to-[#E8F3F6]/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0C0D11]/40 via-[#0C0D11]/80 to-[#0C0D11]" />
       </div>
 
       {/* Brand Header */}
       <div className="relative z-20 px-6 pt-6 pb-2 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 relative flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
-                <path
-                  d="M12 3L22 20H2L12 3Z"
-                  fill="#84CC16"
-                  stroke="#10B981"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-                <path d="M12 8L18 19H6L12 8Z" fill="#10B981" />
-              </svg>
+            <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             </div>
-            <span className="font-black text-xl tracking-wider text-slate-900">
+            <span className="font-medium text-lg tracking-widest text-white">
               AXVYRA
             </span>
           </div>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
+          <p className="text-xs font-light text-slate-400 mt-0.5">
             Rebuild. Rise. Return.
           </p>
-          <div className="w-8 h-1 bg-[#84CC16] rounded-full mt-1.5" />
         </div>
       </div>
 
       {/* Main Floating Glass Form Container */}
-      <div className="relative z-20 px-4 pt-8 pb-5 max-w-sm w-full mx-auto my-auto">
-        <div className="bg-white/90 backdrop-blur-xl rounded-[36px] p-6 shadow-xl border border-white/80 space-y-4">
+      <div className="relative z-20 px-4 pt-6 pb-5 max-w-sm w-full mx-auto my-auto">
+        <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-6 shadow-2xl space-y-4 text-white">
           {/* Card Title & Subtitle */}
           {mode === 'LOGIN' && (
             <div className="space-y-1">
-              <h1 className="text-[23px] font-black text-slate-900 leading-tight">
+              <h1 className="text-2xl font-light text-white tracking-tight leading-tight">
                 Chào mừng bạn
                 <br />
-                đến với <span className="text-[#84CC16]">AXVYRA</span>
+                đến với <span className="text-emerald-400 font-normal">AXVYRA</span>
               </h1>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed pt-0.5">
+              <p className="text-xs text-slate-400 font-light leading-relaxed pt-0.5">
                 Đồng hành cùng bạn trên hành trình phục hồi và trở lại vận động.
               </p>
             </div>
@@ -459,12 +449,12 @@ export default function AuthModal({
 
           {mode === 'REGISTER' && (
             <div className="space-y-1">
-              <h1 className="text-[23px] font-black text-slate-900 leading-tight">
+              <h1 className="text-2xl font-light text-white tracking-tight leading-tight">
                 Đăng ký tài khoản
                 <br />
-                <span className="text-[#84CC16]">AXVYRA</span>
+                <span className="text-emerald-400 font-normal">AXVYRA</span>
               </h1>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed pt-0.5">
+              <p className="text-xs text-slate-400 font-light leading-relaxed pt-0.5">
                 Nhận phác đồ cá nhân hóa chuẩn y khoa cho dây chằng và sụn chêm.
               </p>
             </div>
@@ -472,7 +462,7 @@ export default function AuthModal({
 
           {mode === 'GOOGLE_PROMPT' && (
             <div className="space-y-1 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center mx-auto mb-2">
+              <div className="w-12 h-12 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center mx-auto mb-2">
                 <svg className="w-6 h-6" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
@@ -492,10 +482,10 @@ export default function AuthModal({
                   />
                 </svg>
               </div>
-              <h1 className="text-xl font-black text-slate-900 leading-tight">
+              <h1 className="text-xl font-light text-white leading-tight">
                 Đăng nhập bằng Google
               </h1>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-400 font-light">
                 Xác thực tài khoản Google của bạn trên AXVYRA
               </p>
             </div>
@@ -503,30 +493,30 @@ export default function AuthModal({
 
           {mode === 'VERIFY_OTP' && (
             <div className="space-y-1 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-2">
+              <div className="w-12 h-12 rounded-full bg-white/[0.06] border border-white/10 text-emerald-400 flex items-center justify-center mx-auto mb-2">
                 <KeyRound className="w-6 h-6" />
               </div>
-              <h1 className="text-xl font-black text-slate-900 leading-tight">
+              <h1 className="text-xl font-light text-white leading-tight">
                 Xác thực mã Email
               </h1>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
                 Nhập mã xác thực 6 số gửi tới <br />
-                <strong className="text-slate-800">{email}</strong>
+                <strong className="text-white font-medium">{email}</strong>
               </p>
             </div>
           )}
 
           {/* Feedback alerts */}
           {errorMsg && (
-            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-light flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-light flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
@@ -535,7 +525,7 @@ export default function AuthModal({
           {mode === 'LOGIN' && (
             <form onSubmit={handleLogin} className="space-y-3 pt-1">
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -544,12 +534,12 @@ export default function AuthModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-full py-3.5 pl-11 pr-4 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none transition"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3.5 pl-11 pr-4 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
                 />
               </div>
 
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -558,12 +548,12 @@ export default function AuthModal({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mật khẩu"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-full py-3.5 pl-11 pr-11 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none transition"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3.5 pl-11 pr-11 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -576,7 +566,7 @@ export default function AuthModal({
                     setErrorMsg(null);
                     setSuccessMsg('Bạn có thể đăng nhập tức thì bằng Google bên dưới.');
                   }}
-                  className="text-[11px] font-bold text-teal-700 hover:text-teal-800"
+                  className="text-[11px] font-light text-slate-400 hover:text-white transition"
                 >
                   Quên mật khẩu?
                 </button>
@@ -585,7 +575,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#4ade80] via-[#22c55e] to-[#0d9488] hover:opacity-95 active:scale-[0.98] text-white font-bold text-xs shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                className="w-full py-3.5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
                 <span>{isLoading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -597,7 +587,7 @@ export default function AuthModal({
           {mode === 'REGISTER' && (
             <form onSubmit={handleRegister} className="space-y-3 pt-1">
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                   <User className="w-4 h-4" />
                 </div>
                 <input
@@ -606,12 +596,12 @@ export default function AuthModal({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Họ và tên bệnh nhân"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-full py-3 pl-11 pr-4 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none transition"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3 pl-11 pr-4 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
                 />
               </div>
 
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -620,12 +610,12 @@ export default function AuthModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-full py-3 pl-11 pr-4 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none transition"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3 pl-11 pr-4 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
                 />
               </div>
 
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -634,19 +624,19 @@ export default function AuthModal({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mật khẩu (tối thiểu 6 ký tự)"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-full py-3 pl-11 pr-11 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none transition"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3 pl-11 pr-11 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
 
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -655,14 +645,14 @@ export default function AuthModal({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Xác nhận mật khẩu"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-full py-3 pl-11 pr-4 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none transition"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3 pl-11 pr-4 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#4ade80] via-[#22c55e] to-[#0d9488] hover:opacity-95 active:scale-[0.98] text-white font-bold text-xs shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition disabled:opacity-50 mt-1"
+                className="w-full py-3.5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50 mt-1"
               >
                 <span>{isLoading ? 'Đang gửi...' : 'Tiếp tục & Nhận mã OTP'}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -673,25 +663,25 @@ export default function AuthModal({
           {/* MODE 3: GOOGLE AUTH CONFIRMATION PROMPT */}
           {mode === 'GOOGLE_PROMPT' && (
             <div className="space-y-3 pt-1 animate-fade-in">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+              <div className="p-3.5 bg-white/[0.03] border border-white/[0.08] rounded-2xl space-y-2">
                 <div className="space-y-1 text-left">
-                  <label className="text-[11px] font-bold text-slate-700 block">Địa chỉ Email Google của bạn:</label>
+                  <label className="text-[11px] font-light text-slate-300 block">Địa chỉ Email Google của bạn:</label>
                   <input
                     type="email"
                     value={googleEmail}
                     onChange={(e) => setGoogleEmail(e.target.value)}
                     placeholder="tenban@gmail.com"
-                    className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-900 outline-none"
+                    className="w-full bg-[#16181F] border border-white/10 focus:border-white/30 rounded-xl py-2.5 px-3 text-xs font-normal text-white outline-none"
                   />
                 </div>
                 <div className="space-y-1 text-left">
-                  <label className="text-[11px] font-bold text-slate-700 block">Tên hiển thị:</label>
+                  <label className="text-[11px] font-light text-slate-300 block">Tên hiển thị:</label>
                   <input
                     type="text"
                     value={googleName}
                     onChange={(e) => setGoogleName(e.target.value)}
                     placeholder="Minh Tuấn"
-                    className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-900 outline-none"
+                    className="w-full bg-[#16181F] border border-white/10 focus:border-white/30 rounded-xl py-2.5 px-3 text-xs font-normal text-white outline-none"
                   />
                 </div>
               </div>
@@ -700,7 +690,7 @@ export default function AuthModal({
                 type="button"
                 onClick={() => handleConfirmGoogleAuth(googleEmail, googleName)}
                 disabled={isLoading}
-                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#4ade80] via-[#22c55e] to-[#0d9488] text-white font-bold text-xs shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                className="w-full py-3.5 rounded-full bg-white hover:bg-slate-100 text-slate-950 font-medium text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
                 <Check className="w-4 h-4" />
                 <span>{isLoading ? 'Đang kết nối Google...' : 'Xác thực & Vào ứng dụng'}</span>
@@ -709,7 +699,7 @@ export default function AuthModal({
               <button
                 type="button"
                 onClick={() => setMode('LOGIN')}
-                className="w-full text-center text-[11px] font-semibold text-slate-400 hover:text-slate-600"
+                className="w-full text-center text-[11px] font-light text-slate-400 hover:text-white"
               >
                 Quay lại đăng nhập thông thường
               </button>
@@ -720,10 +710,10 @@ export default function AuthModal({
           {mode === 'VERIFY_OTP' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4 pt-1 animate-fade-in text-center">
               {generatedOtp && (
-                <div className="p-2.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center justify-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-light flex items-center justify-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>
-                    Chế độ thử nghiệm: <strong className="text-base font-black tracking-widest text-amber-700">{generatedOtp}</strong>
+                    Chế độ thử nghiệm: <strong className="text-base font-medium tracking-widest text-amber-200">{generatedOtp}</strong>
                   </span>
                 </div>
               )}
@@ -738,14 +728,14 @@ export default function AuthModal({
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(e.target.value, idx)}
-                    className="w-10 h-12 text-center text-lg font-black bg-[#F8FAFC] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-xl outline-none transition"
+                    className="w-10 h-12 text-center text-lg font-light bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-2xl outline-none text-white transition"
                     autoFocus={idx === 0}
                   />
                 ))}
               </div>
 
               <div className="flex items-center justify-between text-xs px-1">
-                <span className="text-slate-400 text-[11px]">
+                <span className="text-slate-400 text-[11px] font-light">
                   {countdown > 0 ? `Gửi lại sau ${countdown}s` : 'Chưa nhận được mã?'}
                 </span>
                 <button
@@ -771,7 +761,7 @@ export default function AuthModal({
                       setIsLoading(false);
                     }
                   }}
-                  className="font-bold text-emerald-600 disabled:opacity-40 text-[11px]"
+                  className="font-medium text-emerald-400 disabled:opacity-40 text-[11px]"
                 >
                   Gửi lại mã
                 </button>
@@ -780,7 +770,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#4ade80] via-[#22c55e] to-[#0d9488] text-white font-bold text-xs shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                className="w-full py-3.5 rounded-full bg-white hover:bg-slate-100 text-slate-950 font-medium text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{isLoading ? 'Đang kiểm tra...' : 'Xác thực & Bắt đầu'}</span>
@@ -789,7 +779,7 @@ export default function AuthModal({
               <button
                 type="button"
                 onClick={() => setMode('REGISTER')}
-                className="text-[11px] font-semibold text-slate-400 hover:text-slate-600"
+                className="text-[11px] font-light text-slate-400 hover:text-white"
               >
                 Đổi lại thông tin đăng ký
               </button>
@@ -801,9 +791,9 @@ export default function AuthModal({
             <div className="space-y-3 pt-1">
               <div className="relative flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200" />
+                  <div className="w-full border-t border-white/[0.08]" />
                 </div>
-                <span className="relative bg-white px-3 text-[11px] text-slate-400 font-medium">
+                <span className="relative bg-[#16181F] px-3 text-[11px] text-slate-400 font-light">
                   Hoặc tiếp tục với
                 </span>
               </div>
@@ -813,7 +803,7 @@ export default function AuthModal({
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isLoading}
-                className="w-full py-3.5 px-4 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] border border-slate-200 shadow-xs flex items-center justify-center gap-2.5 text-xs font-bold text-slate-800 transition"
+                className="w-full py-3.5 px-4 rounded-full bg-white/[0.06] hover:bg-white/10 active:scale-[0.98] border border-white/10 shadow-lg flex items-center justify-center gap-2.5 text-xs font-medium text-white transition"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -839,7 +829,7 @@ export default function AuthModal({
               {/* Bottom Switcher */}
               <div className="text-center pt-1.5">
                 {mode === 'LOGIN' ? (
-                  <p className="text-xs text-slate-500 font-medium">
+                  <p className="text-xs text-slate-400 font-light">
                     Bạn chưa có tài khoản?{' '}
                     <button
                       type="button"
@@ -848,13 +838,13 @@ export default function AuthModal({
                         setErrorMsg(null);
                         setSuccessMsg(null);
                       }}
-                      className="font-bold text-emerald-600 hover:text-emerald-700 underline-offset-2 hover:underline ml-0.5"
+                      className="font-medium text-emerald-400 hover:text-emerald-300 ml-1"
                     >
                       Đăng ký ngay
                     </button>
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-500 font-medium">
+                  <p className="text-xs text-slate-400 font-light">
                     Đã có tài khoản?{' '}
                     <button
                       type="button"
@@ -863,7 +853,7 @@ export default function AuthModal({
                         setErrorMsg(null);
                         setSuccessMsg(null);
                       }}
-                      className="font-bold text-emerald-600 hover:text-emerald-700 underline-offset-2 hover:underline ml-0.5"
+                      className="font-medium text-emerald-400 hover:text-emerald-300 ml-1"
                     >
                       Đăng nhập ngay
                     </button>
