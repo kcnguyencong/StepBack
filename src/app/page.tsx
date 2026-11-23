@@ -392,11 +392,15 @@ export default function AxvyraApp() {
     return recoveryCase?.sessionFeedbacks?.length || 0;
   }, [recoveryCase?.sessionFeedbacks]);
 
-  // Tính 7 ngày trong tuần phục hồi hiện tại
+  // Tính 7 ngày trong tuần phục hồi hiện tại (chuẩn y khoa theo chu kỳ ngày sau mổ)
   const currentWeekDays = useMemo(() => {
-    const curDay = rehabStatus.currentDay;
+    const curDay = Math.max(1, rehabStatus.currentDay);
     const weekStartDay = Math.max(1, (rehabStatus.currentWeek - 1) * 7 + 1);
-    const dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+    // Tính ngày dương lịch thực tế từ ngày phẫu thuật của bệnh nhân
+    const surgeryDateStr = recoveryCase?.surgeryDate;
+    const baseDate = surgeryDateStr ? new Date(surgeryDateStr) : new Date();
+    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
     return [0, 1, 2, 3, 4, 5, 6].map((offset) => {
       const dayNum = weekStartDay + offset;
@@ -405,16 +409,23 @@ export default function AxvyraApp() {
       const isFuture = dayNum > curDay;
       const isDone = isPast || (isToday && completedSessions > 0);
 
+      // Tính Thứ và ngày dương lịch thực tế đối chiếu
+      const targetDate = new Date(baseDate.getTime() + (dayNum - 1) * 86400000);
+      const realDayName = !isNaN(targetDate.getTime()) ? dayNames[targetDate.getDay()] : '';
+      const realDateFormatted = !isNaN(targetDate.getTime()) ? `${targetDate.getDate()}/${targetDate.getMonth() + 1}` : '';
+
       return {
-        label: dayLabels[offset],
-        dayNum,
+        dayInWeek: offset + 1,       // Ngày 1 -> Ngày 7 trong tuần phục hồi
+        dayNum,                      // Ngày thứ X sau mổ (Post-op Day)
+        realDayName,                 // Thứ thực tế theo lịch dương
+        realDateFormatted,           // Ngày/tháng dương lịch
         isToday,
         isPast,
         isFuture,
         isDone,
       };
     });
-  }, [rehabStatus.currentDay, rehabStatus.currentWeek, completedSessions]);
+  }, [rehabStatus.currentDay, rehabStatus.currentWeek, completedSessions, recoveryCase?.surgeryDate]);
 
   // Mobility score: 10 - painScore from latest daily recovery log
   const latestDailyLog = recoveryCase?.dailyLogs?.[0];
@@ -784,10 +795,10 @@ export default function AxvyraApp() {
                         >
                           <span
                             className={`text-[10px] font-bold ${
-                              item.isToday ? 'text-teal-800' : 'text-slate-400'
+                              item.isToday ? 'text-teal-800' : 'text-slate-500'
                             }`}
                           >
-                            {item.label}
+                            Ngày {item.dayInWeek}
                           </span>
                           <div
                             className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs font-black transition ${
@@ -795,7 +806,7 @@ export default function AxvyraApp() {
                                 ? 'bg-teal-700 text-white shadow-xs'
                                 : item.isDone
                                 ? 'bg-emerald-500 text-white'
-                                : 'bg-white text-slate-400 border border-slate-200'
+                                : 'bg-white text-slate-500 border border-slate-200'
                             }`}
                           >
                             {item.isDone && !item.isToday ? (
@@ -813,7 +824,7 @@ export default function AxvyraApp() {
                                 : 'text-slate-400'
                             }`}
                           >
-                            {item.isToday ? 'Hôm nay' : item.isDone ? 'Xong' : `N${item.dayNum}`}
+                            {item.isToday ? 'Hôm nay' : item.isDone ? 'Xong' : item.realDayName ? `${item.realDayName}` : `N${item.dayNum}`}
                           </span>
                         </div>
                       ))}
