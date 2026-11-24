@@ -305,6 +305,36 @@ export default function KneeAngleCamera({
     }
   };
 
+  // Toggle Camera Front / Back (Selfie vs Rear)
+  const toggleFacingMode = async () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
+    if (sessionState !== 'IDLE') {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: nextMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play();
+          };
+        }
+      } catch (err) {
+        console.warn('Flip camera error:', err);
+      }
+    }
+  };
+
   // Stop Camera Stream
   const stopCamera = useCallback(() => {
     if (animationFrameRef.current) {
@@ -662,13 +692,37 @@ export default function KneeAngleCamera({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))}
-            className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
-            title="Đổi camera trước/sau"
-          >
-            <FlipHorizontal className="w-3.5 h-3.5" />
-          </button>
+          {/* Camera Flip Selector (Sau vs Trước/Selfie) */}
+          <div className="flex items-center bg-white/[0.04] p-0.5 rounded-full border border-white/10">
+            <button
+              onClick={() => {
+                if (facingMode !== 'environment') toggleFacingMode();
+              }}
+              className={`px-2.5 py-1 rounded-full text-[11px] transition flex items-center gap-1 ${
+                facingMode === 'environment'
+                  ? 'bg-white text-slate-950 font-medium shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Dùng camera sau"
+            >
+              <Camera className="w-3 h-3" />
+              <span>Cam Sau</span>
+            </button>
+            <button
+              onClick={() => {
+                if (facingMode !== 'user') toggleFacingMode();
+              }}
+              className={`px-2.5 py-1 rounded-full text-[11px] transition flex items-center gap-1 ${
+                facingMode === 'user'
+                  ? 'bg-emerald-400 text-slate-950 font-medium shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Dùng camera trước (Selfie để nhìn thấy màn hình khi nằm)"
+            >
+              <FlipHorizontal className="w-3 h-3" />
+              <span>Cam Trước (Selfie)</span>
+            </button>
+          </div>
 
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -688,6 +742,22 @@ export default function KneeAngleCamera({
         onPointerLeave={handlePointerUp}
         className="relative aspect-[3/4] max-h-[460px] w-full bg-[#0C0D11] rounded-[28px] overflow-hidden border border-white/[0.08] flex items-center justify-center shadow-inner touch-none"
       >
+        {/* Floating Flip Camera button directly on video viewport */}
+        {sessionState !== 'IDLE' && (
+          <div className="absolute top-4 right-4 z-40 pointer-events-auto">
+            <button
+              onClick={toggleFacingMode}
+              className="px-3 py-1.5 rounded-full bg-[#16181F]/90 backdrop-blur-md border border-white/20 text-white hover:bg-black shadow-2xl flex items-center gap-1.5 active:scale-95 transition"
+              title="Đổi camera trước / sau"
+            >
+              <FlipHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[11px] font-medium">
+                {facingMode === 'user' ? 'Đổi Cam Sau' : 'Đổi Cam Trước (Selfie)'}
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* Live Video */}
         <video
           ref={videoRef}
