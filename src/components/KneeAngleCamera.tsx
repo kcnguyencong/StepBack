@@ -15,11 +15,12 @@ import {
   Volume2,
   VolumeX,
   SlidersHorizontal,
-  ChevronRight,
+  Compass,
   ShieldCheck,
   ShieldAlert,
-  ArrowRight,
-  Sparkles
+  Move,
+  Upload,
+  Check
 } from 'lucide-react';
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 
@@ -62,16 +63,24 @@ export default function KneeAngleCamera({
   selectedLeg = 'left',
   onRecordSaved,
 }: KneeAngleCameraProps) {
-  // Mode: 'visual' (Thước đối chiếu hình học mắt nhìn) vs 'camera' (Camera soi trực tiếp)
-  const [mode, setMode] = useState<'visual' | 'camera'>('visual');
+  // Mode:
+  // 'goniometer': Thước đo góc khớp Y Khoa 2 nhánh (Universal Goniometer chuẩn lâm sàng)
+  // 'visual': Thước so khớp mắt nhìn nhanh
+  // 'camera': Camera soi góc kèm thước đè
+  const [mode, setMode] = useState<'goniometer' | 'camera' | 'visual'>('goniometer');
   const [leg, setLeg] = useState<'left' | 'right'>(selectedLeg);
 
-  // Visual Slider Angle (0° to 135°)
+  // Goniometer Arm Angle: 0° to 135° (Flexion)
+  const [goniometerAngle, setGoniometerAngle] = useState<number>(60);
+  const [isDraggingMovingArm, setIsDraggingMovingArm] = useState<boolean>(false);
+  const goniometerSvgRef = useRef<SVGSVGElement | null>(null);
+
+  // Visual Slider Angle
   const [visualAngle, setVisualAngle] = useState<number>(60);
 
   // Live Camera states
   const [cameraActive, setCameraActive] = useState<boolean>(false);
-  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('user'); // Default selfie for bedside use
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('user');
   const [liveAngle, setLiveAngle] = useState<number | null>(null);
   const [isLoadingModel, setIsLoadingModel] = useState<boolean>(false);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -185,7 +194,45 @@ export default function KneeAngleCamera({
   };
 
   // ==========================================
-  // CAMERA STREAM & MEDIAPIPE (TAB 2)
+  // GONIOMETER DRAG / ROTATION MATH
+  // ==========================================
+  const handleGoniometerPointerDown = (e: React.PointerEvent) => {
+    setIsDraggingMovingArm(true);
+    updateGoniometerAngleFromPointer(e);
+  };
+
+  const handleGoniometerPointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingMovingArm) return;
+    updateGoniometerAngleFromPointer(e);
+  };
+
+  const handleGoniometerPointerUp = () => {
+    setIsDraggingMovingArm(false);
+  };
+
+  const updateGoniometerAngleFromPointer = (e: React.PointerEvent) => {
+    if (!goniometerSvgRef.current) return;
+    const rect = goniometerSvgRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width * 0.48;
+    const centerY = rect.top + rect.height * 0.48;
+
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
+
+    // Stationary Thigh arm points horizontally to the left (approx 180° or upwards)
+    // Moving arm angle relative to stationary arm:
+    let angleRad = Math.atan2(dy, dx);
+    let deg = Math.round((angleRad * 180) / Math.PI);
+    // Map to knee flexion 0° (fully extended) to 135° (deep flexion)
+    let flex = Math.abs(deg);
+    if (flex > 135) flex = 135;
+    if (flex < 0) flex = 0;
+
+    setGoniometerAngle(flex);
+  };
+
+  // ==========================================
+  // CAMERA STREAM & MEDIAPIPE
   // ==========================================
   const startCamera = async () => {
     smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
@@ -295,7 +342,7 @@ export default function KneeAngleCamera({
       } catch (err: any) {
         console.error('Pose load error:', err);
         if (!isCancelled) {
-          setModelError('Không thể tải AI thị giác. Bạn có thể dùng Thước Đối Chiếu trực quan.');
+          setModelError('Không thể tải AI. Bạn có thể dùng Thước Goniometer Y Khoa trực quan.');
           setIsLoadingModel(false);
         }
       }
@@ -376,7 +423,7 @@ export default function KneeAngleCamera({
       }
     }
 
-    // Render skeleton lines on canvas
+    // Render skeleton overlay
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const pts = smoothedPointsRef.current;
     if (pts.hip && pts.knee && pts.ankle && displayAngleRef.current !== null) {
@@ -427,44 +474,21 @@ export default function KneeAngleCamera({
     };
   }, [cameraActive, predictVideoFrame]);
 
-  // Reference Landmarks for Visual Matcher
-  const landmarksDescriptions: Record<number, { title: string; desc: string }> = {
-    0: { title: '0° (Duỗi thẳng hoàn toàn)', desc: 'Chân ép sát mặt giường. Bắt buộc phải đạt sớm để tránh đi khập khiễng.' },
-    30: { title: '30° (Nhấc gối nhẹ)', desc: 'Gót chân cách mông khoảng 2 gang tay (~40cm). Thường đạt ở tuần 1.' },
-    60: { title: '60° (Nửa tầm vận động)', desc: 'Đầu gối gập góc thoai thoải, gót cách mông ~28cm. Mốc quan trọng tuần 1 - 2.' },
-    90: { title: '90° (Đầu gối vuông góc)', desc: 'Cẳng chân thẳng đứng vuông góc mặt giường. Trần an toàn tối đa của Giai đoạn 1.' },
-    110: { title: '110° (Gập sâu)', desc: 'Gót chân kéo gần vào mông (~15cm). Thường bắt đầu tập từ tuần 3 - 4.' },
-    120: { title: '120° (Gần chạm mông)', desc: 'Khớp gối gập sâu, gót chân cách mông dưới 10cm. Giai đoạn 5 - 6 tuần.' },
-    135: { title: '135° (Gót chạm sát mông)', desc: 'Biên độ gập gối bình thường tối đa của người khỏe mạnh.' },
-  };
-
-  // Find nearest descriptive benchmark
-  const getBenchmark = (deg: number) => {
-    if (deg <= 10) return landmarksDescriptions[0];
-    if (deg <= 40) return landmarksDescriptions[30];
-    if (deg <= 75) return landmarksDescriptions[60];
-    if (deg <= 95) return landmarksDescriptions[90];
-    if (deg <= 115) return landmarksDescriptions[110];
-    if (deg <= 125) return landmarksDescriptions[120];
-    return landmarksDescriptions[135];
-  };
-
-  const currentBenchmark = getBenchmark(visualAngle);
-  const isVisualSafe = visualAngle <= safeMaxFlexion;
+  const isGoniometerSafe = goniometerAngle <= safeMaxFlexion;
 
   return (
     <div className="bg-[#16181F] text-white rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4 font-sans select-none">
-      {/* 1. Header: Trực diện vào bản chất Y Khoa */}
+      {/* 1. Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
-              Phục Hồi Khớp Gối • Kiểm Soát Biên Độ ROM
+              Thước Đo Góc Khớp Y Khoa • Goniometer ROM
             </span>
           </div>
           <h2 className="text-xl font-light text-white tracking-tight">
-            Theo Dõi Góc Gập Gối
+            Đo Góc Gập Gối Chuẩn Chuyên Gia
           </h2>
         </div>
 
@@ -479,151 +503,207 @@ export default function KneeAngleCamera({
         </div>
       </div>
 
-      {/* 2. BẢNG MỤC TIÊU GIAI ĐOẠN HIỆN TẠI (Trả lời câu hỏi 1: Tối đa & tối thiểu bao nhiêu độ) */}
+      {/* 2. BẢNG MỤC TIÊU GIAI ĐOẠN (Rõ ràng: Tối đa & tối thiểu bao nhiêu độ) */}
       <div className="p-4 bg-white/[0.03] rounded-2xl border border-white/[0.06] space-y-3">
         <div className="flex items-center justify-between text-xs">
           <span className="text-slate-400 font-light flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Mục tiêu tuần này của bạn:</span>
+            <span>Mục tiêu phục hồi giai đoạn này:</span>
           </span>
           <span className="text-[11px] text-slate-400">
             Chân mổ: <strong className="text-white">{leg === 'left' ? 'Gối Trái (L)' : 'Gối Phải (R)'}</strong>
           </span>
         </div>
 
-        {/* 2 Big Target Cards: Min (Extension) & Max (Flexion) */}
+        {/* 2 Big Cards: Min Extension & Max Safe Flexion */}
         <div className="grid grid-cols-2 gap-2.5">
-          {/* Min: Full Extension */}
           <div className="p-3 bg-[#0C0D11] rounded-xl border border-white/10 text-center space-y-0.5">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider">Duỗi thẳng tối thiểu</span>
             <div className="text-2xl font-light text-white">0°</div>
-            <p className="text-[10px] text-emerald-400 font-light">Chạm sát giường</p>
+            <p className="text-[10px] text-emerald-400 font-light">Chân áp phẳng mặt giường</p>
           </div>
 
-          {/* Max: Safe Flexion limit */}
           <div className="p-3 bg-[#0C0D11] rounded-xl border border-emerald-500/30 text-center space-y-0.5">
             <span className="text-[10px] text-emerald-300 uppercase tracking-wider">Gập tối đa cho phép</span>
             <div className="text-2xl font-light text-emerald-400">{safeMaxFlexion}°</div>
-            <p className="text-[10px] text-slate-400 font-light">Không vượt quá trần</p>
+            <p className="text-[10px] text-slate-400 font-light">Ngưỡng bảo vệ mảnh ghép</p>
           </div>
         </div>
 
-        {/* Doctor Note */}
         <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[11px] text-emerald-300 font-light leading-relaxed flex items-start gap-2">
           <Info className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
-            <strong>Nguyên tắc vàng:</strong> Co gối đến khi bắt đầu <strong>căng đau thì dừng lại giữ 5 giây</strong>, tuyệt đối <strong>không gập quá {safeMaxFlexion}°</strong> trong giai đoạn này để bảo vệ mảnh ghép dây chằng mới mổ.
+            <strong>Chỉ dẫn bác sĩ:</strong> Co gối đến khi bắt đầu <strong>căng đau thì dừng lại giữ 5 giây</strong> để biết độ gập hiện tại. Tuyệt đối <strong>không cố ép vượt quá {safeMaxFlexion}°</strong> trong giai đoạn này.
           </span>
         </div>
       </div>
 
-      {/* 3. LỰA CHỌN CÔNG CỤ: THƯỚC TRỰC QUAN vs CAMERA SOI THẲNG */}
-      <div className="grid grid-cols-2 p-1 bg-[#0C0D11] rounded-2xl border border-white/[0.06] gap-1">
+      {/* 3. TABS CHUYỂN CÔNG CỤ */}
+      <div className="grid grid-cols-3 p-1 bg-[#0C0D11] rounded-2xl border border-white/[0.06] gap-1">
         <button
           onClick={() => {
-            setMode('visual');
+            setMode('goniometer');
             stopCamera();
           }}
-          className={`py-2 px-3 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5 ${
-            mode === 'visual'
+          className={`py-2 px-2.5 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+            mode === 'goniometer'
               ? 'bg-emerald-500 text-slate-950 shadow-md font-semibold'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Thước So Khớp (Nhanh 2s)</span>
+          <Compass className="w-3.5 h-3.5" />
+          <span>Thước Y Khoa</span>
         </button>
 
         <button
           onClick={() => setMode('camera')}
-          className={`py-2 px-3 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+          className={`py-2 px-2.5 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5 ${
             mode === 'camera'
               ? 'bg-emerald-500 text-slate-950 shadow-md font-semibold'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <Camera className="w-3.5 h-3.5" />
-          <span>Camera Soi Góc</span>
+          <span>Camera Soi</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setMode('visual');
+            stopCamera();
+          }}
+          className={`py-2 px-2.5 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+            mode === 'visual'
+              ? 'bg-emerald-500 text-slate-950 shadow-md font-semibold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          <span>So Khớp Mắt</span>
         </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* CÔNG CỤ 1: THƯỚC SO KHỚP TRỰC QUAN (Trả lời câu hỏi 2: Co mức đau là bao nhiêu độ) */}
+      {/* OPTION 1: THƯỚC GONIOMETER Y KHOA 2 NHÁNH (UNIVERSAL GONIOMETER) */}
       {/* ========================================================================= */}
-      {mode === 'visual' && (
+      {mode === 'goniometer' && (
         <div className="space-y-4 animate-fade-in">
-          {/* Dynamic Interactive Anatomical Leg Visualizer */}
-          <div className="bg-[#0C0D11] rounded-[28px] p-5 border border-white/[0.08] relative overflow-hidden flex flex-col items-center justify-center text-center shadow-inner space-y-4">
-            {/* Visual SVG Leg Diagram responding dynamically to visualAngle */}
-            <div className="relative w-full max-w-[280px] h-40 flex items-center justify-center">
-              <svg className="w-full h-full" viewBox="0 0 280 150">
-                {/* Bed Mattress Horizon */}
-                <line x1="20" y1="130" x2="260" y2="130" stroke="rgba(255,255,255,0.15)" strokeWidth="3" strokeDasharray="6,4" />
-                <text x="30" y="144" fill="#64748b" fontSize="10" fontWeight="300">Mặt giường nằm</text>
-
-                {/* Torso/Hip Anchor */}
-                <circle cx="50" cy="120" r="10" fill="#334155" />
-                <text x="35" y="105" fill="#94a3b8" fontSize="10">Hông</text>
-
-                {/* Dynamic Leg Kinematics */}
+          {/* Interactive Medical Goniometer Canvas */}
+          <div className="bg-[#0C0D11] rounded-[28px] p-5 border border-white/[0.08] relative overflow-hidden flex flex-col items-center justify-center text-center shadow-inner space-y-3">
+            {/* Goniometer Protractor Dial SVG */}
+            <div
+              className="relative w-full max-w-[320px] h-64 flex items-center justify-center cursor-crosshair touch-none"
+              onPointerDown={handleGoniometerPointerDown}
+              onPointerMove={handleGoniometerPointerMove}
+              onPointerUp={handleGoniometerPointerUp}
+            >
+              <svg
+                ref={goniometerSvgRef}
+                className="w-full h-full"
+                viewBox="0 0 320 250"
+              >
+                {/* Center of the Goniometer Joint Axis (X=140, Y=130) */}
                 {(() => {
-                  // Hip at (50, 120)
-                  const hipX = 50;
-                  const hipY = 120;
-                  const femurLength = 75; // Thigh
-                  const tibiaLength = 75; // Shank
+                  const cx = 140;
+                  const cy = 130;
+                  const r = 62;
+                  const armLength = 115;
 
-                  // Angle of flexion: θ
-                  // When θ = 0°: thigh is horizontal, shank is horizontal. Leg flat on bed.
-                  // As θ increases to 90°: Knee elevates, thigh tilts up by ~40°, shank bends backwards.
-                  const rad = (visualAngle * Math.PI) / 180;
-                  const thighTilt = Math.min(0.7, rad * 0.45); // radians thigh lifts from bed
+                  // Thigh (Stationary Arm) points horizontally to the left (180 deg)
+                  const thighX = cx - armLength;
+                  const thighY = cy;
 
-                  const kneeX = hipX + femurLength * Math.cos(thighTilt);
-                  const kneeY = hipY - femurLength * Math.sin(thighTilt);
+                  // Moving Arm (Tibia/Shank) rotates downwards/backwards by goniometerAngle
+                  const rad = ((180 - goniometerAngle) * Math.PI) / 180;
+                  const shankX = cx + armLength * Math.cos(rad);
+                  const shankY = cy + armLength * Math.sin(rad);
 
-                  // Angle of shank relative to thigh
-                  const shankAngle = thighTilt - (Math.PI - rad);
-                  const footX = kneeX + tibiaLength * Math.cos(shankAngle);
-                  const footY = Math.min(130, kneeY - tibiaLength * Math.sin(shankAngle));
-
-                  const isSafe = visualAngle <= safeMaxFlexion;
-                  const strokeColor = isSafe ? '#10b981' : '#f43f5e';
+                  const safeColor = isGoniometerSafe ? '#10b981' : '#f43f5e';
 
                   return (
                     <g>
-                      {/* Thigh Bone */}
-                      <line x1={hipX} y1={hipY} x2={kneeX} y2={kneeY} stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
-                      {/* Shin Bone */}
-                      <line x1={kneeX} y1={kneeY} x2={footX} y2={footY} stroke={strokeColor} strokeWidth="6" strokeLinecap="round" />
-                      {/* Knee Joint Circle */}
-                      <circle cx={kneeX} cy={kneeY} r="9" fill={strokeColor} stroke="#ffffff" strokeWidth="2" />
-                      <text x={kneeX - 12} y={kneeY - 14} fill={strokeColor} fontSize="11" fontWeight="bold">
-                        {visualAngle}°
+                      {/* Protractor Dial Background */}
+                      <circle cx={cx} cy={cy} r={r} fill="#16181F" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" />
+
+                      {/* Safe limit arc sector (0 to safeMaxFlexion) */}
+                      <path
+                        d={`M ${cx} ${cy} L ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx - r * Math.cos((safeMaxFlexion * Math.PI) / 180)} ${cy + r * Math.sin((safeMaxFlexion * Math.PI) / 180)} Z`}
+                        fill="rgba(16, 185, 129, 0.15)"
+                      />
+
+                      {/* Degree ticks around protractor */}
+                      {[0, 30, 45, 60, 90, 110, 120, 135].map((deg) => {
+                        const tickRad = ((180 - deg) * Math.PI) / 180;
+                        const x1 = cx + (r - 8) * Math.cos(tickRad);
+                        const y1 = cy + (r - 8) * Math.sin(tickRad);
+                        const x2 = cx + r * Math.cos(tickRad);
+                        const y2 = cy + r * Math.sin(tickRad);
+                        const tx = cx + (r - 18) * Math.cos(tickRad);
+                        const ty = cy + (r - 18) * Math.sin(tickRad) + 3;
+
+                        return (
+                          <g key={deg}>
+                            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.4)" strokeWidth={deg % 30 === 0 ? 2 : 1} />
+                            <text x={tx} y={ty} fill="rgba(255,255,255,0.6)" fontSize="8.5" textAnchor="middle" fontWeight="500">
+                              {deg}°
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Safe limit boundary mark (e.g. 90°) */}
+                      {(() => {
+                        const limRad = ((180 - safeMaxFlexion) * Math.PI) / 180;
+                        const lx = cx + r * Math.cos(limRad);
+                        const ly = cy + r * Math.sin(limRad);
+                        return (
+                          <line x1={cx} y1={cy} x2={lx} y2={ly} stroke="#fbbf24" strokeWidth="2" strokeDasharray="3,2" />
+                        );
+                      })()}
+
+                      {/* Stationary Arm: Nhánh Đùi (Hông → Gối) */}
+                      <line x1={thighX} y1={thighY} x2={cx} y2={cy} stroke="#ffffff" strokeWidth="8" strokeLinecap="round" />
+                      <line x1={thighX + 10} y1={thighY} x2={cx - 10} y2={cy} stroke="#3b82f6" strokeWidth="2" strokeDasharray="4,3" />
+
+                      {/* Moving Arm: Nhánh Cẳng Chân (Gối → Cổ chân) */}
+                      <line x1={cx} y1={cy} x2={shankX} y2={shankY} stroke={safeColor} strokeWidth="8" strokeLinecap="round" />
+                      <line x1={cx} y1={cy} x2={shankX} y2={shankY} stroke="#ffffff" strokeWidth="2" />
+
+                      {/* Moving Arm Drag Handle Pin */}
+                      <circle cx={shankX} cy={shankY} r="12" fill={safeColor} stroke="#ffffff" strokeWidth="3" className="cursor-grab active:cursor-grabbing animate-pulse" />
+                      <circle cx={shankX} cy={shankY} r="4" fill="#ffffff" />
+
+                      {/* Center Axis / Fulcrum (Lồi cầu ngoài xương đùi) */}
+                      <circle cx={cx} cy={cy} r="16" fill="#0C0D11" stroke="#ffffff" strokeWidth="3" />
+                      <circle cx={cx} cy={cy} r="6" fill={safeColor} />
+
+                      {/* Arm Labels */}
+                      <text x={thighX + 15} y={thighY - 12} fill="#94a3b8" fontSize="9.5" fontWeight="500">
+                        Nhánh Đùi (Hông)
                       </text>
-                      {/* Foot/Heel Anchor */}
-                      <circle cx={footX} cy={footY} r="7" fill="#64748b" />
-                      <text x={footX - 10} y={footY + 14} fill="#94a3b8" fontSize="10">Gót chân</text>
+                      <text x={shankX - 20} y={shankY + 22} fill={safeColor} fontSize="9.5" fontWeight="600">
+                        Nhánh Cẳng Chân (Cổ Chân)
+                      </text>
                     </g>
                   );
                 })()}
               </svg>
             </div>
 
-            {/* Big Degree Display & Status */}
+            {/* Readout Capsule */}
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-2">
                 <span className={`text-5xl font-light tracking-tight tabular-nums ${
-                  isVisualSafe ? 'text-white' : 'text-rose-400'
+                  isGoniometerSafe ? 'text-white' : 'text-rose-400'
                 }`}>
-                  {visualAngle}°
+                  {goniometerAngle}°
                 </span>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${
-                  isVisualSafe
+                  isGoniometerSafe
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                     : 'bg-rose-500/10 border-rose-500/30 text-rose-300 animate-pulse'
                 }`}>
-                  {isVisualSafe ? (
+                  {isGoniometerSafe ? (
                     <>
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                       <span>An toàn (≤ {safeMaxFlexion}°)</span>
@@ -631,68 +711,59 @@ export default function KneeAngleCamera({
                   ) : (
                     <>
                       <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                      <span>VƯỢT GIỚI HẠN!</span>
+                      <span>VƯỢT GIỚI HẠN {safeMaxFlexion}°!</span>
                     </>
                   )}
                 </span>
               </div>
 
-              {/* Clinical Landmark Description */}
-              <div className="text-xs text-slate-300 font-light max-w-xs leading-relaxed pt-1">
-                <strong className="text-white font-medium">{currentBenchmark.title}:</strong> {currentBenchmark.desc}
-              </div>
+              <p className="text-[11px] text-slate-400 font-light">
+                {goniometerAngle <= 30
+                  ? 'Gối mới hơi nhấc nhẹ, trong ngưỡng an toàn tuần đầu.'
+                  : goniometerAngle <= 60
+                  ? 'Gối gập góc thoai thoải ~60°, đạt chỉ tiêu khởi đầu tốt.'
+                  : goniometerAngle <= 90
+                  ? 'Gối vuông góc 90° - Đạt trần tối đa của giai đoạn này, duy trì giữ 5s!'
+                  : 'Cảnh báo: Góc gập đã vượt qua giới hạn giai đoạn này, hãy duỗi nhẹ chân ra!'}
+              </p>
             </div>
 
-            {/* Interactive Slider */}
-            <div className="w-full space-y-2 pt-2">
+            {/* Slider bar for fine-tuning angle */}
+            <div className="w-full space-y-2 pt-1">
+              <div className="flex justify-between text-[11px] text-slate-400">
+                <span>0° (Duỗi thẳng)</span>
+                <span>Chạm/Kéo đầu thước để xoay</span>
+                <span>135° (Tối đa)</span>
+              </div>
               <input
                 type="range"
                 min="0"
                 max="135"
-                step="5"
-                value={visualAngle}
-                onChange={(e) => setVisualAngle(Number(e.target.value))}
+                step="1"
+                value={goniometerAngle}
+                onChange={(e) => setGoniometerAngle(Number(e.target.value))}
                 className="w-full accent-emerald-400 h-2 bg-white/10 rounded-lg cursor-pointer"
               />
-
-              {/* Quick Benchmark Pills */}
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                {[0, 30, 60, 90, 110, 120].map((deg) => (
-                  <button
-                    key={deg}
-                    onClick={() => setVisualAngle(deg)}
-                    className={`px-2 py-0.5 rounded-md transition ${
-                      visualAngle === deg
-                        ? 'bg-white text-slate-950 font-bold'
-                        : 'hover:text-white'
-                    }`}
-                  >
-                    {deg}°
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
           {/* Action button */}
           <button
-            onClick={() => handleSaveAngle(visualAngle, 'manual')}
+            onClick={() => handleSaveAngle(goniometerAngle, 'manual')}
             className="w-full py-3.5 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-full text-xs transition flex items-center justify-center gap-2 shadow-lg"
           >
             <BookmarkPlus className="w-4 h-4" />
-            <span>Lưu Số Đo Hôm Nay ({visualAngle}°) Vào Phác Đồ</span>
+            <span>Lưu Số Đo Này ({goniometerAngle}°) Vào Phác Đồ</span>
           </button>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* CÔNG CỤ 2: CAMERA SOI THẲNG ĐƠN GIẢN (Mở lên là thấy góc, không hẹn giờ) */}
+      {/* OPTION 2: CAMERA SOI GÓC ĐƠN GIẢN */}
       {/* ========================================================================= */}
       {mode === 'camera' && (
         <div className="space-y-4 animate-fade-in">
-          {/* Viewport */}
           <div className="relative aspect-[3/4] max-h-[440px] w-full bg-[#0C0D11] rounded-[28px] overflow-hidden border border-white/[0.08] flex items-center justify-center shadow-inner">
-            {/* Live Video */}
             <video
               ref={videoRef}
               playsInline
@@ -701,8 +772,6 @@ export default function KneeAngleCamera({
                 facingMode === 'user' ? 'scale-x-[-1]' : ''
               }`}
             />
-
-            {/* Skeleton Canvas */}
             <canvas
               ref={canvasRef}
               className={`absolute inset-0 w-full h-full pointer-events-none ${cameraActive ? 'block' : 'hidden'} ${
@@ -710,16 +779,15 @@ export default function KneeAngleCamera({
               }`}
             />
 
-            {/* Standby State */}
             {!cameraActive && (
               <div className="p-6 text-center max-w-xs text-slate-400 space-y-3 z-10">
                 <div className="w-14 h-14 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center mx-auto text-emerald-400 shadow-xl">
                   <Camera className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-white font-medium">Camera Đang Tắt</p>
+                  <p className="text-sm text-white font-medium">Bật Camera Soi Góc</p>
                   <p className="text-xs text-slate-400 font-light leading-relaxed">
-                    Bật camera và quay ngang khớp gối để thấy ngay số độ hiện tại trên màn hình.
+                    Tựa điện thoại nhìn ngang hông gối, màn hình hiển thị trực tiếp số độ gập hiện tại.
                   </p>
                 </div>
                 <button
@@ -728,12 +796,11 @@ export default function KneeAngleCamera({
                   className="py-3 px-6 bg-white hover:bg-slate-100 text-slate-950 font-bold rounded-full text-xs transition shadow-xl mx-auto flex items-center gap-2"
                 >
                   <Camera className="w-4 h-4" />
-                  <span>Bật Camera Soi Góc</span>
+                  <span>Bật Camera</span>
                 </button>
               </div>
             )}
 
-            {/* Live Big Angle Badge */}
             {cameraActive && liveAngle !== null && (
               <div className="absolute top-4 left-4 bg-[#16181F]/90 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center gap-3 z-20">
                 <div
@@ -758,7 +825,6 @@ export default function KneeAngleCamera({
               </div>
             )}
 
-            {/* Floating Camera Flip */}
             {cameraActive && (
               <div className="absolute top-4 right-4 z-20">
                 <button
@@ -772,7 +838,6 @@ export default function KneeAngleCamera({
             )}
           </div>
 
-          {/* Action buttons */}
           <div className="grid grid-cols-2 gap-2.5">
             {cameraActive ? (
               <button
@@ -800,6 +865,53 @@ export default function KneeAngleCamera({
               <span>Lưu Góc Này ({liveAngle || 0}°)</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* OPTION 3: SO KHỚP MẮT NHÌN NHANH THEO MỐC GIẢI PHẪU */}
+      {/* ========================================================================= */}
+      {mode === 'visual' && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="p-4 bg-[#0C0D11] rounded-2xl border border-white/[0.08] space-y-3">
+            <span className="text-xs text-slate-300 font-medium">Đối chiếu theo mốc khoảng cách Gót - Mông:</span>
+            <div className="space-y-2 text-xs">
+              {[
+                { deg: 0, label: '0° Duỗi thẳng', desc: 'Chân ép sát phẳng mặt giường.' },
+                { deg: 30, label: '30° Nhấc gối nhẹ', desc: 'Gót chân cách mông ~40cm (2 gang tay).' },
+                { deg: 60, label: '60° Nghiêng 45°', desc: 'Gót chân cách mông ~28cm (1.5 gang tay).' },
+                { deg: 90, label: '90° Vuông góc', desc: 'Cẳng chân thẳng đứng vuông góc mặt giường (Trần an toàn GĐ1).' },
+                { deg: 110, label: '110° Gập sâu', desc: 'Gót chân cách mông ~15cm (1 gang tay).' },
+                { deg: 135, label: '135° Gót sát mông', desc: 'Gót chân trượt sát chạm vào mông.' },
+              ].map((item) => (
+                <div
+                  key={item.deg}
+                  onClick={() => setVisualAngle(item.deg)}
+                  className={`p-3 rounded-xl border cursor-pointer transition flex items-center justify-between ${
+                    visualAngle === item.deg
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-white'
+                      : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <div>
+                    <div className="font-semibold text-white">{item.label}</div>
+                    <div className="text-[11px] text-slate-400 font-light mt-0.5">{item.desc}</div>
+                  </div>
+                  <span className={`text-sm font-bold ${item.deg <= safeMaxFlexion ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {item.deg}°
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => handleSaveAngle(visualAngle, 'manual')}
+            className="w-full py-3.5 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-full text-xs transition flex items-center justify-center gap-2 shadow-lg"
+          >
+            <BookmarkPlus className="w-4 h-4" />
+            <span>Lưu Số Đo {visualAngle}° Vào Phác Đồ</span>
+          </button>
         </div>
       )}
 
@@ -853,7 +965,7 @@ export default function KneeAngleCamera({
                         <div className="text-xs font-medium text-white flex items-center gap-1.5">
                           <span>{record.leg === 'left' ? 'Gối Trái (L)' : 'Gối Phải (R)'}</span>
                           <span className="text-[10px] font-light text-slate-400">
-                            • {record.source === 'live' ? 'Camera' : 'Thước đối chiếu'}
+                            • {record.source === 'live' ? 'Camera' : 'Thước Goniometer'}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-400 font-light mt-0.5">{record.timestamp}</div>
