@@ -19,7 +19,11 @@ import {
   Play,
   Sparkles,
   Crosshair,
-  SlidersHorizontal
+  HelpCircle,
+  Move,
+  SlidersHorizontal,
+  ArrowRightLeft,
+  Check
 } from 'lucide-react';
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 
@@ -31,7 +35,7 @@ export interface AngleRecord {
   internalAngle: number;
   safeLimit: number;
   isSafe: boolean;
-  source: 'live' | 'photo';
+  source: 'live' | 'photo' | 'manual';
   note?: string;
 }
 
@@ -63,7 +67,8 @@ export default function KneeAngleCamera({
   selectedLeg = 'left',
   onRecordSaved,
 }: KneeAngleCameraProps) {
-  const [leg, setLeg] = useState<'left' | 'right'>(selectedLeg);
+  const [leg, setLeg] = useState<'left' | 'right' | 'auto'>('auto');
+  const [activeDetectedLeg, setActiveDetectedLeg] = useState<'left' | 'right'>(selectedLeg);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isLoadingModel, setIsLoadingModel] = useState<boolean>(true);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -75,6 +80,37 @@ export default function KneeAngleCamera({
   // Live Angle States (Throttled for React UI)
   const [currentFlexionAngle, setCurrentFlexionAngle] = useState<number | null>(null);
   const [landmarksStatus, setLandmarksStatus] = useState<'GOOD' | 'PARTIAL' | 'LOST'>('LOST');
+
+  // Granular Joint Diagnostics
+  const [jointDiag, setJointDiag] = useState<{
+    hip: boolean;
+    knee: boolean;
+    ankle: boolean;
+    guidance: string;
+    oppositeLegVisible: boolean;
+  }>({
+    hip: false,
+    knee: false,
+    ankle: false,
+    guidance: 'Đang tìm khớp gối...',
+    oppositeLegVisible: false,
+  });
+
+  // Manual 3-Point Caliper Mode (Draggable)
+  const [isManualCaliper, setIsManualCaliper] = useState<boolean>(false);
+  const [caliperPoints, setCaliperPoints] = useState<{
+    hip: Point2D;
+    knee: Point2D;
+    ankle: Point2D;
+  }>({
+    hip: { x: 120, y: 100 },
+    knee: { x: 200, y: 220 },
+    ankle: { x: 130, y: 340 },
+  });
+  const [draggingNode, setDraggingNode] = useState<'hip' | 'knee' | 'ankle' | null>(null);
+
+  // Guide Modal
+  const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
 
   // Auto-Lock Stability Tracker
   const [stabilityProgress, setStabilityProgress] = useState<number>(0);
@@ -103,6 +139,7 @@ export default function KneeAngleCamera({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const photoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -118,11 +155,11 @@ export default function KneeAngleCamera({
     } catch {}
   }, []);
 
-  // Update selected leg if prop changes
+  // Sync selectedLeg prop
   useEffect(() => {
-    setLeg(selectedLeg);
-    // Reset points on leg change to avoid connecting wrong joints
-    smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
+    if (selectedLeg) {
+      setActiveDetectedLeg(selectedLeg);
+    }
   }, [selectedLeg]);
 
   // Audio chimes using Web Audio API
@@ -176,7 +213,7 @@ export default function KneeAngleCamera({
     } catch {}
   };
 
-  // Initialize MediaPipe PoseLandmarker
+  // Initialize MediaPipe PoseLandmarker with relaxed sensitivity for close-up and bedside framing
   useEffect(() => {
     let isCancelled = false;
 
@@ -191,6 +228,7 @@ export default function KneeAngleCamera({
 
         if (isCancelled) return;
 
+        // Use lowered confidence thresholds (0.25) so it doesn't fail when body is partially framed or seated/lying down
         const landmarker = await PoseLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
@@ -199,9 +237,9 @@ export default function KneeAngleCamera({
           },
           runningMode: 'VIDEO',
           numPoses: 1,
-          minPoseDetectionConfidence: 0.5,
-          minPosePresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5,
+          minPoseDetectionConfidence: 0.25,
+          minPosePresenceConfidence: 0.25,
+          minTrackingConfidence: 0.25,
         });
 
         if (isCancelled) return;
@@ -227,7 +265,7 @@ export default function KneeAngleCamera({
     };
   }, []);
 
-  // Calculate Angle in 2D degrees
+  // Calculate 2D Flexion Angle
   const calculateKneeAngle = (
     hip: Point2D,
     knee: Point2D,
@@ -335,6 +373,7 @@ export default function KneeAngleCamera({
     const angle = angleToSave !== undefined ? angleToSave : currentFlexionAngle;
     if (angle === null) return;
 
+    const targetLeg = leg === 'auto' ? activeDetectedLeg : leg;
     const isSafe = angle <= safeMaxFlexion;
     const now = new Date();
     const newRecord: AngleRecord = {
@@ -346,12 +385,12 @@ export default function KneeAngleCamera({
         hour: '2-digit',
         minute: '2-digit',
       }),
-      leg,
+      leg: targetLeg,
       flexionAngle: angle,
       internalAngle: 180 - angle,
       safeLimit: safeMaxFlexion,
       isSafe,
-      source: isPhotoFallback ? 'photo' : 'live',
+      source: isManualCaliper ? 'manual' : isPhotoFallback ? 'photo' : 'live',
       note: isSafe ? 'Trong giới hạn an toàn' : 'Vượt giới hạn an toàn',
     };
 
@@ -362,14 +401,48 @@ export default function KneeAngleCamera({
     }
 
     playChime(isSafe ? 'success' : 'warning');
-    setSaveSuccessMsg(`Đã ghi nhận góc gập ${angle}° (${leg === 'left' ? 'Gối Trái' : 'Gối Phải'})`);
-    setTimeout(() => setSaveSuccessMsg(null), 3000);
-  }, [currentFlexionAngle, safeMaxFlexion, leg, isPhotoFallback, historyRecords, onRecordSaved, playChime]);
+    setSaveSuccessMsg(`Đã ghi nhận góc gập ${angle}° (${targetLeg === 'left' ? 'Gối Trái' : 'Gối Phải'})`);
+    setTimeout(() => setSaveSuccessMsg(null), 3200);
+  }, [currentFlexionAngle, safeMaxFlexion, leg, activeDetectedLeg, isManualCaliper, isPhotoFallback, historyRecords, onRecordSaved, playChime]);
+
+  // Recalculate manual caliper angle
+  useEffect(() => {
+    if (isManualCaliper && caliperPoints.hip && caliperPoints.knee && caliperPoints.ankle) {
+      const { flexionAngle } = calculateKneeAngle(caliperPoints.hip, caliperPoints.knee, caliperPoints.ankle);
+      const rounded = Math.round(flexionAngle);
+      setCurrentFlexionAngle(rounded);
+      setLandmarksStatus('GOOD');
+    }
+  }, [isManualCaliper, caliperPoints]);
+
+  // Touch & Pointer event handling for Manual Caliper Mode
+  const handlePointerDown = (node: 'hip' | 'knee' | 'ankle') => (e: React.PointerEvent) => {
+    if (!isManualCaliper) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggingNode(node);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isManualCaliper || !draggingNode || !viewportRef.current) return;
+    const rect = viewportRef.current.getBoundingClientRect();
+    const x = Math.max(10, Math.min(rect.width - 10, e.clientX - rect.left));
+    const y = Math.max(10, Math.min(rect.height - 10, e.clientY - rect.top));
+
+    setCaliperPoints((prev) => ({
+      ...prev,
+      [draggingNode]: { x, y },
+    }));
+  };
+
+  const handlePointerUp = () => {
+    setDraggingNode(null);
+  };
 
   // ULTRA-STABLE REALTIME VIDEO LOOP
-  // Includes: 30fps Inference Throttling, Point-Level Low-Pass Filtering, Anti-Flicker Grace Buffer, and Deadband Hysteresis
+  // Enhanced with: Multi-point Fallback (Ankle/Heel/Foot), Auto-Leg Detection, Granular Diagnostics, and Edge Projection
   const predictVideoFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !poseLandmarkerRef.current || isFrozen) {
+    if (!videoRef.current || !canvasRef.current || !poseLandmarkerRef.current || isFrozen || isManualCaliper) {
       animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
       return;
     }
@@ -389,7 +462,7 @@ export default function KneeAngleCamera({
     }
 
     const now = performance.now();
-    // Throttle neural net inference to ~30 FPS (32ms) to eliminate mobile thermal lag and dropped frames
+    // Throttle neural net inference to ~30 FPS (32ms) to eliminate thermal throttling and dropped frames
     const isTimeToInfer = now - lastInferenceTimeRef.current >= 32;
 
     if (isTimeToInfer) {
@@ -399,27 +472,90 @@ export default function KneeAngleCamera({
         const results = poseLandmarkerRef.current.detectForVideo(video, now);
 
         if (results.landmarks && results.landmarks.length > 0) {
-          const landmarks = results.landmarks[0];
+          const lm = results.landmarks[0];
 
           // Landmark indices:
-          // Left: Hip = 23, Knee = 25, Ankle = 27
-          // Right: Hip = 24, Knee = 26, Ankle = 28
-          const isLeft = leg === 'left';
-          const hipIdx = isLeft ? 23 : 24;
-          const kneeIdx = isLeft ? 25 : 26;
-          const ankleIdx = isLeft ? 27 : 28;
+          // Left: Hip = 23, Knee = 25, Ankle = 27, Heel = 29, Foot = 31
+          // Right: Hip = 24, Knee = 26, Ankle = 28, Heel = 30, Foot = 32
+          const lHip = lm[23];
+          const lKnee = lm[25];
+          const lAnkle = lm[27];
+          const lHeel = lm[29];
+          const lFoot = lm[31];
 
-          const hip = landmarks[hipIdx];
-          const knee = landmarks[kneeIdx];
-          const ankle = landmarks[ankleIdx];
+          const rHip = lm[24];
+          const rKnee = lm[26];
+          const rAnkle = lm[28];
+          const rHeel = lm[30];
+          const rFoot = lm[32];
 
-          const minVis = 0.3;
-          const isHipOk = hip && (hip.visibility === undefined || hip.visibility > minVis);
-          const isKneeOk = knee && (knee.visibility === undefined || knee.visibility > minVis);
-          const isAnkleOk = ankle && (ankle.visibility === undefined || ankle.visibility > minVis);
+          // Best lower extremity anchor (ankle -> heel -> foot index)
+          const bestLAnkle = (lAnkle && (lAnkle.visibility === undefined || lAnkle.visibility > 0.15)) ? lAnkle
+            : (lHeel && (lHeel.visibility === undefined || lHeel.visibility > 0.15)) ? lHeel
+            : lFoot || lAnkle;
+
+          const bestRAnkle = (rAnkle && (rAnkle.visibility === undefined || rAnkle.visibility > 0.15)) ? rAnkle
+            : (rHeel && (rHeel.visibility === undefined || rHeel.visibility > 0.15)) ? rHeel
+            : rFoot || rAnkle;
+
+          const lKneeVis = lKnee?.visibility ?? 0;
+          const rKneeVis = rKnee?.visibility ?? 0;
+          const lScore = ((lHip?.visibility ?? 0) + lKneeVis + (bestLAnkle?.visibility ?? 0)) / 3;
+          const rScore = ((rHip?.visibility ?? 0) + rKneeVis + (bestRAnkle?.visibility ?? 0)) / 3;
+
+          // Determine target leg
+          let targetLeg: 'left' | 'right';
+          if (leg === 'auto') {
+            targetLeg = lScore >= rScore ? 'left' : 'right';
+          } else {
+            targetLeg = leg;
+          }
+
+          setActiveDetectedLeg(targetLeg);
+
+          const isLeft = targetLeg === 'left';
+          const hip = isLeft ? lHip : rHip;
+          const knee = isLeft ? lKnee : rKnee;
+          const ankle = isLeft ? bestLAnkle : bestRAnkle;
+
+          const otherKneeVis = isLeft ? rKneeVis : lKneeVis;
+          const oppositeLegStrong = otherKneeVis > 0.45 && (isLeft ? lKneeVis : rKneeVis) < 0.2;
+
+          // Visibility thresholds relaxed down to 0.18 for better bedside / close-up coverage
+          const minVis = 0.18;
+          const isKneeOk = Boolean(knee && (knee.visibility === undefined || knee.visibility > minVis));
+          // If knee is very strong, accept hip even if near upper border
+          const isHipOk = Boolean(hip && (hip.visibility === undefined || hip.visibility > 0.12 || (isKneeOk && hip.y < 0.25)));
+          const isAnkleOk = Boolean(ankle && (ankle.visibility === undefined || ankle.visibility > 0.12 || (isKneeOk && ankle.y > 0.75)));
+
+          // Real-time Guidance Message synthesis
+          let guidanceMsg = 'Đang tìm khớp gối...';
+          if (!isKneeOk) {
+            guidanceMsg = oppositeLegStrong
+              ? `Đang thấy rõ ${isLeft ? 'Gối Phải' : 'Gối Trái'}. Chạm nút đổi chân bên trên!`
+              : 'Đặt camera nhìn ngang MẶT BÊN của gối (cách ~1m)';
+          } else if (isKneeOk && !isHipOk && !isAnkleOk) {
+            guidanceMsg = '💡 Đang soi quá sát đầu gối! Lùi xa ~1m để camera thấy cả Đùi và Cẳng chân';
+          } else if (isKneeOk && !isHipOk) {
+            guidanceMsg = '💡 Thiếu phần Hông/Đùi! Lùi camera ra xa hoặc nghiêng nhẹ lên trên';
+          } else if (isKneeOk && !isAnkleOk) {
+            guidanceMsg = '💡 Thiếu Cổ chân! Hướng camera xuống dưới để lấy mắt cá chân';
+          } else {
+            guidanceMsg = '✅ Khớp nhận diện chuẩn • Giữ yên 2.5s để tự ghi';
+          }
+
+          if (now - lastReactUpdateRef.current > 120) {
+            setJointDiag({
+              hip: isHipOk,
+              knee: isKneeOk,
+              ankle: isAnkleOk,
+              guidance: guidanceMsg,
+              oppositeLegVisible: oppositeLegStrong,
+            });
+          }
 
           if (isHipOk && isKneeOk && isAnkleOk) {
-            missingFramesCountRef.current = 0; // Reset missing frame counter
+            missingFramesCountRef.current = 0;
 
             const rawH = { x: hip.x * canvas.width, y: hip.y * canvas.height };
             const rawK = { x: knee.x * canvas.width, y: knee.y * canvas.height };
@@ -431,17 +567,27 @@ export default function KneeAngleCamera({
             const aPt = smoothPoint(smoothedPointsRef.current.ankle, rawA, 0.22);
 
             smoothedPointsRef.current = { hip: hPt, knee: kPt, ankle: aPt };
+
+            // Sync caliper points so user can seamlessly transition to manual adjustment
+            if (!isManualCaliper && viewportRef.current) {
+              const rect = viewportRef.current.getBoundingClientRect();
+              const scaleX = rect.width / canvas.width;
+              const scaleY = rect.height / canvas.height;
+              setCaliperPoints({
+                hip: { x: hPt.x * scaleX, y: hPt.y * scaleY },
+                knee: { x: kPt.x * scaleX, y: kPt.y * scaleY },
+                ankle: { x: aPt.x * scaleX, y: aPt.y * scaleY },
+              });
+            }
           } else {
-            // Landmark confidence dipped momentarily
             missingFramesCountRef.current++;
-            if (missingFramesCountRef.current > 8) {
-              // Lost for more than 250ms -> clear
+            if (missingFramesCountRef.current > 10) {
               smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
             }
           }
         } else {
           missingFramesCountRef.current++;
-          if (missingFramesCountRef.current > 8) {
+          if (missingFramesCountRef.current > 10) {
             smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
           }
         }
@@ -450,7 +596,7 @@ export default function KneeAngleCamera({
       }
     }
 
-    // RENDER SKELETON & GONIOMETER OVERLAY (Using smoothed coordinates)
+    // RENDER SKELETON & GONIOMETER OVERLAY
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const pts = smoothedPointsRef.current;
@@ -460,7 +606,6 @@ export default function KneeAngleCamera({
       const { flexionAngle } = calculateKneeAngle(hPt, kPt, aPt);
 
       // Deadband Hysteresis: Only change display integer if angle changes by >= 0.75°
-      // This completely stops numbers jumping back and forth (e.g. 74 - 75 - 74)
       if (displayAngleRef.current === null) {
         displayAngleRef.current = Math.round(flexionAngle);
       } else {
@@ -527,7 +672,7 @@ export default function KneeAngleCamera({
 
         if (isCenter) {
           // Central Glass HUD Angle Capsule
-          const boxW = 90;
+          const boxW = 92;
           const boxH = 34;
           const boxX = pt.x + 16;
           const boxY = pt.y - boxH / 2;
@@ -570,7 +715,7 @@ export default function KneeAngleCamera({
 
       ctx.restore();
 
-      // Throttled React UI State Update (Max 8 times/sec) to keep mobile rendering fast
+      // Throttled React UI State Update
       if (now - lastReactUpdateRef.current > 120) {
         lastReactUpdateRef.current = now;
         setCurrentFlexionAngle(stableFlexion);
@@ -600,20 +745,20 @@ export default function KneeAngleCamera({
       }
     } else {
       // Missing landmarks
-      if (missingFramesCountRef.current > 8 && now - lastReactUpdateRef.current > 200) {
+      if (missingFramesCountRef.current > 10 && now - lastReactUpdateRef.current > 200) {
         lastReactUpdateRef.current = now;
         setCurrentFlexionAngle(null);
-        setLandmarksStatus('LOST');
+        setLandmarksStatus(jointDiag.knee ? 'PARTIAL' : 'LOST');
         setStabilityProgress(0);
       }
     }
 
     animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
-  }, [leg, safeMaxFlexion, isFrozen, autoSaveEnabled, handleSaveRecord]);
+  }, [leg, safeMaxFlexion, isFrozen, isManualCaliper, autoSaveEnabled, handleSaveRecord, jointDiag.knee]);
 
   // Start/Stop RAF
   useEffect(() => {
-    if (cameraActive && !isFrozen) {
+    if (cameraActive && !isFrozen && !isManualCaliper) {
       animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
     } else {
       if (animationFrameRef.current) {
@@ -628,7 +773,7 @@ export default function KneeAngleCamera({
         animationFrameRef.current = null;
       }
     };
-  }, [cameraActive, isFrozen, predictVideoFrame]);
+  }, [cameraActive, isFrozen, isManualCaliper, predictVideoFrame]);
 
   // Handle Photo Upload
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -657,24 +802,25 @@ export default function KneeAngleCamera({
           const results = poseLandmarkerRef.current?.detect(canvas);
 
           if (results && results.landmarks && results.landmarks.length > 0) {
-            const landmarks = results.landmarks[0];
-            const isLeft = leg === 'left';
-            const hipIdx = isLeft ? 23 : 24;
-            const kneeIdx = isLeft ? 25 : 26;
-            const ankleIdx = isLeft ? 27 : 28;
+            const lm = results.landmarks[0];
+            const isLeft = (leg === 'auto' ? activeDetectedLeg : leg) === 'left';
+            const hip = lm[isLeft ? 23 : 24];
+            const knee = lm[isLeft ? 25 : 26];
+            const ankle = lm[isLeft ? 27 : 28] || lm[isLeft ? 29 : 30];
 
-            const hip = landmarks[hipIdx];
-            const knee = landmarks[kneeIdx];
-            const ankle = landmarks[ankleIdx];
-
-            if (hip && knee && ankle) {
-              const hPt = { x: hip.x * canvas.width, y: hip.y * canvas.height };
+            if (knee && (hip || ankle)) {
+              const hPt = hip
+                ? { x: hip.x * canvas.width, y: hip.y * canvas.height }
+                : { x: knee.x * canvas.width - 50, y: Math.max(10, knee.y * canvas.height - 180) };
               const kPt = { x: knee.x * canvas.width, y: knee.y * canvas.height };
-              const aPt = { x: ankle.x * canvas.width, y: ankle.y * canvas.height };
+              const aPt = ankle
+                ? { x: ankle.x * canvas.width, y: ankle.y * canvas.height }
+                : { x: knee.x * canvas.width - 40, y: Math.min(canvas.height - 10, knee.y * canvas.height + 180) };
 
               const { flexionAngle } = calculateKneeAngle(hPt, kPt, aPt);
               const roundedAngle = Math.round(flexionAngle);
               setCurrentFlexionAngle(roundedAngle);
+              setLandmarksStatus('GOOD');
 
               const isSafe = roundedAngle <= safeMaxFlexion;
               const lineColor = isSafe ? '#10b981' : '#f43f5e';
@@ -724,15 +870,17 @@ export default function KneeAngleCamera({
   const isAngleSafe = currentFlexionAngle !== null && currentFlexionAngle <= safeMaxFlexion;
   const isNearLimit = currentFlexionAngle !== null && currentFlexionAngle > safeMaxFlexion - 10 && isAngleSafe;
 
+  const currentDisplayLeg = leg === 'auto' ? activeDetectedLeg : leg;
+
   return (
-    <div className="bg-[#16181F] text-white rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4 font-sans">
+    <div className="bg-[#16181F] text-white rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4 font-sans select-none">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
-              Thị giác máy tính AI • Ổn định quang học
+              AI Vision Goniometer • Ổn Định Quang Học
             </span>
           </div>
           <h2 className="text-xl font-light text-white tracking-tight">
@@ -740,47 +888,83 @@ export default function KneeAngleCamera({
           </h2>
         </div>
 
-        <button
-          onClick={() => setShowHistoryModal(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/10 text-slate-300 text-xs font-normal border border-white/10 transition"
-        >
-          <History className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Lịch sử ({historyRecords.length})</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* Guide Button */}
+          <button
+            onClick={() => setShowGuideModal(true)}
+            title="Xem hướng dẫn đo chuẩn y khoa"
+            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/10 text-slate-300 border border-white/10 flex items-center justify-center transition"
+          >
+            <HelpCircle className="w-4 h-4 text-emerald-400" />
+          </button>
+
+          {/* History Button */}
+          <button
+            onClick={() => setShowHistoryModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/10 text-slate-300 text-xs font-normal border border-white/10 transition"
+          >
+            <History className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Lịch sử ({historyRecords.length})</span>
+          </button>
+        </div>
       </div>
 
-      {/* Control Selector Pill: Left/Right Leg & Limits */}
+      {/* Control Selector Pill: Left / Right / Auto Leg & Caliper Mode */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-white/[0.03] rounded-2xl border border-white/[0.06]">
         <div className="flex items-center gap-1">
-          <span className="text-xs text-slate-400 font-light mr-1">Chân mổ:</span>
+          <span className="text-xs text-slate-400 font-light mr-1">Chân đo:</span>
+          <button
+            onClick={() => setLeg('auto')}
+            className={`px-3 py-1 rounded-full text-xs transition ${
+              leg === 'auto'
+                ? 'bg-emerald-500 text-slate-950 font-medium shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Tự Động ({activeDetectedLeg === 'left' ? 'Trái' : 'Phải'})
+          </button>
           <button
             onClick={() => setLeg('left')}
-            className={`px-3 py-1.5 rounded-full text-xs transition ${
+            className={`px-3 py-1 rounded-full text-xs transition ${
               leg === 'left'
                 ? 'bg-white text-slate-950 font-medium shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Gối Trái (L)
+            Trái (L)
           </button>
           <button
             onClick={() => setLeg('right')}
-            className={`px-3 py-1.5 rounded-full text-xs transition ${
+            className={`px-3 py-1 rounded-full text-xs transition ${
               leg === 'right'
                 ? 'bg-white text-slate-950 font-medium shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Gối Phải (R)
+            Phải (R)
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Caliper Mode Toggle */}
+          <button
+            onClick={() => setIsManualCaliper(!isManualCaliper)}
+            title="Bật thước đo 3 điểm kéo thả thủ công"
+            className={`px-3 py-1 rounded-full text-[11px] font-medium border transition flex items-center gap-1.5 ${
+              isManualCaliper
+                ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md font-semibold'
+                : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white'
+            }`}
+          >
+            <Move className="w-3 h-3" />
+            <span>Thước 3 Điểm</span>
+          </button>
+
           {/* Sound Toggle */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             title={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
-            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
+            className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
           </button>
@@ -788,14 +972,15 @@ export default function KneeAngleCamera({
           {/* Auto-Lock Stability Toggle */}
           <button
             onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
-            className={`px-3 py-1 rounded-full text-[11px] font-medium border transition flex items-center gap-1.5 ${
+            title="Tự động ghi khi giữ yên 2.5s"
+            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition flex items-center gap-1 ${
               autoSaveEnabled
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                 : 'bg-white/[0.04] border-white/10 text-slate-400'
             }`}
           >
             <Sparkles className="w-3 h-3 text-emerald-400" />
-            <span>Tự ghi (2.5s)</span>
+            <span>Tự ghi</span>
           </button>
         </div>
       </div>
@@ -804,7 +989,7 @@ export default function KneeAngleCamera({
       {isLoadingModel && (
         <div className="py-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
           <RotateCw className="w-4 h-4 animate-spin text-emerald-400" />
-          Đang khởi động thị giác AI PoseLandmarker...
+          Đang nạp bộ xử lý AI thị giác PoseLandmarker...
         </div>
       )}
 
@@ -816,7 +1001,13 @@ export default function KneeAngleCamera({
       )}
 
       {/* Viewport Area: 3:4 Mobile Aspect Ratio */}
-      <div className="relative aspect-[3/4] max-h-[460px] w-full bg-[#0C0D11] rounded-[28px] overflow-hidden border border-white/[0.08] flex items-center justify-center shadow-inner">
+      <div
+        ref={viewportRef}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        className="relative aspect-[3/4] max-h-[460px] w-full bg-[#0C0D11] rounded-[28px] overflow-hidden border border-white/[0.08] flex items-center justify-center shadow-inner touch-none"
+      >
         {/* Live Video */}
         <video
           ref={videoRef}
@@ -831,7 +1022,7 @@ export default function KneeAngleCamera({
         <canvas
           ref={canvasRef}
           className={`absolute inset-0 w-full h-full pointer-events-none ${
-            cameraActive && !isPhotoFallback ? 'block' : 'hidden'
+            cameraActive && !isPhotoFallback && !isManualCaliper ? 'block' : 'hidden'
           } ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
         />
 
@@ -843,7 +1034,94 @@ export default function KneeAngleCamera({
           }`}
         />
 
-        {/* HUD Medical Alignment Reticles (Corner Crosshairs) */}
+        {/* Interactive Draggable 3-Point Caliper SVG Overlay */}
+        {isManualCaliper && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+            {/* Thigh Bone Line */}
+            <line
+              x1={caliperPoints.hip.x}
+              y1={caliperPoints.hip.y}
+              x2={caliperPoints.knee.x}
+              y2={caliperPoints.knee.y}
+              stroke="#fbbf24"
+              strokeWidth="4"
+              strokeDasharray="6,4"
+              strokeLinecap="round"
+            />
+            {/* Shin Bone Line */}
+            <line
+              x1={caliperPoints.knee.x}
+              y1={caliperPoints.knee.y}
+              x2={caliperPoints.ankle.x}
+              y2={caliperPoints.ankle.y}
+              stroke="#fbbf24"
+              strokeWidth="4"
+              strokeDasharray="6,4"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
+
+        {/* Interactive Draggable HTML Handles for 3 Points */}
+        {isManualCaliper && (
+          <div className="absolute inset-0 z-30 pointer-events-auto">
+            {/* Hip Handle */}
+            <div
+              style={{
+                left: `${caliperPoints.hip.x}px`,
+                top: `${caliperPoints.hip.y}px`,
+                transform: 'translate(-50%, -50%)',
+              }}
+              onPointerDown={handlePointerDown('hip')}
+              className="absolute cursor-grab active:cursor-grabbing p-3 touch-none group"
+            >
+              <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center justify-center border-2 border-white shadow-xl group-hover:scale-110 transition">
+                H
+              </div>
+              <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-black/80 px-2 py-0.5 rounded text-[9px] text-amber-300 whitespace-nowrap">
+                Hông/Đùi
+              </span>
+            </div>
+
+            {/* Knee Handle */}
+            <div
+              style={{
+                left: `${caliperPoints.knee.x}px`,
+                top: `${caliperPoints.knee.y}px`,
+                transform: 'translate(-50%, -50%)',
+              }}
+              onPointerDown={handlePointerDown('knee')}
+              className="absolute cursor-grab active:cursor-grabbing p-3 touch-none group"
+            >
+              <div className="w-10 h-10 rounded-full bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center border-2 border-white shadow-2xl group-hover:scale-110 transition animate-pulse">
+                Gối
+              </div>
+              <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-black/80 px-2 py-0.5 rounded text-[9px] text-emerald-300 whitespace-nowrap">
+                Tâm Gối
+              </span>
+            </div>
+
+            {/* Ankle Handle */}
+            <div
+              style={{
+                left: `${caliperPoints.ankle.x}px`,
+                top: `${caliperPoints.ankle.y}px`,
+                transform: 'translate(-50%, -50%)',
+              }}
+              onPointerDown={handlePointerDown('ankle')}
+              className="absolute cursor-grab active:cursor-grabbing p-3 touch-none group"
+            >
+              <div className="w-8 h-8 rounded-full bg-sky-400 text-slate-950 font-bold text-[10px] flex items-center justify-center border-2 border-white shadow-xl group-hover:scale-110 transition">
+                C
+              </div>
+              <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-black/80 px-2 py-0.5 rounded text-[9px] text-sky-300 whitespace-nowrap">
+                Cổ Chân
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Alignment Reticles */}
         {cameraActive && !isPhotoFallback && (
           <div className="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
             <div className="flex justify-between">
@@ -859,7 +1137,7 @@ export default function KneeAngleCamera({
 
         {/* Standby Placeholder */}
         {!cameraActive && !isPhotoFallback && (
-          <div className="p-6 text-center max-w-xs text-slate-400 space-y-3">
+          <div className="p-6 text-center max-w-xs text-slate-400 space-y-3 z-10">
             <div className="w-14 h-14 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center mx-auto text-emerald-400 shadow-xl">
               <Camera className="w-6 h-6" />
             </div>
@@ -868,7 +1146,7 @@ export default function KneeAngleCamera({
                 Camera đang tắt
               </p>
               <p className="text-xs text-slate-400 font-light leading-relaxed">
-                Đặt điện thoại ngang tầm khớp gối, nhìn rõ mặt ngoài chân {leg === 'left' ? 'Trái' : 'Phải'}.
+                Đặt điện thoại ngang tầm khớp gối, nhìn từ MẶT NGOÀI bên hông chân.
               </p>
             </div>
             <button
@@ -882,9 +1160,9 @@ export default function KneeAngleCamera({
           </div>
         )}
 
-        {/* Top Floating Landmark Status & Angle Badge */}
+        {/* Top Floating Angle Badge */}
         {currentFlexionAngle !== null && (
-          <div className="absolute top-3 left-3 bg-[#16181F]/90 backdrop-blur-xl border border-white/15 rounded-2xl p-2.5 shadow-2xl flex items-center gap-3">
+          <div className="absolute top-3 left-3 bg-[#16181F]/90 backdrop-blur-xl border border-white/15 rounded-2xl p-2.5 shadow-2xl flex items-center gap-3 z-20">
             <div
               className={`w-12 h-12 rounded-xl flex items-center justify-center font-light text-2xl tracking-tight tabular-nums ${
                 !isAngleSafe
@@ -897,8 +1175,9 @@ export default function KneeAngleCamera({
               {currentFlexionAngle}°
             </div>
             <div className="text-left pr-1 space-y-0.5">
-              <div className="text-[10px] text-slate-400 font-light uppercase tracking-wider">
-                Góc gập (Flexion)
+              <div className="text-[10px] text-slate-400 font-light uppercase tracking-wider flex items-center gap-1.5">
+                <span>Góc gập</span>
+                <span className="text-emerald-400 font-normal">({currentDisplayLeg === 'left' ? 'Gối Trái' : 'Gối Phải'})</span>
               </div>
               <div
                 className={`text-xs font-medium flex items-center gap-1 ${
@@ -923,7 +1202,7 @@ export default function KneeAngleCamera({
 
         {/* Auto-Lock Countdown Ring in Live HUD */}
         {autoSaveEnabled && stabilityProgress > 0 && stabilityProgress < 100 && (
-          <div className="absolute top-3.5 left-1/2 -translate-x-1/2 bg-[#16181F]/90 backdrop-blur-md border border-white/20 rounded-full py-1 px-3.5 flex items-center gap-2 shadow-2xl">
+          <div className="absolute top-3.5 left-1/2 -translate-x-1/2 bg-[#16181F]/90 backdrop-blur-md border border-white/20 rounded-full py-1 px-3.5 flex items-center gap-2 shadow-2xl z-20">
             <div className="w-3 h-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
             <span className="text-[11px] font-medium text-emerald-300">
               Giữ yên... {stabilityProgress}%
@@ -931,19 +1210,67 @@ export default function KneeAngleCamera({
           </div>
         )}
 
-        {/* Landmark tracking quality badge */}
-        {cameraActive && !isPhotoFallback && (
-          <div className="absolute bottom-3 left-3 bg-[#0C0D11]/80 backdrop-blur-md border border-white/10 rounded-full px-2.5 py-1 flex items-center gap-1.5 text-[10px] text-slate-300 font-light">
-            <Crosshair className={`w-3 h-3 ${landmarksStatus === 'GOOD' ? 'text-emerald-400' : landmarksStatus === 'PARTIAL' ? 'text-amber-400' : 'text-rose-400'}`} />
-            <span>
-              {landmarksStatus === 'GOOD' ? 'Khớp nhận diện chuẩn' : landmarksStatus === 'PARTIAL' ? 'Thiếu hông / cổ chân' : 'Đang tìm khớp gối...'}
-            </span>
+        {/* Real-time Joint Status & Diagnostics Pills (Bottom-Left) */}
+        {cameraActive && !isPhotoFallback && !isManualCaliper && (
+          <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-1.5 z-20">
+            {/* Joint presence indicator dots */}
+            <div className="flex items-center gap-1.5 self-start bg-[#0C0D11]/85 backdrop-blur-md border border-white/10 rounded-full px-2.5 py-1 text-[10px] text-slate-300">
+              <span className="text-slate-400">Khớp:</span>
+              <span className={`flex items-center gap-0.5 ${jointDiag.hip ? 'text-emerald-400' : 'text-rose-400'}`}>
+                ● Hông
+              </span>
+              <span className="text-white/20">|</span>
+              <span className={`flex items-center gap-0.5 ${jointDiag.knee ? 'text-emerald-400' : 'text-rose-400'}`}>
+                ● Gối
+              </span>
+              <span className="text-white/20">|</span>
+              <span className={`flex items-center gap-0.5 ${jointDiag.ankle ? 'text-emerald-400' : 'text-rose-400'}`}>
+                ● Cổ chân
+              </span>
+            </div>
+
+            {/* Guidance banner for user when framing is off */}
+            <div className={`p-2 rounded-xl backdrop-blur-md border text-[11px] font-light flex items-center justify-between gap-2 shadow-lg ${
+              landmarksStatus === 'GOOD'
+                ? 'bg-emerald-950/70 border-emerald-500/30 text-emerald-300'
+                : 'bg-[#16181F]/90 border-amber-500/30 text-amber-200'
+            }`}>
+              <div className="flex items-center gap-1.5 flex-1">
+                <Crosshair className="w-3.5 h-3.5 shrink-0" />
+                <span>{jointDiag.guidance}</span>
+              </div>
+
+              {jointDiag.oppositeLegVisible && (
+                <button
+                  onClick={() => setLeg(currentDisplayLeg === 'left' ? 'right' : 'left')}
+                  className="px-2 py-0.5 bg-amber-400 text-slate-950 font-medium rounded-full text-[10px] shrink-0"
+                >
+                  Đổi chân
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Caliper Instruction Pill when in Manual Mode */}
+        {isManualCaliper && (
+          <div className="absolute bottom-3 left-3 right-3 bg-amber-500/20 backdrop-blur-md border border-amber-500/40 rounded-2xl p-2.5 text-xs text-amber-200 flex items-center justify-between gap-2 z-20">
+            <div className="flex items-center gap-2">
+              <Move className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Chạm và kéo 3 điểm (Hông, Gối, Cổ chân) vào đúng vị trí trên chân</span>
+            </div>
+            <button
+              onClick={() => setIsManualCaliper(false)}
+              className="px-2.5 py-1 bg-white text-slate-950 rounded-full text-[11px] font-medium shrink-0"
+            >
+              Xong
+            </button>
           </div>
         )}
 
         {/* Floating Controls (Flip camera + Freeze frame) */}
         {cameraActive && !isPhotoFallback && (
-          <div className="absolute top-3 right-3 flex items-center gap-2">
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
             <button
               onClick={() => setIsFrozen(!isFrozen)}
               title={isFrozen ? 'Tiếp tục live' : 'Đóng băng hình để đọc'}
@@ -1049,13 +1376,84 @@ export default function KneeAngleCamera({
         </button>
       </div>
 
-      {/* Guide Note Box */}
+      {/* Clinical Guidance Tip Card */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-slate-400 font-light leading-relaxed">
         <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-        <p>
-          <strong className="text-white font-medium">Mẹo chuẩn y khoa:</strong> Đặt camera ngang vuông góc với cạnh bên gối {leg === 'left' ? 'Trái' : 'Phải'}. Đảm bảo thấy rõ ụ mấu chuyển lớn hông, khe khớp gối và mắt cá ngoài. Giữ yên 2.5s để hệ thống tự động ghi nhận.
-        </p>
+        <div className="space-y-1">
+          <p>
+            <strong className="text-white font-medium">Nguyên lý đo góc gối:</strong> Góc gập là góc giữa <strong className="text-emerald-400">Xương đùi (Hông → Gối)</strong> và <strong className="text-emerald-400">Cẳng chân (Gối → Cổ chân)</strong>.
+          </p>
+          <p className="text-[11px] text-slate-400">
+            👉 Nếu soi thẳng mặt trước hoặc dí sát chỉ thấy đầu gối, AI sẽ không đủ 2 cạnh để tính góc. Hãy <strong className="text-white">quay nhìn từ mặt bên (ngang hông gối)</strong> và <strong className="text-white">lùi xa khoảng 1 mét</strong>. Hoặc bấm <strong className="text-amber-300">Thước 3 Điểm</strong> để kéo thả thủ công!
+          </p>
+        </div>
       </div>
+
+      {/* Guide Modal: How to measure knee angle correctly */}
+      {showGuideModal && (
+        <div className="fixed sm:absolute inset-0 z-50 bg-[#0C0D11]/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl text-white">
+            <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-light text-white text-base">Hướng Dẫn Đo Góc Gập Gối Chuẩn</h3>
+              </div>
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1 space-y-4 text-xs font-light text-slate-300 leading-relaxed">
+              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-1.5">
+                <div className="font-medium text-emerald-300 flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  1. Góc Quay Chuẩn: Nhìn Ngang Mặt Bên (Lateral View)
+                </div>
+                <p className="text-slate-300">
+                  Đặt điện thoại ngang tầm khớp gối, ống kính nhìn vuông góc với cạnh bên ngoài của chân. Không quay từ đằng trước xương bánh chè vì góc nhìn trước sẽ che khuất cẳng chân.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl space-y-1.5">
+                <div className="font-medium text-white flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  2. Khoảng Cách: Lùi Xa Khoảng 1 - 1.5 Mét
+                </div>
+                <p className="text-slate-400">
+                  Khung hình bắt buộc phải thấy trọn vẹn 3 mốc giải phẫu:
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-slate-300">
+                  <li><strong>Mấu chuyển lớn xương đùi (Hông)</strong></li>
+                  <li><strong>Khe khớp gối ngoài (Tâm xoay gối)</strong></li>
+                  <li><strong>Mắt cá ngoài (Cổ chân)</strong></li>
+                </ul>
+              </div>
+
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-1.5">
+                <div className="font-medium text-amber-300 flex items-center gap-1.5">
+                  <Move className="w-4 h-4 text-amber-400" />
+                  3. Chế Độ Thước 3 Điểm Thủ Công
+                </div>
+                <p className="text-slate-300">
+                  Nếu bạn đang mặc quần dài, đắp chăn hoặc ánh sáng yếu làm AI khó nhận diện, hãy bấm nút <strong>Thước 3 Điểm</strong> hoặc <strong>Đóng băng (Tạm dừng)</strong>, sau đó dùng ngón tay kéo 3 chấm tròn vào đúng Hông, Gối và Cổ chân để đo góc chính xác 100%!
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-white/[0.06] flex justify-end">
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="py-2.5 px-6 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs transition"
+              >
+                Đã Hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* History Modal */}
       {showHistoryModal && (
@@ -1101,7 +1499,7 @@ export default function KneeAngleCamera({
                         <div className="text-xs font-medium text-white">
                           {record.leg === 'left' ? 'Gối Trái (L)' : 'Gối Phải (R)'}
                           <span className="text-[10px] ml-2 font-light text-slate-400">
-                            {record.source === 'live' ? '• Live AI' : '• Ảnh tải lên'}
+                            {record.source === 'live' ? '• Live AI' : record.source === 'manual' ? '• Thước thủ công' : '• Ảnh tải lên'}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-400 font-light mt-0.5">
