@@ -12,7 +12,15 @@ import {
   Trash2,
   Info,
   X,
-  FlipHorizontal
+  FlipHorizontal,
+  Volume2,
+  VolumeX,
+  Pause,
+  Play,
+  Sparkles,
+  ArrowUpRight,
+  ShieldCheck,
+  Crosshair
 } from 'lucide-react';
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 
@@ -44,13 +52,31 @@ export default function KneeAngleCamera({
   const [isLoadingModel, setIsLoadingModel] = useState<boolean>(true);
   const [modelError, setModelError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState<boolean>(false);
+  const [isFrozen, setIsFrozen] = useState<boolean>(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  // Live Angle States
   const [currentFlexionAngle, setCurrentFlexionAngle] = useState<number | null>(null);
   const [currentInternalAngle, setCurrentInternalAngle] = useState<number | null>(null);
+  const [landmarksStatus, setLandmarksStatus] = useState<'GOOD' | 'PARTIAL' | 'LOST'>('LOST');
+
+  // Auto-Lock Stability Tracker
+  const [stabilityProgress, setStabilityProgress] = useState<number>(0);
+  const lastAngleRef = useRef<number | null>(null);
+  const stableSinceRef = useRef<number | null>(null);
+  const hasAutoSavedRef = useRef<boolean>(false);
+
+  // Fallback & History
   const [isPhotoFallback, setIsPhotoFallback] = useState<boolean>(false);
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [historyRecords, setHistoryRecords] = useState<AngleRecord[]>([]);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
+  // Smooth filter ref
+  const smoothedAngleRef = useRef<number | null>(null);
+
+  // Elements & MediaPipe
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const photoCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -58,6 +84,7 @@ export default function KneeAngleCamera({
   const animationFrameRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef<number>(-1);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Load history from localStorage
   useEffect(() => {
@@ -66,9 +93,7 @@ export default function KneeAngleCamera({
       if (saved) {
         setHistoryRecords(JSON.parse(saved));
       }
-    } catch {
-      // LocalStorage error
-    }
+    } catch {}
   }, []);
 
   // Update selected leg if prop changes
@@ -76,17 +101,58 @@ export default function KneeAngleCamera({
     setLeg(selectedLeg);
   }, [selectedLeg]);
 
-  // Save history to localStorage helper
+  // Audio chimes using Web Audio API
+  const playChime = useCallback((type: 'success' | 'warning' | 'lock') => {
+    if (!soundEnabled) return;
+    try {
+      if (!audioCtxRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'success') {
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } else if (type === 'lock') {
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+      } else {
+        // Warning
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch {}
+  }, [soundEnabled]);
+
+  // Save history helper
   const saveToLocalStorage = (records: AngleRecord[]) => {
     try {
       localStorage.setItem('goikhoe_angle_history', JSON.stringify(records));
       setHistoryRecords(records);
-    } catch {
-      // LocalStorage error
-    }
+    } catch {}
   };
 
-  // Initialize PoseLandmarker
+  // Initialize MediaPipe PoseLandmarker
   useEffect(() => {
     let isCancelled = false;
 
@@ -137,9 +203,7 @@ export default function KneeAngleCamera({
     };
   }, []);
 
-  // Calculate Angle in 2D degrees:
-  // Hip -> Knee -> Ankle
-  // Returns raw internal angle (180° = fully straight)
+  // Calculate Angle in 2D degrees
   const calculateKneeAngle = (
     hip: { x: number; y: number },
     knee: { x: number; y: number },
@@ -158,7 +222,7 @@ export default function KneeAngleCamera({
     cosAngle = Math.max(-1, Math.min(1, cosAngle));
     const angleRad = Math.acos(cosAngle);
     const internalAngle = Math.round((angleRad * 180) / Math.PI);
-    
+
     // Clinical Flexion Angle: 0° is fully straight, 90° is bent right angle
     const flexionAngle = Math.max(0, 180 - internalAngle);
 
@@ -168,6 +232,7 @@ export default function KneeAngleCamera({
   // Start Camera
   const startCamera = async () => {
     setIsPhotoFallback(false);
+    setIsFrozen(false);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
     }
@@ -211,6 +276,9 @@ export default function KneeAngleCamera({
       videoRef.current.srcObject = null;
     }
     setCameraActive(false);
+    setIsFrozen(false);
+    setCurrentFlexionAngle(null);
+    setStabilityProgress(0);
   }, []);
 
   // Toggle Camera Facing Mode
@@ -226,16 +294,52 @@ export default function KneeAngleCamera({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
-  // Clean up camera on unmount
+  // Clean up on unmount
   useEffect(() => {
     return () => {
       stopCamera();
     };
   }, [stopCamera]);
 
-  // Video processing loop
+  // Save current record function
+  const handleSaveRecord = useCallback((angleToSave?: number) => {
+    const angle = angleToSave !== undefined ? angleToSave : currentFlexionAngle;
+    if (angle === null) return;
+
+    const isSafe = angle <= safeMaxFlexion;
+    const now = new Date();
+    const newRecord: AngleRecord = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      timestamp: now.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      leg,
+      flexionAngle: angle,
+      internalAngle: 180 - angle,
+      safeLimit: safeMaxFlexion,
+      isSafe,
+      source: isPhotoFallback ? 'photo' : 'live',
+      note: isSafe ? 'Trong giới hạn an toàn' : 'Vượt giới hạn an toàn',
+    };
+
+    const updated = [newRecord, ...historyRecords];
+    saveToLocalStorage(updated);
+    if (onRecordSaved) {
+      onRecordSaved(newRecord);
+    }
+
+    playChime(isSafe ? 'success' : 'warning');
+    setSaveSuccessMsg(`Đã ghi nhận góc gập ${angle}° (${leg === 'left' ? 'Gối Trái' : 'Gối Phải'})`);
+    setTimeout(() => setSaveSuccessMsg(null), 3000);
+  }, [currentFlexionAngle, safeMaxFlexion, leg, isPhotoFallback, historyRecords, onRecordSaved, playChime]);
+
+  // Realtime Video processing loop with Smooth EMA & Goniometer Arc
   const predictVideoFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !poseLandmarkerRef.current) {
+    if (!videoRef.current || !canvasRef.current || !poseLandmarkerRef.current || isFrozen) {
       animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
       return;
     }
@@ -266,7 +370,6 @@ export default function KneeAngleCamera({
         if (results.landmarks && results.landmarks.length > 0) {
           const landmarks = results.landmarks[0];
 
-          // Landmark indices:
           // Left: Hip = 23, Knee = 25, Ankle = 27
           // Right: Hip = 24, Knee = 26, Ankle = 28
           const isLeft = leg === 'left';
@@ -278,36 +381,45 @@ export default function KneeAngleCamera({
           const knee = landmarks[kneeIdx];
           const ankle = landmarks[ankleIdx];
 
-          // Check if key landmarks are visible / confident
-          const minVisibility = 0.4;
-          const areLandmarksValid =
-            hip && knee && ankle &&
-            (hip.visibility === undefined || hip.visibility > minVisibility) &&
-            (knee.visibility === undefined || knee.visibility > minVisibility) &&
-            (ankle.visibility === undefined || ankle.visibility > minVisibility);
+          const minVisibility = 0.35;
+          const isHipOk = hip && (hip.visibility === undefined || hip.visibility > minVisibility);
+          const isKneeOk = knee && (knee.visibility === undefined || knee.visibility > minVisibility);
+          const isAnkleOk = ankle && (ankle.visibility === undefined || ankle.visibility > minVisibility);
 
-          if (areLandmarksValid) {
+          if (isHipOk && isKneeOk && isAnkleOk) {
+            setLandmarksStatus('GOOD');
             const hPt = { x: hip.x * canvas.width, y: hip.y * canvas.height };
             const kPt = { x: knee.x * canvas.width, y: knee.y * canvas.height };
             const aPt = { x: ankle.x * canvas.width, y: ankle.y * canvas.height };
 
             const { internalAngle, flexionAngle } = calculateKneeAngle(hPt, kPt, aPt);
 
+            // Apply Exponential Moving Average (EMA) smoothing to avoid frame jitter
+            let displayFlexion = flexionAngle;
+            if (smoothedAngleRef.current === null) {
+              smoothedAngleRef.current = flexionAngle;
+            } else {
+              smoothedAngleRef.current = Math.round(smoothedAngleRef.current * 0.7 + flexionAngle * 0.3);
+              displayFlexion = smoothedAngleRef.current;
+            }
+
             setCurrentInternalAngle(internalAngle);
-            setCurrentFlexionAngle(flexionAngle);
+            setCurrentFlexionAngle(displayFlexion);
 
-            const isSafe = flexionAngle <= safeMaxFlexion;
-            const lineColor = isSafe ? '#10b981' : '#ef4444'; // Emerald vs Red
-            const glowColor = isSafe ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.6)';
+            const isSafe = displayFlexion <= safeMaxFlexion;
+            const isNearLimit = displayFlexion > safeMaxFlexion - 10 && isSafe;
+            const lineColor = !isSafe ? '#f43f5e' : isNearLimit ? '#fbbf24' : '#10b981';
+            const glowColor = !isSafe ? 'rgba(244, 63, 94, 0.5)' : 'rgba(16, 185, 129, 0.4)';
 
-            // Draw connecting bones
             ctx.save();
-            ctx.lineWidth = 8;
+
+            // 1. Draw High-Tech Connecting Laser Bones
+            ctx.lineWidth = 6;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = lineColor;
             ctx.shadowColor = glowColor;
-            ctx.shadowBlur = 12;
+            ctx.shadowBlur = 14;
 
             ctx.beginPath();
             ctx.moveTo(hPt.x, hPt.y);
@@ -315,50 +427,116 @@ export default function KneeAngleCamera({
             ctx.lineTo(aPt.x, aPt.y);
             ctx.stroke();
 
-            // Draw joint nodes
-            const drawJoint = (pt: { x: number; y: number }, label: string, r = 12) => {
+            // 2. Draw Medical Goniometer Fan Arc at Knee Joint
+            const angleV1 = Math.atan2(hPt.y - kPt.y, hPt.x - kPt.x);
+            const angleV2 = Math.atan2(aPt.y - kPt.y, aPt.x - kPt.x);
+            const arcRadius = Math.min(85, Math.hypot(hPt.x - kPt.x, hPt.y - kPt.y) * 0.4);
+
+            ctx.beginPath();
+            ctx.moveTo(kPt.x, kPt.y);
+            ctx.arc(kPt.x, kPt.y, arcRadius, angleV1, angleV2, false);
+            ctx.closePath();
+            ctx.fillStyle = !isSafe ? 'rgba(244, 63, 94, 0.25)' : 'rgba(16, 185, 129, 0.2)';
+            ctx.fill();
+
+            // Arc Outline with ticks
+            ctx.beginPath();
+            ctx.arc(kPt.x, kPt.y, arcRadius, angleV1, angleV2, false);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = lineColor;
+            ctx.stroke();
+
+            // 3. Draw Joint Rings & Degree Indicator
+            const drawJoint = (pt: { x: number; y: number }, r: number, isCenter = false) => {
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, r + 4, 0, 2 * Math.PI);
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+              ctx.fill();
+
               ctx.beginPath();
               ctx.arc(pt.x, pt.y, r, 0, 2 * Math.PI);
               ctx.fillStyle = '#ffffff';
               ctx.fill();
               ctx.strokeStyle = lineColor;
-              ctx.lineWidth = 4;
+              ctx.lineWidth = 3;
               ctx.stroke();
 
-              // Label
-              ctx.font = 'bold 16px sans-serif';
-              ctx.fillStyle = '#ffffff';
-              ctx.shadowColor = '#000000';
-              ctx.shadowBlur = 6;
-              ctx.fillText(label, pt.x + 14, pt.y + 6);
+              if (isCenter) {
+                // Central HUD Degree Display
+                const boxW = 86;
+                const boxH = 34;
+                const boxX = pt.x + 16;
+                const boxY = pt.y - boxH / 2;
+
+                ctx.fillStyle = 'rgba(12, 13, 17, 0.85)';
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = '600 16px Outfit, sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${displayFlexion}° Gập`, boxX + boxW / 2, boxY + 22);
+                ctx.textAlign = 'start';
+              }
             };
 
-            drawJoint(hPt, isLeft ? 'Háng T' : 'Háng P', 10);
-            drawJoint(kPt, `${flexionAngle}°`, 16);
-            drawJoint(aPt, isLeft ? 'Cổ chân T' : 'Cổ chân P', 10);
+            drawJoint(hPt, 7);
+            drawJoint(kPt, 12, true);
+            drawJoint(aPt, 7);
 
-            // Draw safety warning badge on canvas if exceeded
+            // 4. Over-limit warning header banner if exceeded
             if (!isSafe) {
-              const bannerH = 64;
-              ctx.fillStyle = 'rgba(220, 38, 38, 0.9)';
-              ctx.fillRect(0, canvas.height - bannerH, canvas.width, bannerH);
-              ctx.font = 'bold 22px sans-serif';
+              const bannerH = 50;
+              ctx.fillStyle = 'rgba(225, 29, 72, 0.9)';
+              ctx.fillRect(0, 0, canvas.width, bannerH);
+              ctx.font = '600 16px Outfit, sans-serif';
               ctx.fillStyle = '#ffffff';
               ctx.textAlign = 'center';
               ctx.fillText(
-                `⚠️ VƯỢT QUÁ GÓC AN TOÀN (${safeMaxFlexion}°)! DỪNG LẠI!`,
+                `⚠️ VƯỢT QUÁ GÓC AN TOÀN (${safeMaxFlexion}°) • HÃY DỪNG LẠI!`,
                 canvas.width / 2,
-                canvas.height - bannerH / 2 + 8
+                32
               );
               ctx.textAlign = 'start';
             }
 
             ctx.restore();
+
+            // Auto-lock & Hold for 2.5s logic
+            if (autoSaveEnabled && !hasAutoSavedRef.current) {
+              const now = performance.now();
+              if (lastAngleRef.current === null || Math.abs(lastAngleRef.current - displayFlexion) > 2) {
+                lastAngleRef.current = displayFlexion;
+                stableSinceRef.current = now;
+                setStabilityProgress(0);
+              } else if (stableSinceRef.current) {
+                const elapsed = now - stableSinceRef.current;
+                const progress = Math.min(100, Math.round((elapsed / 2500) * 100));
+                setStabilityProgress(progress);
+
+                if (progress >= 100) {
+                  hasAutoSavedRef.current = true;
+                  handleSaveRecord(displayFlexion);
+                  setTimeout(() => {
+                    hasAutoSavedRef.current = false;
+                    setStabilityProgress(0);
+                  }, 4000);
+                }
+              }
+            }
           } else {
+            setLandmarksStatus(isKneeOk ? 'PARTIAL' : 'LOST');
             setCurrentFlexionAngle(null);
+            setStabilityProgress(0);
           }
         } else {
+          setLandmarksStatus('LOST');
           setCurrentFlexionAngle(null);
+          setStabilityProgress(0);
         }
       } catch (err) {
         console.warn('Pose estimation error in loop:', err);
@@ -366,11 +544,11 @@ export default function KneeAngleCamera({
     }
 
     animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
-  }, [leg, safeMaxFlexion]);
+  }, [leg, safeMaxFlexion, isFrozen, autoSaveEnabled, handleSaveRecord]);
 
-  // Start/Stop RAF based on cameraActive
+  // Start/Stop RAF
   useEffect(() => {
-    if (cameraActive) {
+    if (cameraActive && !isFrozen) {
       animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
     } else {
       if (animationFrameRef.current) {
@@ -385,7 +563,7 @@ export default function KneeAngleCamera({
         animationFrameRef.current = null;
       }
     };
-  }, [cameraActive, predictVideoFrame]);
+  }, [cameraActive, isFrozen, predictVideoFrame]);
 
   // Handle Photo Upload
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,11 +585,9 @@ export default function KneeAngleCamera({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Draw image onto canvas
         ctx.drawImage(img, 0, 0);
 
         try {
-          // Switch to IMAGE mode or use detect with canvas
           await poseLandmarkerRef.current?.setOptions({ runningMode: 'IMAGE' });
           const results = poseLandmarkerRef.current?.detect(canvas);
 
@@ -436,9 +612,8 @@ export default function KneeAngleCamera({
               setCurrentFlexionAngle(flexionAngle);
 
               const isSafe = flexionAngle <= safeMaxFlexion;
-              const lineColor = isSafe ? '#10b981' : '#ef4444';
+              const lineColor = isSafe ? '#10b981' : '#f43f5e';
 
-              // Draw skeleton overlay
               ctx.lineWidth = Math.max(6, Math.round(canvas.width / 120));
               ctx.strokeStyle = lineColor;
               ctx.lineCap = 'round';
@@ -448,7 +623,6 @@ export default function KneeAngleCamera({
               ctx.lineTo(aPt.x, aPt.y);
               ctx.stroke();
 
-              // Joint circles
               const r = Math.max(10, Math.round(canvas.width / 60));
               ctx.fillStyle = '#ffffff';
               ctx.beginPath();
@@ -456,13 +630,11 @@ export default function KneeAngleCamera({
               ctx.fill();
               ctx.stroke();
 
-              // Text label
-              ctx.font = `bold ${Math.max(24, Math.round(canvas.width / 30))}px sans-serif`;
+              ctx.font = `600 ${Math.max(24, Math.round(canvas.width / 30))}px Outfit, sans-serif`;
               ctx.fillStyle = lineColor;
               ctx.fillText(`${flexionAngle}°`, kPt.x + r + 8, kPt.y + 10);
             }
           }
-          // Restore running mode to VIDEO for when live is restarted
           await poseLandmarkerRef.current?.setOptions({ runningMode: 'VIDEO' });
         } catch (err) {
           console.error('Error analyzing photo:', err);
@@ -471,40 +643,6 @@ export default function KneeAngleCamera({
       img.src = e.target?.result as string;
     };
     reader.readAsDataURL(file);
-  };
-
-  // Save current angle to history
-  const handleSaveRecord = () => {
-    if (currentFlexionAngle === null) return;
-
-    const isSafe = currentFlexionAngle <= safeMaxFlexion;
-    const now = new Date();
-    const newRecord: AngleRecord = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      timestamp: now.toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      leg,
-      flexionAngle: currentFlexionAngle,
-      internalAngle: currentInternalAngle || 180 - currentFlexionAngle,
-      safeLimit: safeMaxFlexion,
-      isSafe,
-      source: isPhotoFallback ? 'photo' : 'live',
-      note: isSafe ? 'Trong giới hạn an toàn' : 'Vượt giới hạn an toàn',
-    };
-
-    const updated = [newRecord, ...historyRecords];
-    saveToLocalStorage(updated);
-    if (onRecordSaved) {
-      onRecordSaved(newRecord);
-    }
-
-    setSaveSuccessMsg(`Đã lưu góc gập ${currentFlexionAngle}° (${leg === 'left' ? 'Gối Trái' : 'Gối Phải'})`);
-    setTimeout(() => setSaveSuccessMsg(null), 3000);
   };
 
   const handleDeleteRecord = (id: string) => {
@@ -519,81 +657,101 @@ export default function KneeAngleCamera({
   };
 
   const isAngleSafe = currentFlexionAngle !== null && currentFlexionAngle <= safeMaxFlexion;
+  const isNearLimit = currentFlexionAngle !== null && currentFlexionAngle > safeMaxFlexion - 10 && isAngleSafe;
 
   return (
-    <div className="bg-slate-900 text-slate-100 rounded-3xl p-4 sm:p-6 border border-slate-800 shadow-xl space-y-4">
+    <div className="bg-[#16181F] text-white rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4 font-sans">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Camera className="w-5 h-5 text-emerald-400" />
-            Đo Góc Gối Bằng Camera AI
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+              Thị giác máy tính AI
+            </span>
+          </div>
+          <h2 className="text-xl font-light text-white tracking-tight">
+            Đo Góc Gập Gối Realtime
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Nhận diện xương Hông - Khớp Gối - Cổ chân chuẩn Y khoa
-          </p>
         </div>
 
         <button
           onClick={() => setShowHistoryModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/10 text-slate-300 text-xs font-normal border border-white/10 transition"
         >
-          <History className="w-4 h-4 text-emerald-400" />
+          <History className="w-3.5 h-3.5 text-emerald-400" />
           <span>Lịch sử ({historyRecords.length})</span>
         </button>
       </div>
 
-      {/* Control Selector: Left/Right Leg & Limits */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-slate-400 font-semibold mr-1">Chân đo:</span>
+      {/* Control Selector Pill: Left/Right Leg & Limits */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-white/[0.03] rounded-2xl border border-white/[0.06]">
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-slate-400 font-light mr-1">Chân mổ:</span>
           <button
             onClick={() => setLeg('left')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-full text-xs transition ${
               leg === 'left'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-white text-slate-950 font-medium shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             Gối Trái (L)
           </button>
           <button
             onClick={() => setLeg('right')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-full text-xs transition ${
               leg === 'right'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-white text-slate-950 font-medium shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             Gối Phải (R)
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="text-slate-400">Giới hạn an toàn:</span>
-          <span className="font-bold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">
-            &le; {safeMaxFlexion}°
-          </span>
+        <div className="flex items-center gap-2">
+          {/* Sound Toggle */}
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            title={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
+          >
+            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+          </button>
+
+          {/* Auto-Lock Stability Toggle */}
+          <button
+            onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
+            className={`px-3 py-1 rounded-full text-[11px] font-medium border transition flex items-center gap-1.5 ${
+              autoSaveEnabled
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                : 'bg-white/[0.04] border-white/10 text-slate-400'
+            }`}
+          >
+            <Sparkles className="w-3 h-3 text-emerald-400" />
+            <span>Tự ghi (2.5s)</span>
+          </button>
         </div>
       </div>
 
       {/* Model Loading / Error Status */}
       {isLoadingModel && (
-        <div className="py-6 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+        <div className="py-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
           <RotateCw className="w-4 h-4 animate-spin text-emerald-400" />
-          Đang tải mô hình thị giác AI (MediaPipe PoseLandmarker)...
+          Đang khởi động thị giác AI PoseLandmarker...
         </div>
       )}
 
       {modelError && (
-        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-300 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+        <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
           <span>{modelError}</span>
         </div>
       )}
 
-      {/* Viewport Area (Mobile Portrait 3:4) */}
-      <div className="relative aspect-[3/4] max-h-[480px] w-full bg-black rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center">
+      {/* Viewport Area: 3:4 Mobile Aspect Ratio */}
+      <div className="relative aspect-[3/4] max-h-[460px] w-full bg-[#0C0D11] rounded-[28px] overflow-hidden border border-white/[0.08] flex items-center justify-center shadow-inner">
         {/* Live Video */}
         <video
           ref={videoRef}
@@ -620,57 +778,77 @@ export default function KneeAngleCamera({
           }`}
         />
 
-        {/* Standby Placeholder */}
-        {!cameraActive && !isPhotoFallback && (
-          <div className="p-6 text-center max-w-xs text-slate-400">
-            <Camera className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <p className="text-xs text-slate-300 font-medium mb-1">
-              Camera đang tắt
-            </p>
-            <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
-              Bật camera và đặt điện thoại vuông góc với mặt bên khớp gối để đo chính xác nhất.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <button
-                onClick={startCamera}
-                disabled={isLoadingModel}
-                className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl text-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md"
-              >
-                <Camera className="w-4 h-4" />
-                Mở Camera Trực Tiếp
-              </button>
+        {/* HUD Medical Alignment Reticles (Corner Crosshairs) */}
+        {cameraActive && !isPhotoFallback && (
+          <div className="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
+            <div className="flex justify-between">
+              <div className="w-6 h-6 border-t-2 border-l-2 border-white/20 rounded-tl-lg" />
+              <div className="w-6 h-6 border-t-2 border-r-2 border-white/20 rounded-tr-lg" />
+            </div>
+            <div className="flex justify-between">
+              <div className="w-6 h-6 border-b-2 border-l-2 border-white/20 rounded-bl-lg" />
+              <div className="w-6 h-6 border-b-2 border-r-2 border-white/20 rounded-br-lg" />
             </div>
           </div>
         )}
 
-        {/* On-screen Realtime Angle Badge */}
+        {/* Standby Placeholder */}
+        {!cameraActive && !isPhotoFallback && (
+          <div className="p-6 text-center max-w-xs text-slate-400 space-y-3">
+            <div className="w-14 h-14 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center mx-auto text-emerald-400 shadow-xl">
+              <Camera className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-white font-medium">
+                Camera đang tắt
+              </p>
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
+                Đặt điện thoại ngang tầm khớp gối, nhìn rõ mặt ngoài chân {leg === 'left' ? 'Trái' : 'Phải'}.
+              </p>
+            </div>
+            <button
+              onClick={startCamera}
+              disabled={isLoadingModel}
+              className="py-3 px-6 bg-white hover:bg-slate-100 active:scale-95 text-slate-950 font-medium rounded-full text-xs transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl mx-auto"
+            >
+              <Camera className="w-4 h-4" />
+              Bật Camera Realtime
+            </button>
+          </div>
+        )}
+
+        {/* Top Floating Landmark Status & Angle Badge */}
         {currentFlexionAngle !== null && (
-          <div className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 shadow-xl flex items-center gap-3">
+          <div className="absolute top-3 left-3 bg-[#16181F]/90 backdrop-blur-xl border border-white/15 rounded-2xl p-2.5 shadow-2xl flex items-center gap-3">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl tabular-nums ${
-                isAngleSafe
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                  : 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
+              className={`w-12 h-12 rounded-xl flex items-center justify-center font-light text-2xl tracking-tight tabular-nums ${
+                !isAngleSafe
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
+                  : isNearLimit
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
               }`}
             >
               {currentFlexionAngle}°
             </div>
-            <div className="text-left pr-1">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Góc gập gối (Flexion)</div>
+            <div className="text-left pr-1 space-y-0.5">
+              <div className="text-[10px] text-slate-400 font-light uppercase tracking-wider">
+                Góc gập (Flexion)
+              </div>
               <div
-                className={`text-xs font-bold flex items-center gap-1 ${
-                  isAngleSafe ? 'text-emerald-300' : 'text-red-400'
+                className={`text-xs font-medium flex items-center gap-1 ${
+                  !isAngleSafe ? 'text-rose-400' : isNearLimit ? 'text-amber-300' : 'text-emerald-300'
                 }`}
               >
-                {isAngleSafe ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    An toàn (&le; {safeMaxFlexion}°)
-                  </>
-                ) : (
+                {!isAngleSafe ? (
                   <>
                     <AlertTriangle className="w-3.5 h-3.5" />
                     CẢNH BÁO QUÁ GÓC
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    An toàn (≤ {safeMaxFlexion}°)
                   </>
                 )}
               </div>
@@ -678,33 +856,97 @@ export default function KneeAngleCamera({
           </div>
         )}
 
-        {/* Floating switch camera button */}
+        {/* Auto-Lock Countdown Ring in Live HUD */}
+        {autoSaveEnabled && stabilityProgress > 0 && stabilityProgress < 100 && (
+          <div className="absolute top-3.5 left-1/2 -translate-x-1/2 bg-[#16181F]/90 backdrop-blur-md border border-white/20 rounded-full py-1 px-3.5 flex items-center gap-2 shadow-2xl">
+            <div className="w-3 h-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+            <span className="text-[11px] font-medium text-emerald-300">
+              Giữ yên... {stabilityProgress}%
+            </span>
+          </div>
+        )}
+
+        {/* Landmark tracking quality badge */}
         {cameraActive && !isPhotoFallback && (
-          <button
-            onClick={toggleFacingMode}
-            title="Đổi camera trước/sau"
-            aria-label="Đổi camera trước hoặc sau"
-            className="absolute top-3 right-3 p-2.5 bg-slate-900/80 hover:bg-slate-800 text-white rounded-xl backdrop-blur border border-slate-700 shadow-lg active:scale-90 transition"
-          >
-            <FlipHorizontal className="w-4 h-4" />
-          </button>
+          <div className="absolute bottom-3 left-3 bg-[#0C0D11]/80 backdrop-blur-md border border-white/10 rounded-full px-2.5 py-1 flex items-center gap-1.5 text-[10px] text-slate-300 font-light">
+            <Crosshair className={`w-3 h-3 ${landmarksStatus === 'GOOD' ? 'text-emerald-400' : landmarksStatus === 'PARTIAL' ? 'text-amber-400' : 'text-rose-400'}`} />
+            <span>
+              {landmarksStatus === 'GOOD' ? 'Khớp nhận diện chuẩn' : landmarksStatus === 'PARTIAL' ? 'Thiếu hông / cổ chân' : 'Đang tìm khớp gối...'}
+            </span>
+          </div>
+        )}
+
+        {/* Floating Controls (Flip camera + Freeze frame) */}
+        {cameraActive && !isPhotoFallback && (
+          <div className="absolute top-3 right-3 flex items-center gap-2">
+            <button
+              onClick={() => setIsFrozen(!isFrozen)}
+              title={isFrozen ? 'Tiếp tục live' : 'Đóng băng hình để đọc'}
+              className={`p-2.5 rounded-full backdrop-blur-md border shadow-xl active:scale-90 transition ${
+                isFrozen
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold'
+                  : 'bg-white/[0.08] hover:bg-white/15 text-white border-white/15'
+              }`}
+            >
+              {isFrozen ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4" />}
+            </button>
+
+            <button
+              onClick={toggleFacingMode}
+              title="Đổi camera trước/sau"
+              className="p-2.5 rounded-full bg-white/[0.08] hover:bg-white/15 text-white border border-white/15 shadow-xl active:scale-90 transition"
+            >
+              <FlipHorizontal className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Notification Toast */}
-      {saveSuccessMsg && (
-        <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          {saveSuccessMsg}
+      {/* Visual Clinical ROM Ruler Gauge */}
+      {currentFlexionAngle !== null && (
+        <div className="p-3.5 bg-white/[0.03] rounded-2xl border border-white/[0.06] space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-400 font-light">Thang đo ROM lâm sàng:</span>
+            <span className="font-medium text-white">
+              {currentFlexionAngle}° / Giới hạn {safeMaxFlexion}°
+            </span>
+          </div>
+          <div className="relative w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
+            <div
+              style={{ width: `${Math.min(100, (currentFlexionAngle / 135) * 100)}%` }}
+              className={`h-full rounded-full transition-all duration-300 ${
+                !isAngleSafe ? 'bg-rose-500' : isNearLimit ? 'bg-amber-400' : 'bg-emerald-400'
+              }`}
+            />
+            {/* Safe limit tick marker */}
+            <div
+              style={{ left: `${(safeMaxFlexion / 135) * 100}%` }}
+              className="absolute top-0 bottom-0 w-[2px] bg-white shadow-[0_0_6px_#fff]"
+              title={`Ngưỡng an toàn: ${safeMaxFlexion}°`}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-500 font-light">
+            <span>0° (Duỗi thẳng)</span>
+            <span>{safeMaxFlexion}° (Ngưỡng an toàn)</span>
+            <span>135° (Tối đa)</span>
+          </div>
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      {/* Success Notification Toast */}
+      {saveSuccessMsg && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-3.5 py-2.5 rounded-2xl text-xs font-light flex items-center gap-2 animate-fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{saveSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Primary Action Button Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
         {cameraActive ? (
           <button
             onClick={stopCamera}
-            className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition border border-slate-700"
+            className="py-3 px-4 rounded-full border border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.06] text-xs font-medium transition"
           >
             Tắt Camera
           </button>
@@ -712,17 +954,17 @@ export default function KneeAngleCamera({
           <button
             onClick={startCamera}
             disabled={isLoadingModel}
-            className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition border border-emerald-500 flex items-center justify-center gap-1.5 shadow"
+            className="py-3.5 px-5 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs transition flex items-center justify-center gap-2 shadow-xl"
           >
             <Camera className="w-4 h-4" />
-            Bật Camera
+            <span>Mở Camera Đo Góc</span>
           </button>
         )}
 
         {/* Photo Upload fallback */}
-        <label className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
-          <Upload className="w-4 h-4 text-sky-400" />
-          <span>Tải Ảnh Gối Lên Đo</span>
+        <label className="py-3 px-4 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition flex items-center justify-center gap-2 cursor-pointer">
+          <Upload className="w-4 h-4 text-amber-300" />
+          <span>Tải Ảnh Đo Góc</span>
           <input
             type="file"
             accept="image/*"
@@ -733,86 +975,86 @@ export default function KneeAngleCamera({
 
         {/* Save Current Measurement */}
         <button
-          onClick={handleSaveRecord}
+          onClick={() => handleSaveRecord()}
           disabled={currentFlexionAngle === null}
-          className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow"
+          className="py-3.5 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-slate-950 font-medium rounded-full text-xs transition flex items-center justify-center gap-2 shadow-lg"
         >
           <BookmarkPlus className="w-4 h-4" />
-          Lưu Số Đo Này
+          <span>Lưu Số Đo Này</span>
         </button>
       </div>
 
-      {/* Guide Note */}
-      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-3 flex items-start gap-2 text-[11px] text-slate-400">
+      {/* Guide Note Box */}
+      <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-slate-400 font-light leading-relaxed">
         <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-        <p className="leading-relaxed">
-          <strong className="text-slate-300">Mẹo đo chuẩn y khoa:</strong> Đặt điện thoại nghiêng một góc ngang vuông góc với cạnh bên chân mổ. Đảm bảo nhìn rõ cả 3 điểm: ụ mấu chuyển lớn xương đùi (hông), khe khớp gối ngoài và mắt cá ngoài. Duỗi thẳng hoàn toàn = 0°, gập vuông góc = 90°.
+        <p>
+          <strong className="text-white font-medium">Mẹo chuẩn y khoa:</strong> Đặt camera ngang vuông góc với cạnh bên gối {leg === 'left' ? 'Trái' : 'Phải'}. Đảm bảo thấy rõ ụ mấu chuyển lớn hông, khe khớp gối và mắt cá ngoài. Giữ yên 2.5s để hệ thống tự động ghi nhận.
         </p>
       </div>
 
       {/* History Modal */}
       {showHistoryModal && (
-        <div className="fixed sm:absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl">
+        <div className="fixed sm:absolute inset-0 z-50 bg-[#0C0D11]/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl text-white">
             {/* Modal Header */}
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-bold text-white text-base">Lịch Sử Đo Biên Độ Gối</h3>
+                <h3 className="font-light text-white text-base">Lịch Sử Đo Biên Độ Gối</h3>
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg"
+                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+            <div className="p-5 overflow-y-auto flex-1 space-y-3">
               {historyRecords.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 text-xs">
-                  Chưa có lần đo nào được lưu. Hãy mở camera hoặc tải ảnh để bắt đầu đo góc gối.
+                <div className="py-12 text-center text-slate-500 text-xs font-light">
+                  Chưa có lần đo nào được lưu. Hãy mở camera để bắt đầu đo góc gối.
                 </div>
               ) : (
                 historyRecords.map((record) => (
                   <div
                     key={record.id}
-                    className="p-3 bg-slate-950 border border-slate-800/80 rounded-2xl flex items-center justify-between gap-3"
+                    className="p-3.5 bg-white/[0.03] border border-white/[0.06] rounded-2xl flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg ${
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center font-light text-lg ${
                           record.isSafe
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
                         }`}
                       >
                         {record.flexionAngle}°
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-white">
+                        <div className="text-xs font-medium text-white">
                           {record.leg === 'left' ? 'Gối Trái (L)' : 'Gối Phải (R)'}
-                          <span className="text-[10px] ml-2 font-normal text-slate-400">
+                          <span className="text-[10px] ml-2 font-light text-slate-400">
                             {record.source === 'live' ? '• Live AI' : '• Ảnh tải lên'}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
+                        <div className="text-[11px] text-slate-400 font-light mt-0.5">
                           {record.timestamp}
                         </div>
                         <div
-                          className={`text-[10px] font-semibold mt-0.5 ${
-                            record.isSafe ? 'text-emerald-400' : 'text-red-400'
+                          className={`text-[10px] font-medium mt-0.5 ${
+                            record.isSafe ? 'text-emerald-400' : 'text-rose-400'
                           }`}
                         >
-                          Giới hạn: &le; {record.safeLimit}° ({record.isSafe ? 'Đạt' : 'Vượt giới hạn'})
+                          Giới hạn: ≤ {record.safeLimit}° ({record.isSafe ? 'An toàn' : 'Vượt giới hạn'})
                         </div>
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleDeleteRecord(record.id)}
-                      className="p-2 text-slate-500 hover:text-red-400 rounded-lg transition"
+                      className="p-2 text-slate-500 hover:text-rose-400 rounded-lg transition"
                       title="Xóa mục này"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -824,10 +1066,10 @@ export default function KneeAngleCamera({
 
             {/* Modal Footer */}
             {historyRecords.length > 0 && (
-              <div className="p-3 border-t border-slate-800 flex justify-end">
+              <div className="p-4 border-t border-white/[0.06] flex justify-end">
                 <button
                   onClick={handleClearHistory}
-                  className="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 font-semibold transition"
+                  className="px-3 py-1.5 text-xs text-rose-400 hover:text-rose-300 font-light transition"
                 >
                   Xóa tất cả
                 </button>
