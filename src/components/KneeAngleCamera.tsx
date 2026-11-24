@@ -18,9 +18,8 @@ import {
   Pause,
   Play,
   Sparkles,
-  ArrowUpRight,
-  ShieldCheck,
-  Crosshair
+  Crosshair,
+  SlidersHorizontal
 } from 'lucide-react';
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 
@@ -42,6 +41,23 @@ interface KneeAngleCameraProps {
   onRecordSaved?: (record: AngleRecord) => void;
 }
 
+interface Point2D {
+  x: number;
+  y: number;
+}
+
+// Low-pass filter for point coordinates to eliminate sensor jitter
+const smoothPoint = (prev: Point2D | null, next: Point2D, alpha = 0.22): Point2D => {
+  if (!prev) return { ...next };
+  const dist = Math.hypot(next.x - prev.x, next.y - prev.y);
+  // If sudden jump > 120px (e.g. camera moved or person repositioned), snap faster
+  if (dist > 120) return { ...next };
+  return {
+    x: prev.x * (1 - alpha) + next.x * alpha,
+    y: prev.y * (1 - alpha) + next.y * alpha,
+  };
+};
+
 export default function KneeAngleCamera({
   safeMaxFlexion = 90,
   selectedLeg = 'left',
@@ -56,9 +72,8 @@ export default function KneeAngleCamera({
   const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
-  // Live Angle States
+  // Live Angle States (Throttled for React UI)
   const [currentFlexionAngle, setCurrentFlexionAngle] = useState<number | null>(null);
-  const [currentInternalAngle, setCurrentInternalAngle] = useState<number | null>(null);
   const [landmarksStatus, setLandmarksStatus] = useState<'GOOD' | 'PARTIAL' | 'LOST'>('LOST');
 
   // Auto-Lock Stability Tracker
@@ -73,8 +88,16 @@ export default function KneeAngleCamera({
   const [historyRecords, setHistoryRecords] = useState<AngleRecord[]>([]);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
-  // Smooth filter ref
-  const smoothedAngleRef = useRef<number | null>(null);
+  // Point-Level Smoothing & Anti-Flicker Persistence Refs
+  const smoothedPointsRef = useRef<{
+    hip: Point2D | null;
+    knee: Point2D | null;
+    ankle: Point2D | null;
+  }>({ hip: null, knee: null, ankle: null });
+  const missingFramesCountRef = useRef<number>(0);
+  const lastInferenceTimeRef = useRef<number>(0);
+  const lastReactUpdateRef = useRef<number>(0);
+  const displayAngleRef = useRef<number | null>(null);
 
   // Elements & MediaPipe
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -82,7 +105,6 @@ export default function KneeAngleCamera({
   const photoCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const lastVideoTimeRef = useRef<number>(-1);
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -99,6 +121,8 @@ export default function KneeAngleCamera({
   // Update selected leg if prop changes
   useEffect(() => {
     setLeg(selectedLeg);
+    // Reset points on leg change to avoid connecting wrong joints
+    smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
   }, [selectedLeg]);
 
   // Audio chimes using Web Audio API
@@ -205,23 +229,23 @@ export default function KneeAngleCamera({
 
   // Calculate Angle in 2D degrees
   const calculateKneeAngle = (
-    hip: { x: number; y: number },
-    knee: { x: number; y: number },
-    ankle: { x: number; y: number }
+    hip: Point2D,
+    knee: Point2D,
+    ankle: Point2D
   ) => {
     const v1 = { x: hip.x - knee.x, y: hip.y - knee.y };
     const v2 = { x: ankle.x - knee.x, y: ankle.y - knee.y };
 
     const dotProduct = v1.x * v2.x + v1.y * v2.y;
-    const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
-    const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+    const mag1 = Math.hypot(v1.x, v1.y);
+    const mag2 = Math.hypot(v2.x, v2.y);
 
     if (mag1 === 0 || mag2 === 0) return { internalAngle: 180, flexionAngle: 0 };
 
     let cosAngle = dotProduct / (mag1 * mag2);
     cosAngle = Math.max(-1, Math.min(1, cosAngle));
     const angleRad = Math.acos(cosAngle);
-    const internalAngle = Math.round((angleRad * 180) / Math.PI);
+    const internalAngle = (angleRad * 180) / Math.PI;
 
     // Clinical Flexion Angle: 0° is fully straight, 90° is bent right angle
     const flexionAngle = Math.max(0, 180 - internalAngle);
@@ -233,6 +257,9 @@ export default function KneeAngleCamera({
   const startCamera = async () => {
     setIsPhotoFallback(false);
     setIsFrozen(false);
+    smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
+    missingFramesCountRef.current = 0;
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
     }
@@ -279,12 +306,14 @@ export default function KneeAngleCamera({
     setIsFrozen(false);
     setCurrentFlexionAngle(null);
     setStabilityProgress(0);
+    smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
   }, []);
 
   // Toggle Camera Facing Mode
   const toggleFacingMode = () => {
     const nextMode = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(nextMode);
+    smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
   };
 
   useEffect(() => {
@@ -337,7 +366,8 @@ export default function KneeAngleCamera({
     setTimeout(() => setSaveSuccessMsg(null), 3000);
   }, [currentFlexionAngle, safeMaxFlexion, leg, isPhotoFallback, historyRecords, onRecordSaved, playChime]);
 
-  // Realtime Video processing loop with Smooth EMA & Goniometer Arc
+  // ULTRA-STABLE REALTIME VIDEO LOOP
+  // Includes: 30fps Inference Throttling, Point-Level Low-Pass Filtering, Anti-Flicker Grace Buffer, and Deadband Hysteresis
   const predictVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !poseLandmarkerRef.current || isFrozen) {
       animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
@@ -358,18 +388,20 @@ export default function KneeAngleCamera({
       canvas.height = video.videoHeight;
     }
 
-    const currentTimeMs = performance.now();
-    if (video.currentTime !== lastVideoTimeRef.current) {
-      lastVideoTimeRef.current = video.currentTime;
-      try {
-        const results = poseLandmarkerRef.current.detectForVideo(video, currentTimeMs);
+    const now = performance.now();
+    // Throttle neural net inference to ~30 FPS (32ms) to eliminate mobile thermal lag and dropped frames
+    const isTimeToInfer = now - lastInferenceTimeRef.current >= 32;
 
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (isTimeToInfer) {
+      lastInferenceTimeRef.current = now;
+
+      try {
+        const results = poseLandmarkerRef.current.detectForVideo(video, now);
 
         if (results.landmarks && results.landmarks.length > 0) {
           const landmarks = results.landmarks[0];
 
+          // Landmark indices:
           // Left: Hip = 23, Knee = 25, Ankle = 27
           // Right: Hip = 24, Knee = 26, Ankle = 28
           const isLeft = leg === 'left';
@@ -381,165 +413,198 @@ export default function KneeAngleCamera({
           const knee = landmarks[kneeIdx];
           const ankle = landmarks[ankleIdx];
 
-          const minVisibility = 0.35;
-          const isHipOk = hip && (hip.visibility === undefined || hip.visibility > minVisibility);
-          const isKneeOk = knee && (knee.visibility === undefined || knee.visibility > minVisibility);
-          const isAnkleOk = ankle && (ankle.visibility === undefined || ankle.visibility > minVisibility);
+          const minVis = 0.3;
+          const isHipOk = hip && (hip.visibility === undefined || hip.visibility > minVis);
+          const isKneeOk = knee && (knee.visibility === undefined || knee.visibility > minVis);
+          const isAnkleOk = ankle && (ankle.visibility === undefined || ankle.visibility > minVis);
 
           if (isHipOk && isKneeOk && isAnkleOk) {
-            setLandmarksStatus('GOOD');
-            const hPt = { x: hip.x * canvas.width, y: hip.y * canvas.height };
-            const kPt = { x: knee.x * canvas.width, y: knee.y * canvas.height };
-            const aPt = { x: ankle.x * canvas.width, y: ankle.y * canvas.height };
+            missingFramesCountRef.current = 0; // Reset missing frame counter
 
-            const { internalAngle, flexionAngle } = calculateKneeAngle(hPt, kPt, aPt);
+            const rawH = { x: hip.x * canvas.width, y: hip.y * canvas.height };
+            const rawK = { x: knee.x * canvas.width, y: knee.y * canvas.height };
+            const rawA = { x: ankle.x * canvas.width, y: ankle.y * canvas.height };
 
-            // Apply Exponential Moving Average (EMA) smoothing to avoid frame jitter
-            let displayFlexion = flexionAngle;
-            if (smoothedAngleRef.current === null) {
-              smoothedAngleRef.current = flexionAngle;
-            } else {
-              smoothedAngleRef.current = Math.round(smoothedAngleRef.current * 0.7 + flexionAngle * 0.3);
-              displayFlexion = smoothedAngleRef.current;
-            }
+            // Apply Point-Level Low-Pass Filter (EMA) to eliminate coordinate jitter
+            const hPt = smoothPoint(smoothedPointsRef.current.hip, rawH, 0.22);
+            const kPt = smoothPoint(smoothedPointsRef.current.knee, rawK, 0.22);
+            const aPt = smoothPoint(smoothedPointsRef.current.ankle, rawA, 0.22);
 
-            setCurrentInternalAngle(internalAngle);
-            setCurrentFlexionAngle(displayFlexion);
-
-            const isSafe = displayFlexion <= safeMaxFlexion;
-            const isNearLimit = displayFlexion > safeMaxFlexion - 10 && isSafe;
-            const lineColor = !isSafe ? '#f43f5e' : isNearLimit ? '#fbbf24' : '#10b981';
-            const glowColor = !isSafe ? 'rgba(244, 63, 94, 0.5)' : 'rgba(16, 185, 129, 0.4)';
-
-            ctx.save();
-
-            // 1. Draw High-Tech Connecting Laser Bones
-            ctx.lineWidth = 6;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.strokeStyle = lineColor;
-            ctx.shadowColor = glowColor;
-            ctx.shadowBlur = 14;
-
-            ctx.beginPath();
-            ctx.moveTo(hPt.x, hPt.y);
-            ctx.lineTo(kPt.x, kPt.y);
-            ctx.lineTo(aPt.x, aPt.y);
-            ctx.stroke();
-
-            // 2. Draw Medical Goniometer Fan Arc at Knee Joint
-            const angleV1 = Math.atan2(hPt.y - kPt.y, hPt.x - kPt.x);
-            const angleV2 = Math.atan2(aPt.y - kPt.y, aPt.x - kPt.x);
-            const arcRadius = Math.min(85, Math.hypot(hPt.x - kPt.x, hPt.y - kPt.y) * 0.4);
-
-            ctx.beginPath();
-            ctx.moveTo(kPt.x, kPt.y);
-            ctx.arc(kPt.x, kPt.y, arcRadius, angleV1, angleV2, false);
-            ctx.closePath();
-            ctx.fillStyle = !isSafe ? 'rgba(244, 63, 94, 0.25)' : 'rgba(16, 185, 129, 0.2)';
-            ctx.fill();
-
-            // Arc Outline with ticks
-            ctx.beginPath();
-            ctx.arc(kPt.x, kPt.y, arcRadius, angleV1, angleV2, false);
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = lineColor;
-            ctx.stroke();
-
-            // 3. Draw Joint Rings & Degree Indicator
-            const drawJoint = (pt: { x: number; y: number }, r: number, isCenter = false) => {
-              ctx.beginPath();
-              ctx.arc(pt.x, pt.y, r + 4, 0, 2 * Math.PI);
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-              ctx.fill();
-
-              ctx.beginPath();
-              ctx.arc(pt.x, pt.y, r, 0, 2 * Math.PI);
-              ctx.fillStyle = '#ffffff';
-              ctx.fill();
-              ctx.strokeStyle = lineColor;
-              ctx.lineWidth = 3;
-              ctx.stroke();
-
-              if (isCenter) {
-                // Central HUD Degree Display
-                const boxW = 86;
-                const boxH = 34;
-                const boxX = pt.x + 16;
-                const boxY = pt.y - boxH / 2;
-
-                ctx.fillStyle = 'rgba(12, 13, 17, 0.85)';
-                ctx.strokeStyle = lineColor;
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.roundRect(boxX, boxY, boxW, boxH, 12);
-                ctx.fill();
-                ctx.stroke();
-
-                ctx.font = '600 16px Outfit, sans-serif';
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center';
-                ctx.fillText(`${displayFlexion}° Gập`, boxX + boxW / 2, boxY + 22);
-                ctx.textAlign = 'start';
-              }
-            };
-
-            drawJoint(hPt, 7);
-            drawJoint(kPt, 12, true);
-            drawJoint(aPt, 7);
-
-            // 4. Over-limit warning header banner if exceeded
-            if (!isSafe) {
-              const bannerH = 50;
-              ctx.fillStyle = 'rgba(225, 29, 72, 0.9)';
-              ctx.fillRect(0, 0, canvas.width, bannerH);
-              ctx.font = '600 16px Outfit, sans-serif';
-              ctx.fillStyle = '#ffffff';
-              ctx.textAlign = 'center';
-              ctx.fillText(
-                `⚠️ VƯỢT QUÁ GÓC AN TOÀN (${safeMaxFlexion}°) • HÃY DỪNG LẠI!`,
-                canvas.width / 2,
-                32
-              );
-              ctx.textAlign = 'start';
-            }
-
-            ctx.restore();
-
-            // Auto-lock & Hold for 2.5s logic
-            if (autoSaveEnabled && !hasAutoSavedRef.current) {
-              const now = performance.now();
-              if (lastAngleRef.current === null || Math.abs(lastAngleRef.current - displayFlexion) > 2) {
-                lastAngleRef.current = displayFlexion;
-                stableSinceRef.current = now;
-                setStabilityProgress(0);
-              } else if (stableSinceRef.current) {
-                const elapsed = now - stableSinceRef.current;
-                const progress = Math.min(100, Math.round((elapsed / 2500) * 100));
-                setStabilityProgress(progress);
-
-                if (progress >= 100) {
-                  hasAutoSavedRef.current = true;
-                  handleSaveRecord(displayFlexion);
-                  setTimeout(() => {
-                    hasAutoSavedRef.current = false;
-                    setStabilityProgress(0);
-                  }, 4000);
-                }
-              }
-            }
+            smoothedPointsRef.current = { hip: hPt, knee: kPt, ankle: aPt };
           } else {
-            setLandmarksStatus(isKneeOk ? 'PARTIAL' : 'LOST');
-            setCurrentFlexionAngle(null);
-            setStabilityProgress(0);
+            // Landmark confidence dipped momentarily
+            missingFramesCountRef.current++;
+            if (missingFramesCountRef.current > 8) {
+              // Lost for more than 250ms -> clear
+              smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
+            }
           }
         } else {
-          setLandmarksStatus('LOST');
-          setCurrentFlexionAngle(null);
-          setStabilityProgress(0);
+          missingFramesCountRef.current++;
+          if (missingFramesCountRef.current > 8) {
+            smoothedPointsRef.current = { hip: null, knee: null, ankle: null };
+          }
         }
       } catch (err) {
-        console.warn('Pose estimation error in loop:', err);
+        console.warn('Pose estimation frame error:', err);
+      }
+    }
+
+    // RENDER SKELETON & GONIOMETER OVERLAY (Using smoothed coordinates)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const pts = smoothedPointsRef.current;
+    if (pts.hip && pts.knee && pts.ankle) {
+      const { hip: hPt, knee: kPt, ankle: aPt } = pts;
+
+      const { flexionAngle } = calculateKneeAngle(hPt, kPt, aPt);
+
+      // Deadband Hysteresis: Only change display integer if angle changes by >= 0.75°
+      // This completely stops numbers jumping back and forth (e.g. 74 - 75 - 74)
+      if (displayAngleRef.current === null) {
+        displayAngleRef.current = Math.round(flexionAngle);
+      } else {
+        if (Math.abs(flexionAngle - displayAngleRef.current) >= 0.75) {
+          displayAngleRef.current = Math.round(flexionAngle);
+        }
+      }
+      const stableFlexion = displayAngleRef.current;
+
+      const isSafe = stableFlexion <= safeMaxFlexion;
+      const isNearLimit = stableFlexion > safeMaxFlexion - 10 && isSafe;
+      const lineColor = !isSafe ? '#f43f5e' : isNearLimit ? '#fbbf24' : '#10b981';
+      const glowColor = !isSafe ? 'rgba(244, 63, 94, 0.45)' : 'rgba(16, 185, 129, 0.35)';
+
+      ctx.save();
+
+      // 1. Draw High-Tech Laser Bones (Anti-aliased & rock-solid)
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = lineColor;
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 12;
+
+      ctx.beginPath();
+      ctx.moveTo(hPt.x, hPt.y);
+      ctx.lineTo(kPt.x, kPt.y);
+      ctx.lineTo(aPt.x, aPt.y);
+      ctx.stroke();
+
+      // 2. Draw Medical Goniometer Arc at Knee Joint
+      const angleV1 = Math.atan2(hPt.y - kPt.y, hPt.x - kPt.x);
+      const angleV2 = Math.atan2(aPt.y - kPt.y, aPt.x - kPt.x);
+      const arcRadius = Math.min(80, Math.hypot(hPt.x - kPt.x, hPt.y - kPt.y) * 0.38);
+
+      ctx.beginPath();
+      ctx.moveTo(kPt.x, kPt.y);
+      ctx.arc(kPt.x, kPt.y, arcRadius, angleV1, angleV2, false);
+      ctx.closePath();
+      ctx.fillStyle = !isSafe ? 'rgba(244, 63, 94, 0.22)' : 'rgba(16, 185, 129, 0.18)';
+      ctx.fill();
+
+      // Arc Outline
+      ctx.beginPath();
+      ctx.arc(kPt.x, kPt.y, arcRadius, angleV1, angleV2, false);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = lineColor;
+      ctx.stroke();
+
+      // 3. Draw Joint Nodes
+      const drawJoint = (pt: Point2D, r: number, isCenter = false) => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, r + 4, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, r, 0, 2 * Math.PI);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        if (isCenter) {
+          // Central Glass HUD Angle Capsule
+          const boxW = 90;
+          const boxH = 34;
+          const boxX = pt.x + 16;
+          const boxY = pt.y - boxH / 2;
+
+          ctx.fillStyle = 'rgba(12, 13, 17, 0.88)';
+          ctx.strokeStyle = lineColor;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = '600 15px Outfit, sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${stableFlexion}° Gập`, boxX + boxW / 2, boxY + 22);
+          ctx.textAlign = 'start';
+        }
+      };
+
+      drawJoint(hPt, 7);
+      drawJoint(kPt, 11, true);
+      drawJoint(aPt, 7);
+
+      // 4. Over-limit Warning Header
+      if (!isSafe) {
+        const bannerH = 46;
+        ctx.fillStyle = 'rgba(225, 29, 72, 0.92)';
+        ctx.fillRect(0, 0, canvas.width, bannerH);
+        ctx.font = '600 15px Outfit, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          `⚠️ VƯỢT QUÁ GÓC AN TOÀN (${safeMaxFlexion}°) • HÃY DỪNG LẠI!`,
+          canvas.width / 2,
+          29
+        );
+        ctx.textAlign = 'start';
+      }
+
+      ctx.restore();
+
+      // Throttled React UI State Update (Max 8 times/sec) to keep mobile rendering fast
+      if (now - lastReactUpdateRef.current > 120) {
+        lastReactUpdateRef.current = now;
+        setCurrentFlexionAngle(stableFlexion);
+        setLandmarksStatus('GOOD');
+      }
+
+      // Auto-Lock Hold Logic: Steady for 2.5s
+      if (autoSaveEnabled && !hasAutoSavedRef.current) {
+        if (lastAngleRef.current === null || Math.abs(lastAngleRef.current - stableFlexion) > 2) {
+          lastAngleRef.current = stableFlexion;
+          stableSinceRef.current = now;
+          setStabilityProgress(0);
+        } else if (stableSinceRef.current) {
+          const elapsed = now - stableSinceRef.current;
+          const progress = Math.min(100, Math.round((elapsed / 2500) * 100));
+          setStabilityProgress(progress);
+
+          if (progress >= 100) {
+            hasAutoSavedRef.current = true;
+            handleSaveRecord(stableFlexion);
+            setTimeout(() => {
+              hasAutoSavedRef.current = false;
+              setStabilityProgress(0);
+            }, 3500);
+          }
+        }
+      }
+    } else {
+      // Missing landmarks
+      if (missingFramesCountRef.current > 8 && now - lastReactUpdateRef.current > 200) {
+        lastReactUpdateRef.current = now;
+        setCurrentFlexionAngle(null);
+        setLandmarksStatus('LOST');
+        setStabilityProgress(0);
       }
     }
 
@@ -607,11 +672,11 @@ export default function KneeAngleCamera({
               const kPt = { x: knee.x * canvas.width, y: knee.y * canvas.height };
               const aPt = { x: ankle.x * canvas.width, y: ankle.y * canvas.height };
 
-              const { internalAngle, flexionAngle } = calculateKneeAngle(hPt, kPt, aPt);
-              setCurrentInternalAngle(internalAngle);
-              setCurrentFlexionAngle(flexionAngle);
+              const { flexionAngle } = calculateKneeAngle(hPt, kPt, aPt);
+              const roundedAngle = Math.round(flexionAngle);
+              setCurrentFlexionAngle(roundedAngle);
 
-              const isSafe = flexionAngle <= safeMaxFlexion;
+              const isSafe = roundedAngle <= safeMaxFlexion;
               const lineColor = isSafe ? '#10b981' : '#f43f5e';
 
               ctx.lineWidth = Math.max(6, Math.round(canvas.width / 120));
@@ -632,7 +697,7 @@ export default function KneeAngleCamera({
 
               ctx.font = `600 ${Math.max(24, Math.round(canvas.width / 30))}px Outfit, sans-serif`;
               ctx.fillStyle = lineColor;
-              ctx.fillText(`${flexionAngle}°`, kPt.x + r + 8, kPt.y + 10);
+              ctx.fillText(`${roundedAngle}°`, kPt.x + r + 8, kPt.y + 10);
             }
           }
           await poseLandmarkerRef.current?.setOptions({ runningMode: 'VIDEO' });
@@ -667,7 +732,7 @@ export default function KneeAngleCamera({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
-              Thị giác máy tính AI
+              Thị giác máy tính AI • Ổn định quang học
             </span>
           </div>
           <h2 className="text-xl font-light text-white tracking-tight">
