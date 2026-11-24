@@ -52,7 +52,7 @@ interface Point2D {
   y: number;
 }
 
-type SessionState = 'IDLE' | 'COUNTDOWN' | 'MEASURING' | 'PEAK_LOCKED';
+type SessionState = 'IDLE' | 'COUNTDOWN' | 'MEASURING' | 'PEAK_LOCKED' | 'LIVE_FREE';
 
 // Exponential low-pass filter for smooth landmark tracking
 const smoothPoint = (prev: Point2D | null, next: Point2D, alpha = 0.25): Point2D => {
@@ -73,6 +73,7 @@ export default function KneeAngleCamera({
   // Main Autonomous Session State Machine
   const [sessionState, setSessionState] = useState<SessionState>('IDLE');
   const [countdown, setCountdown] = useState<number>(8);
+  const [measuringSecondsLeft, setMeasuringSecondsLeft] = useState<number>(15);
   const [leg, setLeg] = useState<'left' | 'right'>(selectedLeg);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
@@ -401,7 +402,7 @@ export default function KneeAngleCamera({
     }
   }, [sessionState, safeMaxFlexion, leg, isManualCaliper, historyRecords, onRecordSaved, playChime]);
 
-  // Start Autonomous Zero-Touch Session
+  // Start Autonomous Zero-Touch Session (8s Countdown + 15s Active Exercise Window)
   const handleStartAutonomousSession = async () => {
     setLockedResult(null);
     setPeakAngle(0);
@@ -429,12 +430,51 @@ export default function KneeAngleCamera({
       if (sec <= 0) {
         if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         countdownIntervalRef.current = null;
+
+        // Transition to active 15s measuring phase
         setSessionState('MEASURING');
+        setMeasuringSecondsLeft(15);
         sessionStartTimeRef.current = performance.now();
+        currentMaxAngleRef.current = 0;
+        dropCounterRef.current = 0;
         playChime('beep');
-        speakVoice('Bắt đầu co gối từ từ');
+        speakVoice('Bắt đầu co gối từ từ, bạn có 15 giây');
+
+        // Start 15-second exercise countdown timer
+        let mSec = 15;
+        countdownIntervalRef.current = setInterval(() => {
+          mSec -= 1;
+          setMeasuringSecondsLeft(mSec);
+
+          if (mSec <= 0) {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+
+            // Session completed! Lock highest peak reached in the 15s window
+            const finalPeak = currentMaxAngleRef.current > 0 ? currentMaxAngleRef.current : (displayAngleRef.current || 0);
+            lockPeakAndAutoSave(finalPeak);
+          }
+        }, 1000);
       }
     }, 1000);
+  };
+
+  // Start Free Live Camera (No timers, practice freely)
+  const handleStartLiveFree = async () => {
+    setLockedResult(null);
+    setPeakAngle(0);
+    setLiveAngle(null);
+    currentMaxAngleRef.current = 0;
+    dropCounterRef.current = 0;
+
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    await startCamera();
+    setSessionState('LIVE_FREE');
+    playChime('beep');
   };
 
   // Video Prediction Loop with Auto Peak Detection
@@ -569,26 +609,32 @@ export default function KneeAngleCamera({
         // ========================================================
         // AUTONOMOUS PEAK DETECTION ALGORITHM (REVERSE MOVEMENT)
         // ========================================================
-        if (sessionState === 'MEASURING') {
+        if (sessionState === 'MEASURING' || sessionState === 'LIVE_FREE') {
           // Track highest point reached
           if (stableFlexion > currentMaxAngleRef.current) {
             currentMaxAngleRef.current = stableFlexion;
             setPeakAngle(stableFlexion);
             dropCounterRef.current = 0;
             playChime('tick');
-          } else if (currentMaxAngleRef.current >= 25 && stableFlexion <= currentMaxAngleRef.current - 4) {
-            // Patient reached their peak and has started extending back (reversed motion)
-            dropCounterRef.current += 1;
-            if (dropCounterRef.current >= 3) {
-              // Peak confirmed! Auto-lock!
-              lockPeakAndAutoSave(currentMaxAngleRef.current);
+          } else if (sessionState === 'MEASURING') {
+            const elapsed = (now - sessionStartTimeRef.current) / 1000;
+            // ONLY auto-lock early if:
+            // 1. At least 7 seconds of active exercise have passed
+            // 2. Peak reached was significant (>= 40°)
+            // 3. Leg has extended back down by >= 12° from peak
+            // 4. Extended state persisted for 8 consecutive checks (~1 second)
+            if (elapsed >= 7 && currentMaxAngleRef.current >= 40 && stableFlexion <= currentMaxAngleRef.current - 12) {
+              dropCounterRef.current += 1;
+              if (dropCounterRef.current >= 8) {
+                if (countdownIntervalRef.current) {
+                  clearInterval(countdownIntervalRef.current);
+                  countdownIntervalRef.current = null;
+                }
+                lockPeakAndAutoSave(currentMaxAngleRef.current);
+              }
+            } else {
+              dropCounterRef.current = 0;
             }
-          }
-
-          // Safety timeout: 20 seconds maximum per repetition
-          const elapsed = (now - sessionStartTimeRef.current) / 1000;
-          if (elapsed > 20 && currentMaxAngleRef.current >= 20) {
-            lockPeakAndAutoSave(currentMaxAngleRef.current);
           }
         }
       }
@@ -598,7 +644,7 @@ export default function KneeAngleCamera({
   }, [leg, safeMaxFlexion, sessionState, lockPeakAndAutoSave, playChime]);
 
   useEffect(() => {
-    if (sessionState === 'MEASURING' || sessionState === 'COUNTDOWN') {
+    if (sessionState === 'MEASURING' || sessionState === 'COUNTDOWN' || sessionState === 'LIVE_FREE') {
       animationFrameRef.current = requestAnimationFrame(predictVideoFrame);
     } else if (sessionState === 'IDLE' && animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -811,7 +857,16 @@ export default function KneeAngleCamera({
               className="w-full py-4 px-6 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-full text-sm transition flex items-center justify-center gap-2 shadow-2xl"
             >
               <Play className="w-5 h-5 fill-current" />
-              <span>BẮT ĐẦU ĐO TỰ ĐỘNG (ĐẾM LÙI 8S)</span>
+              <span>BẮT ĐẦU ĐO TỰ ĐỘNG (ĐẾM LÙI 8S + 15S CO CHÂN)</span>
+            </button>
+
+            <button
+              onClick={handleStartLiveFree}
+              disabled={isLoadingModel}
+              className="w-full py-3 px-5 rounded-full border border-white/10 hover:bg-white/[0.06] text-slate-300 hover:text-white text-xs font-medium transition flex items-center justify-center gap-2"
+            >
+              <Camera className="w-4 h-4 text-emerald-400" />
+              <span>Mở Camera Đo Trực Tiếp (Tự do, không hẹn giờ)</span>
             </button>
           </div>
         )}
@@ -826,7 +881,7 @@ export default function KneeAngleCamera({
               {countdown}
             </div>
             <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-              Đặt chân duỗi thẳng. Khi đếm về 0, hãy từ từ trượt gót gập gối vào hông.
+              Đặt chân duỗi thẳng. Khi đếm về 0, bạn sẽ có 15 giây để từ từ co gối hết cỡ rồi duỗi ra.
             </p>
             <button
               onClick={() => {
@@ -840,14 +895,22 @@ export default function KneeAngleCamera({
           </div>
         )}
 
-        {/* 3. STATE: MEASURING (Đang đo realtime & tự bắt đỉnh) */}
+        {/* 3. STATE: MEASURING (Đang đo realtime trong 15 giây) */}
         {sessionState === 'MEASURING' && (
           <>
+            {/* 15s Timer Progress Bar at top edge */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-white/10 z-30 overflow-hidden">
+              <div
+                style={{ width: `${(measuringSecondsLeft / 15) * 100}%` }}
+                className="h-full bg-emerald-400 transition-all duration-1000 ease-linear shadow-[0_0_8px_#10b981]"
+              />
+            </div>
+
             {/* Giant Live Angle HUD (Visible from 1m away on bed) */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-none">
               <div className="bg-[#16181F]/90 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center gap-3">
                 <div
-                  className={`text-4xl font-light tracking-tight tabular-nums px-3 py-1 rounded-xl ${
+                  className={`text-5xl font-light tracking-tight tabular-nums px-3 py-1 rounded-xl ${
                     (liveAngle || 0) > safeMaxFlexion
                       ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
                       : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
@@ -857,16 +920,17 @@ export default function KneeAngleCamera({
                 </div>
                 <div>
                   <div className="text-[10px] text-slate-400 uppercase tracking-wider">Góc gập hiện tại</div>
-                  <div className="text-xs font-medium text-emerald-300">
-                    Đỉnh đạt: <span className="font-bold text-white">{peakAngle}°</span>
+                  <div className="text-xs font-medium text-emerald-300 flex items-center gap-1">
+                    <span>Đỉnh:</span>
+                    <span className="font-bold text-white text-sm">{peakAngle}°</span>
                   </div>
                 </div>
               </div>
 
-              {/* Status pulse */}
-              <div className="bg-emerald-500/20 border border-emerald-500/40 px-3 py-1.5 rounded-full text-[11px] font-medium text-emerald-300 flex items-center gap-1.5 shadow-xl">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Đang tự bắt đỉnh...</span>
+              {/* 15s countdown pill */}
+              <div className="bg-emerald-500/20 border border-emerald-500/40 px-3.5 py-1.5 rounded-full text-xs font-medium text-emerald-300 flex items-center gap-1.5 shadow-xl">
+                <Timer className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                <span>Còn {measuringSecondsLeft}s</span>
               </div>
             </div>
 
@@ -884,13 +948,64 @@ export default function KneeAngleCamera({
               <div className="p-2.5 rounded-2xl backdrop-blur-md border text-xs font-light bg-[#16181F]/90 border-emerald-500/30 text-emerald-200 flex items-center justify-between shadow-2xl">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Co chân sâu nhất rồi duỗi ra $\to$ Máy tự chốt số!</span>
+                  <span>Từ từ co chân hết cỡ rồi duỗi ra (còn {measuringSecondsLeft}s)</span>
                 </div>
                 <button
                   onClick={() => lockPeakAndAutoSave(peakAngle > 0 ? peakAngle : liveAngle || 0)}
-                  className="pointer-events-auto py-1 px-3 bg-white text-slate-950 font-bold rounded-full text-[11px] hover:bg-slate-100"
+                  className="pointer-events-auto py-1.5 px-3.5 bg-white text-slate-950 font-bold rounded-full text-xs hover:bg-slate-100 shadow-md"
                 >
                   Chốt Ngay
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 3B. STATE: LIVE_FREE (Đo trực tiếp tự do không giới hạn giờ) */}
+        {sessionState === 'LIVE_FREE' && (
+          <>
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-none">
+              <div className="bg-[#16181F]/90 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center gap-3">
+                <div
+                  className={`text-5xl font-light tracking-tight tabular-nums px-3 py-1 rounded-xl ${
+                    (liveAngle || 0) > safeMaxFlexion
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
+                      : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                  }`}
+                >
+                  {liveAngle ?? 0}°
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider">Đo trực tiếp</div>
+                  <div className="text-xs font-medium text-emerald-300 flex items-center gap-1">
+                    <span>Đỉnh:</span>
+                    <span className="font-bold text-white text-sm">{peakAngle}°</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/10 border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-medium text-white flex items-center gap-1.5 shadow-xl">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Đo tự do</span>
+              </div>
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2 z-20 pointer-events-none">
+              <div className="p-2.5 rounded-2xl backdrop-blur-md border text-xs font-light bg-[#16181F]/90 border-white/15 text-white flex items-center justify-between shadow-2xl">
+                <button
+                  onClick={() => {
+                    stopCamera();
+                    setSessionState('IDLE');
+                  }}
+                  className="pointer-events-auto py-1.5 px-3 rounded-full border border-white/20 text-slate-300 hover:text-white text-xs"
+                >
+                  Dừng
+                </button>
+                <button
+                  onClick={() => lockPeakAndAutoSave(peakAngle > 0 ? peakAngle : liveAngle || 0)}
+                  className="pointer-events-auto py-1.5 px-4 bg-emerald-500 text-slate-950 font-bold rounded-full text-xs hover:bg-emerald-400 shadow-md"
+                >
+                  Lưu Góc Này ({peakAngle > 0 ? peakAngle : liveAngle || 0}°)
                 </button>
               </div>
             </div>
