@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipForward, RotateCcw, Volume2, VolumeX, X, CheckCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Play, Pause, SkipForward, RotateCcw, Volume2, VolumeX, X, CheckCircle, AlertTriangle, ShieldCheck, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Exercise } from '@/data/rehabProtocols';
 
@@ -29,6 +29,7 @@ export default function WorkoutPlayer({
   const [timeLeft, setTimeLeft] = useState(5); // 5s initial prep
   const [isActive, setIsActive] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Audio Context Ref
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -277,7 +278,14 @@ export default function WorkoutPlayer({
       <div className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (workoutState === 'FINISHED') {
+                if (onFinishedWorkout) onFinishedWorkout();
+                onClose();
+              } else {
+                setShowExitConfirm(true);
+              }
+            }}
             aria-label="Đóng bài tập"
             className="p-2 -ml-1 text-slate-400 hover:text-white rounded-xl active:bg-slate-800 transition"
           >
@@ -472,6 +480,50 @@ export default function WorkoutPlayer({
             >
               <SkipForward className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+      )}
+      {/* Exit Confirmation Dialog */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full space-y-4 text-center shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+              <Check className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Bạn đã hoàn thành bài tập?</h3>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Nếu bạn đã tự hoàn thành các động tác, hãy chọn <strong>Lưu kết quả</strong> để ghi nhận buổi tập hôm nay vào hồ sơ phục hồi.
+              </p>
+            </div>
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  if (onFinishedWorkout) onFinishedWorkout();
+                  onClose();
+                }}
+                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition"
+              >
+                <Check className="w-4 h-4" />
+                Đã tập xong • Lưu kết quả
+              </button>
+              <button
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  onClose();
+                }}
+                className="w-full py-2.5 px-4 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white font-medium rounded-xl text-xs transition"
+              >
+                Thoát không lưu
+              </button>
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="w-full py-2 text-slate-500 hover:text-slate-300 text-xs transition"
+              >
+                Quay lại tiếp tục tập
+              </button>
+            </div>
           </div>
         </div>
       )}

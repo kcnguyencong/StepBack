@@ -351,11 +351,33 @@ export default function AxvyraApp() {
     painDuringSession: number;
     notes: string;
   }) => {
-    if (!activeSessionId) return;
-    const updated = AxvyraStore.completeSession(activeSessionId, feedback);
+    const sId = activeSessionId || `ses-${Date.now()}`;
+    const updated = AxvyraStore.completeSession(sId, feedback);
     if (updated) setRecoveryCase({ ...updated });
     setShowFeedbackModal(false);
     setActiveSessionId(null);
+  };
+
+  const handleCloseFeedbackModal = () => {
+    if (activeSessionId) {
+      const updated = AxvyraStore.completeSession(activeSessionId, {
+        rpeScore: 4,
+        painDuringSession: 2,
+        notes: 'Đã hoàn thành cữ tập phục hồi',
+      });
+      if (updated) setRecoveryCase({ ...updated });
+      setActiveSessionId(null);
+    }
+    setShowFeedbackModal(false);
+  };
+
+  const handleQuickMarkTodayCompleted = () => {
+    const updated = AxvyraStore.quickCompleteTodaySession({
+      rpeScore: 4,
+      painDuringSession: 2,
+      notes: 'Đã tự tập hoàn thành theo phác đồ',
+    });
+    if (updated) setRecoveryCase({ ...updated });
   };
 
   const handleSaveQuickLog = () => {
@@ -429,6 +451,24 @@ export default function AxvyraApp() {
     return recoveryCase?.sessionFeedbacks?.length || 0;
   }, [recoveryCase?.sessionFeedbacks]);
 
+  // Today's completed sessions list
+  const todayFeedbacks = useMemo(() => {
+    if (!recoveryCase?.sessionFeedbacks) return [];
+    const today = new Date();
+    return recoveryCase.sessionFeedbacks.filter((fb) => {
+      if (!fb.completedAt) return false;
+      const d = new Date(fb.completedAt);
+      return (
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate()
+      );
+    });
+  }, [recoveryCase?.sessionFeedbacks]);
+
+  const isTodayCompleted = todayFeedbacks.length > 0 || (recoveryCase?.dailySessions?.[0]?.completed ?? false);
+  const latestTodayFeedback = todayFeedbacks[0] || (isTodayCompleted ? recoveryCase?.sessionFeedbacks?.[0] : null);
+
   // Tính 7 ngày trong tuần phục hồi hiện tại (chuẩn y khoa theo chu kỳ ngày sau mổ)
   const currentWeekDays = useMemo(() => {
     const curDay = Math.max(1, rehabStatus.currentDay);
@@ -444,7 +484,7 @@ export default function AxvyraApp() {
       const isToday = dayNum === curDay;
       const isPast = dayNum < curDay;
       const isFuture = dayNum > curDay;
-      const isDone = isPast || (isToday && completedSessions > 0);
+      const isDone = isPast || (isToday && isTodayCompleted);
 
       // Tính Thứ và ngày dương lịch thực tế đối chiếu
       const targetDate = new Date(baseDate.getTime() + (dayNum - 1) * 86400000);
@@ -462,7 +502,7 @@ export default function AxvyraApp() {
         isDone,
       };
     });
-  }, [rehabStatus.currentDay, rehabStatus.currentWeek, completedSessions, recoveryCase?.surgeryDate]);
+  }, [rehabStatus.currentDay, rehabStatus.currentWeek, isTodayCompleted, recoveryCase?.surgeryDate]);
 
   // Mobility score: 10 - painScore from latest daily recovery log
   const latestDailyLog = recoveryCase?.dailyLogs?.[0];
@@ -702,13 +742,17 @@ export default function AxvyraApp() {
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs transition ${
                             item.isToday
-                              ? 'bg-slate-950 text-white font-semibold'
+                              ? isTodayCompleted
+                                ? 'bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/40 ring-2 ring-emerald-300/60'
+                                : 'bg-slate-950 text-white font-semibold'
                               : item.isDone
                               ? 'bg-emerald-500/20 text-emerald-400 font-medium'
                               : 'text-slate-300 font-light'
                           }`}
                         >
-                          {item.isDone && !item.isToday ? (
+                          {item.isToday && isTodayCompleted ? (
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ) : item.isDone && !item.isToday ? (
                             <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                           ) : (
                             item.dayNum
@@ -716,10 +760,16 @@ export default function AxvyraApp() {
                         </div>
                         <span
                           className={`text-[9px] font-bold h-2 flex items-center ${
-                            item.isToday ? 'text-slate-950' : item.isDone ? 'text-emerald-400' : 'text-transparent'
+                            item.isToday
+                              ? isTodayCompleted
+                                ? 'text-emerald-600 font-black'
+                                : 'text-slate-950'
+                              : item.isDone
+                              ? 'text-emerald-400'
+                              : 'text-transparent'
                           }`}
                         >
-                          •
+                          {item.isToday && isTodayCompleted ? '✓' : '•'}
                         </span>
                       </div>
                     ))}
@@ -746,6 +796,12 @@ export default function AxvyraApp() {
                   {/* Card Header: Title + Arrow */}
                   <div className="flex items-start justify-between">
                     <div>
+                      {isTodayCompleted && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold tracking-wider uppercase mb-2">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          Đã hoàn thành hôm nay
+                        </div>
+                      )}
                       <h3 className="text-xl font-light text-white leading-snug tracking-tight">
                         {rehabStatus.phase.title}
                       </h3>
@@ -805,23 +861,122 @@ export default function AxvyraApp() {
                   </div>
 
                   {/* Primary Action Button (Screen 1 & 2 Let's Explore style) */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => handleStartTodaySession()}
-                      className="flex-1 py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm flex items-center justify-center gap-2 shadow-xl whitespace-nowrap transition"
-                    >
-                      <Play className="w-4 h-4 fill-current" />
-                      <span>Bắt đầu buổi tập</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('plan')}
-                      title="Xem toàn bộ bài tập"
-                      className="w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
-                    >
-                      <Calendar className="w-5 h-5" />
-                    </button>
-                  </div>
+                  {isTodayCompleted ? (
+                    <div className="space-y-2.5 pt-1">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 py-3 px-4 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-2">
+                          <Check className="w-4 h-4 stroke-[3] text-emerald-400 shrink-0" />
+                          <span className="truncate">Hôm nay đã tập ({todayFeedbacks.length || 1} cữ)</span>
+                        </div>
+                        <button
+                          onClick={() => handleStartTodaySession()}
+                          title="Tập thêm một cữ mới trong ngày"
+                          className="py-3 px-4 rounded-full bg-white hover:bg-slate-100 text-slate-950 font-medium text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition whitespace-nowrap shrink-0"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <span>Tập thêm cữ</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('plan')}
+                          title="Xem toàn bộ bài tập"
+                          className="w-11 h-11 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
+                        >
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-light text-center">
+                        ❄️ Khuyên dùng: Chườm đá lạnh 15-20 phút & kê cao chân 45° sau khi tập.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleStartTodaySession()}
+                          className="flex-1 py-3.5 px-5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm flex items-center justify-center gap-2 shadow-xl whitespace-nowrap transition"
+                        >
+                          <Play className="w-4 h-4 fill-current" />
+                          <span>Bắt đầu buổi tập</span>
+                        </button>
+                        <button
+                          onClick={handleQuickMarkTodayCompleted}
+                          title="Đã tự tập xong (Ghi nhận nhanh không cần chạy timer)"
+                          className="py-3.5 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-emerald-400 hover:text-emerald-300 transition shrink-0 gap-1.5 text-xs font-medium"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span className="hidden sm:inline">Đã tự tập xong</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('plan')}
+                          title="Xem toàn bộ bài tập"
+                          className="w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
+                        >
+                          <Calendar className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[11px] text-slate-400 font-light">Tập cùng trợ lý đếm nhịp</span>
+                        <button
+                          onClick={handleQuickMarkTodayCompleted}
+                          className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-2 transition"
+                        >
+                          Đánh dấu đã tự tập xong ngay
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* =================================================================== */}
+                {/* THẺ TỔNG KẾT BUỔI TẬP VỪA XONG (TODAY'S WORKOUT RECORD)            */}
+                {/* =================================================================== */}
+                {isTodayCompleted && (
+                  <div className="bg-[#16181F] border border-emerald-500/25 rounded-[32px] p-4.5 space-y-3.5 shadow-2xl relative overflow-hidden animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                          <Check className="w-4 h-4 stroke-[3]" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-white tracking-tight">
+                            Cữ tập hôm nay đã ghi nhận!
+                          </h4>
+                          <p className="text-[11px] text-emerald-400/90 font-light mt-0.5">
+                            {todayFeedbacks.length} cữ tập hoàn thành • Tiến độ đảm bảo
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-mono bg-white/[0.05] px-2.5 py-1 rounded-full border border-white/[0.08]">
+                        {latestTodayFeedback?.completedAt
+                          ? new Date(latestTodayFeedback.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                          : 'Hôm nay'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-center pt-0.5">
+                      <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                        <span className="text-[10px] text-slate-400 block font-light">Gắng sức (RPE)</span>
+                        <span className="text-base font-semibold text-white">
+                          {latestTodayFeedback?.rpeScore ?? 4}
+                          <span className="text-xs font-normal text-slate-500">/10</span>
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                        <span className="text-[10px] text-slate-400 block font-light">Đau khi tập (VAS)</span>
+                        <span className="text-base font-semibold text-emerald-400">
+                          {latestTodayFeedback?.painDuringSession ?? 2}
+                          <span className="text-xs font-normal text-slate-500">/10</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {latestTodayFeedback?.notes && (
+                      <p className="text-xs text-slate-300 bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05] italic">
+                        &ldquo;{latestTodayFeedback.notes}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* =================================================================== */}
                 {/* KHỐI 3: BENTO VITALS (SCREEN 2 YOGA / BREATH STYLE)                */}
@@ -996,7 +1151,7 @@ export default function AxvyraApp() {
 
             {/* Session Detail */}
             <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div>
                   <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
                     Bài tập chỉ định giai đoạn {rehabStatus.phase.phase}
@@ -1005,14 +1160,36 @@ export default function AxvyraApp() {
                     {rehabStatus.exercises.length} bài tập phục hồi chức năng
                   </h3>
                 </div>
-                <button
-                  onClick={() => handleStartTodaySession()}
-                  className="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Tập ngay</span>
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={handleQuickMarkTodayCompleted}
+                    title="Đánh dấu đã tự tập xong các bài"
+                    className="py-2 px-3 bg-white/[0.06] hover:bg-white/10 text-emerald-400 border border-white/10 font-medium rounded-full text-xs flex items-center gap-1 active:scale-95 transition"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span className="hidden xs:inline">{isTodayCompleted ? 'Đã ghi nhận' : 'Đánh dấu xong'}</span>
+                  </button>
+                  <button
+                    onClick={() => handleStartTodaySession()}
+                    className="py-2.5 px-3.5 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>{isTodayCompleted ? 'Tập thêm cữ' : 'Tập ngay'}</span>
+                  </button>
+                </div>
               </div>
+
+              {isTodayCompleted && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-emerald-300 font-medium">
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Đã hoàn thành {todayFeedbacks.length || 1} cữ tập hôm nay</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {latestTodayFeedback?.completedAt ? new Date(latestTodayFeedback.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Hôm nay'}
+                  </span>
+                </div>
+              )}
 
               <div className="divide-y divide-white/[0.06]">
                 {rehabStatus.exercises.map((item, idx) => (
@@ -1134,6 +1311,50 @@ export default function AxvyraApp() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Exercise Sessions History */}
+            <div className="bg-[#16181F] rounded-[32px] p-5 shadow-2xl border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
+                  Lịch Sử Các Cữ Tập
+                </h2>
+                <span className="text-[11px] text-emerald-400 font-medium">
+                  {recoveryCase?.sessionFeedbacks?.length || 0} cữ đã hoàn thành
+                </span>
+              </div>
+
+              {recoveryCase?.sessionFeedbacks && recoveryCase.sessionFeedbacks.length > 0 ? (
+                <div className="space-y-2">
+                  {recoveryCase.sessionFeedbacks.slice(0, 5).map((fb, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 bg-white/[0.03] rounded-2xl border border-white/[0.06] flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 stroke-[2.5]" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white">
+                            Cữ tập phục hồi • {fb.completedAt ? new Date(fb.completedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : 'Hôm nay'}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-light mt-0.5">
+                            RPE: <strong className="text-slate-200">{fb.rpeScore}/10</strong> • Đau VAS: <strong className="text-emerald-400">{fb.painDuringSession}/10</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                        {fb.completedAt ? new Date(fb.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] text-center text-xs text-slate-400">
+                  Chưa có lịch sử cữ tập. Hãy bắt đầu buổi tập hôm nay!
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1259,7 +1480,7 @@ export default function AxvyraApp() {
         isOpen={showFeedbackModal}
         sessionTitle={feedbackSessionTitle}
         onSaveFeedback={handleSaveSessionFeedback}
-        onClose={() => setShowFeedbackModal(false)}
+        onClose={handleCloseFeedbackModal}
       />
 
       {/* Clinical Onboarding Modal */}

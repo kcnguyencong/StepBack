@@ -264,6 +264,23 @@ export class AxvyraStore {
     if (sessionIndex >= 0) {
       activeCase.dailySessions[sessionIndex].completed = true;
       activeCase.dailySessions[sessionIndex].completedAt = nowIso;
+    } else if (activeCase.dailySessions && activeCase.dailySessions.length > 0) {
+      activeCase.dailySessions[0].completed = true;
+      activeCase.dailySessions[0].completedAt = nowIso;
+    } else {
+      activeCase.dailySessions = [
+        {
+          id: sessionId,
+          dayNumber: 1,
+          weekNumber: 1,
+          title: 'Buổi tập phục hồi hôm nay',
+          focus: 'Kiểm soát sưng & Phục hồi cơ',
+          estimatedMinutes: 15,
+          exercises: [],
+          completed: true,
+          completedAt: nowIso,
+        },
+      ];
     }
 
     const sessionFeedback: SessionFeedback = {
@@ -274,10 +291,23 @@ export class AxvyraStore {
       notes: feedback.notes,
     };
 
-    activeCase.sessionFeedbacks = [sessionFeedback, ...activeCase.sessionFeedbacks];
+    activeCase.sessionFeedbacks = [sessionFeedback, ...(activeCase.sessionFeedbacks || [])];
     this.saveRecoveryCase(activeCase);
     this.logAudit('COMPLETE_SESSION', 'ExerciseSession', sessionId, `RPE: ${feedback.rpeScore}`);
     return activeCase;
+  }
+
+  static quickCompleteTodaySession(feedback?: {
+    rpeScore?: number;
+    painDuringSession?: number;
+    notes?: string;
+  }): RecoveryCase | null {
+    const sessionId = `ses-${Date.now()}`;
+    return this.completeSession(sessionId, {
+      rpeScore: feedback?.rpeScore ?? 4,
+      painDuringSession: feedback?.painDuringSession ?? 2,
+      notes: feedback?.notes ?? 'Tự tập phục hồi tại nhà theo phác đồ',
+    });
   }
 
   static addROMRecord(record: Omit<ROMRecord, 'id' | 'recordedAt'>): RecoveryCase | null {
