@@ -64,6 +64,35 @@ import { LogOut, LogIn, UserCheck } from 'lucide-react';
 
 type MainTab = 'home' | 'plan' | 'progress' | 'explore';
 
+const AVATAR_PALETTES = [
+  { bg: 'from-emerald-500 via-teal-600 to-emerald-800', border: 'border-emerald-400/40', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.35)]', text: 'text-white' },
+  { bg: 'from-indigo-500 via-purple-600 to-pink-600', border: 'border-indigo-400/40', glow: 'shadow-[0_0_15px_rgba(99,102,241,0.35)]', text: 'text-white' },
+  { bg: 'from-amber-400 via-orange-500 to-rose-600', border: 'border-amber-400/40', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.35)]', text: 'text-white' },
+  { bg: 'from-rose-500 via-pink-600 to-purple-700', border: 'border-rose-400/40', glow: 'shadow-[0_0_15px_rgba(244,63,94,0.35)]', text: 'text-white' },
+  { bg: 'from-cyan-400 via-blue-500 to-indigo-700', border: 'border-cyan-400/40', glow: 'shadow-[0_0_15px_rgba(6,182,212,0.35)]', text: 'text-white' },
+  { bg: 'from-fuchsia-500 via-violet-600 to-purple-800', border: 'border-fuchsia-400/40', glow: 'shadow-[0_0_15px_rgba(217,70,239,0.35)]', text: 'text-white' },
+  { bg: 'from-teal-400 via-cyan-600 to-blue-800', border: 'border-teal-400/40', glow: 'shadow-[0_0_15px_rgba(20,184,166,0.35)]', text: 'text-white' },
+  { bg: 'from-orange-500 via-amber-500 to-yellow-600', border: 'border-amber-300/40', glow: 'shadow-[0_0_15px_rgba(251,191,36,0.35)]', text: 'text-slate-950' },
+];
+
+const getInitials = (name?: string | null): string => {
+  if (!name || typeof name !== 'string') return 'U';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].substring(0, 1).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const getAvatarStyle = (seed?: string | null) => {
+  const str = seed || 'User';
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % AVATAR_PALETTES.length;
+  return AVATAR_PALETTES[idx];
+};
+
 export default function AxvyraApp() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<MainTab>('home');
@@ -450,6 +479,10 @@ export default function AxvyraApp() {
     : 'Bệnh nhân';
   const userShortName = userDisplayName.split(' ').pop() || 'User';
 
+  const targetPatientName = authUser ? userDisplayName : (recoveryCase?.patientName || 'Bạn');
+  const userInitials = getInitials(targetPatientName);
+  const userAvatarStyle = getAvatarStyle(targetPatientName + (authUser?.id || ''));
+
   if (!mounted || !recoveryCase) {
     return (
       <div className="min-h-screen bg-[#0C0D11] text-white flex items-center justify-center p-4">
@@ -497,7 +530,11 @@ export default function AxvyraApp() {
                 title="Nhấn để đăng xuất"
                 className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/10 text-slate-200 text-xs font-medium transition"
               >
-                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <div
+                  className={`w-4 h-4 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border border-white/20 flex items-center justify-center text-[8.5px] font-bold ${userAvatarStyle.text} shrink-0`}
+                >
+                  {userInitials.substring(0, 1)}
+                </div>
                 <span className="max-w-[80px] truncate">{userShortName}</span>
                 <LogOut className="w-3 h-3 text-slate-400 ml-0.5" />
               </button>
@@ -526,17 +563,15 @@ export default function AxvyraApp() {
         {activeTab === 'home' && (
           <div className="relative z-10 px-5 pt-3 pb-3">
             <div className="flex items-center gap-3.5 mb-1">
+              {/* Random / Deterministic Color Avatar with Initial Letters */}
               <div
                 onClick={() => setShowOnboarding(true)}
-                className="w-11 h-11 rounded-full overflow-hidden border border-white/20 bg-white/5 flex items-center justify-center shrink-0 cursor-pointer shadow-lg shadow-black/50"
+                className={`w-11 h-11 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border ${userAvatarStyle.border} ${userAvatarStyle.glow} flex items-center justify-center shrink-0 cursor-pointer shadow-lg select-none active:scale-95 transition-all`}
+                title="Hồ sơ phục hồi"
               >
-                <Image
-                  src={authUser?.avatarUrl || '/images/knee-hero.png'}
-                  alt="Avatar"
-                  width={44}
-                  height={44}
-                  className="object-cover scale-110"
-                />
+                <span className={`font-semibold text-sm tracking-wider ${userAvatarStyle.text}`}>
+                  {userInitials}
+                </span>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-light tracking-wide">
