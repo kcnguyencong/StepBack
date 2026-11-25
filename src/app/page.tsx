@@ -742,16 +742,14 @@ export default function AxvyraApp() {
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs transition ${
                             item.isToday
-                              ? isTodayCompleted
-                                ? 'bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/40 ring-2 ring-emerald-300/60'
-                                : 'bg-slate-950 text-white font-semibold'
+                              ? 'bg-slate-950 text-white font-semibold'
                               : item.isDone
                               ? 'bg-emerald-500/20 text-emerald-400 font-medium'
                               : 'text-slate-300 font-light'
                           }`}
                         >
                           {item.isToday && isTodayCompleted ? (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-400" />
                           ) : item.isDone && !item.isToday ? (
                             <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                           ) : (
@@ -760,10 +758,10 @@ export default function AxvyraApp() {
                         </div>
                         <span
                           className={`text-[9px] font-bold h-2 flex items-center ${
-                            item.isToday
-                              ? isTodayCompleted
-                                ? 'text-emerald-600 font-black'
-                                : 'text-slate-950'
+                            item.isToday && isTodayCompleted
+                              ? 'text-emerald-500 font-black'
+                              : item.isToday
+                              ? 'text-slate-950'
                               : item.isDone
                               ? 'text-emerald-400'
                               : 'text-transparent'
@@ -796,12 +794,24 @@ export default function AxvyraApp() {
                   {/* Card Header: Title + Arrow */}
                   <div className="flex items-start justify-between">
                     <div>
-                      {isTodayCompleted && (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold tracking-wider uppercase mb-2">
-                          <Check className="w-3 h-3 stroke-[3]" />
-                          Đã hoàn thành hôm nay
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[11px] font-medium text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full whitespace-nowrap">
+                          GĐ {rehabStatus.phase.phase} • 14 ngày đầu
+                        </span>
+                        {isTodayCompleted ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                            Đã tập ({todayFeedbacks.length || 1} cữ)
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap">
+                            15 phút
+                          </span>
+                        )}
+                        <span className="text-[11px] font-light text-slate-400 bg-white/[0.04] border border-white/[0.06] px-3 py-1 rounded-full whitespace-nowrap">
+                          {rehabStatus.phase.phase === 1 ? '3–4 cữ/ngày' : '2 cữ/ngày'}
+                        </span>
+                      </div>
                       <h3 className="text-xl font-light text-white leading-snug tracking-tight">
                         {rehabStatus.phase.title}
                       </h3>
@@ -815,19 +825,6 @@ export default function AxvyraApp() {
                     >
                       <ArrowUpRight className="w-4 h-4" />
                     </button>
-                  </div>
-
-                  {/* Tag Pills Row (Minimal & Elegant) */}
-                  <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                    <span className="text-[11px] font-medium text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full whitespace-nowrap">
-                      GĐ {rehabStatus.phase.phase} • 14 ngày đầu
-                    </span>
-                    <span className="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap">
-                      15 phút
-                    </span>
-                    <span className="text-[11px] font-light text-slate-400 bg-white/[0.04] border border-white/[0.06] px-3 py-1 rounded-full whitespace-nowrap">
-                      {rehabStatus.phase.phase === 1 ? '3–4 cữ/ngày' : '2 cữ/ngày'}
-                    </span>
                   </div>
 
                   {/* Visual Ruler / Audio-wave Ticks (Screen 2 Meditation Style) */}
@@ -860,123 +857,50 @@ export default function AxvyraApp() {
                     </div>
                   </div>
 
-                  {/* Primary Action Button (Screen 1 & 2 Let's Explore style) */}
-                  {isTodayCompleted ? (
-                    <div className="space-y-2.5 pt-1">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 py-3 px-4 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-2">
-                          <Check className="w-4 h-4 stroke-[3] text-emerald-400 shrink-0" />
-                          <span className="truncate">Hôm nay đã tập ({todayFeedbacks.length || 1} cữ)</span>
-                        </div>
-                        <button
-                          onClick={() => handleStartTodaySession()}
-                          title="Tập thêm một cữ mới trong ngày"
-                          className="py-3 px-4 rounded-full bg-white hover:bg-slate-100 text-slate-950 font-medium text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition whitespace-nowrap shrink-0"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>Tập thêm cữ</span>
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('plan')}
-                          title="Xem toàn bộ bài tập"
-                          className="w-11 h-11 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
-                        >
-                          <Calendar className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-slate-400 font-light text-center">
-                        ❄️ Khuyên dùng: Chườm đá lạnh 15-20 phút & kê cao chân 45° sau khi tập.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleStartTodaySession()}
-                          className="flex-1 py-3.5 px-5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm flex items-center justify-center gap-2 shadow-xl whitespace-nowrap transition"
-                        >
-                          <Play className="w-4 h-4 fill-current" />
-                          <span>Bắt đầu buổi tập</span>
-                        </button>
-                        <button
-                          onClick={handleQuickMarkTodayCompleted}
-                          title="Đã tự tập xong (Ghi nhận nhanh không cần chạy timer)"
-                          className="py-3.5 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-emerald-400 hover:text-emerald-300 transition shrink-0 gap-1.5 text-xs font-medium"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span className="hidden sm:inline">Đã tự tập xong</span>
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('plan')}
-                          title="Xem toàn bộ bài tập"
-                          className="w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
-                        >
-                          <Calendar className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between px-1">
-                        <span className="text-[11px] text-slate-400 font-light">Tập cùng trợ lý đếm nhịp</span>
-                        <button
-                          onClick={handleQuickMarkTodayCompleted}
-                          className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-2 transition"
-                        >
-                          Đánh dấu đã tự tập xong ngay
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* =================================================================== */}
-                {/* THẺ TỔNG KẾT BUỔI TẬP VỪA XONG (TODAY'S WORKOUT RECORD)            */}
-                {/* =================================================================== */}
-                {isTodayCompleted && (
-                  <div className="bg-[#16181F] border border-emerald-500/25 rounded-[32px] p-4.5 space-y-3.5 shadow-2xl relative overflow-hidden animate-fade-in">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
-                          <Check className="w-4 h-4 stroke-[3]" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-white tracking-tight">
-                            Cữ tập hôm nay đã ghi nhận!
-                          </h4>
-                          <p className="text-[11px] text-emerald-400/90 font-light mt-0.5">
-                            {todayFeedbacks.length} cữ tập hoàn thành • Tiến độ đảm bảo
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-slate-400 font-mono bg-white/[0.05] px-2.5 py-1 rounded-full border border-white/[0.08]">
-                        {latestTodayFeedback?.completedAt
-                          ? new Date(latestTodayFeedback.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                          : 'Hôm nay'}
-                      </span>
+                  {/* Primary Action Button */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleStartTodaySession()}
+                        className="flex-1 py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm flex items-center justify-center gap-2 shadow-xl whitespace-nowrap transition"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>{isTodayCompleted ? 'Tập cữ tiếp theo' : 'Bắt đầu buổi tập'}</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('plan')}
+                        title="Xem toàn bộ bài tập"
+                        className="w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
+                      >
+                        <Calendar className="w-5 h-5" />
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-center pt-0.5">
-                      <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                        <span className="text-[10px] text-slate-400 block font-light">Gắng sức (RPE)</span>
-                        <span className="text-base font-semibold text-white">
-                          {latestTodayFeedback?.rpeScore ?? 4}
-                          <span className="text-xs font-normal text-slate-500">/10</span>
-                        </span>
-                      </div>
-                      <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                        <span className="text-[10px] text-slate-400 block font-light">Đau khi tập (VAS)</span>
-                        <span className="text-base font-semibold text-emerald-400">
-                          {latestTodayFeedback?.painDuringSession ?? 2}
-                          <span className="text-xs font-normal text-slate-500">/10</span>
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between px-1.5 text-[11px]">
+                      {isTodayCompleted ? (
+                        <>
+                          <span className="text-emerald-400/90 font-light flex items-center gap-1.5">
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>
+                              Đã ghi nhận cữ gần nhất {latestTodayFeedback?.completedAt ? `(${new Date(latestTodayFeedback.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})` : 'hôm nay'}
+                            </span>
+                          </span>
+                          <span className="text-slate-500 font-light">Chườm lạnh 15p</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-slate-500 font-light">Khoảng 15 phút • 3–4 cữ/ngày</span>
+                          <button
+                            onClick={handleQuickMarkTodayCompleted}
+                            className="text-slate-400 hover:text-emerald-400 font-light underline underline-offset-2 transition"
+                          >
+                            Đã tự tập xong?
+                          </button>
+                        </>
+                      )}
                     </div>
-
-                    {latestTodayFeedback?.notes && (
-                      <p className="text-xs text-slate-300 bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05] italic">
-                        &ldquo;{latestTodayFeedback.notes}&rdquo;
-                      </p>
-                    )}
                   </div>
-                )}
+                </div>
 
                 {/* =================================================================== */}
                 {/* KHỐI 3: BENTO VITALS (SCREEN 2 YOGA / BREATH STYLE)                */}
@@ -1153,43 +1077,29 @@ export default function AxvyraApp() {
             <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
-                    Bài tập chỉ định giai đoạn {rehabStatus.phase.phase}
-                  </h2>
-                  <h3 className="text-sm font-medium text-white mt-0.5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
+                      Bài tập chỉ định giai đoạn {rehabStatus.phase.phase}
+                    </h2>
+                    {isTodayCompleted && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        Đã tập hôm nay
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-medium text-white">
                     {rehabStatus.exercises.length} bài tập phục hồi chức năng
                   </h3>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={handleQuickMarkTodayCompleted}
-                    title="Đánh dấu đã tự tập xong các bài"
-                    className="py-2 px-3 bg-white/[0.06] hover:bg-white/10 text-emerald-400 border border-white/10 font-medium rounded-full text-xs flex items-center gap-1 active:scale-95 transition"
-                  >
-                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span className="hidden xs:inline">{isTodayCompleted ? 'Đã ghi nhận' : 'Đánh dấu xong'}</span>
-                  </button>
-                  <button
-                    onClick={() => handleStartTodaySession()}
-                    className="py-2.5 px-3.5 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>{isTodayCompleted ? 'Tập thêm cữ' : 'Tập ngay'}</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleStartTodaySession()}
+                  className="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition shrink-0"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>{isTodayCompleted ? 'Tập cữ tiếp' : 'Tập ngay'}</span>
+                </button>
               </div>
-
-              {isTodayCompleted && (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-emerald-300 font-medium">
-                    <Check className="w-4 h-4 stroke-[3]" />
-                    <span>Đã hoàn thành {todayFeedbacks.length || 1} cữ tập hôm nay</span>
-                  </div>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    {latestTodayFeedback?.completedAt ? new Date(latestTodayFeedback.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Hôm nay'}
-                  </span>
-                </div>
-              )}
 
               <div className="divide-y divide-white/[0.06]">
                 {rehabStatus.exercises.map((item, idx) => (
