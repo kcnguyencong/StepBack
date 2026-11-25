@@ -60,6 +60,7 @@ import KneeAngleCamera, { AngleRecord } from '@/components/KneeAngleCamera';
 import OnboardingModal, { UserProfile } from '@/components/OnboardingModal';
 import SessionFeedbackModal from '@/components/SessionFeedbackModal';
 import AuthModal, { AuthUser } from '@/components/AuthModal';
+import RoadmapModal from '@/components/RoadmapModal';
 import { LogOut, LogIn, UserCheck } from 'lucide-react';
 
 type MainTab = 'home' | 'plan' | 'progress' | 'explore';
@@ -100,6 +101,7 @@ export default function AxvyraApp() {
   // Recovery Case State
   const [recoveryCase, setRecoveryCase] = useState<RecoveryCase | null>(null);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [showRoadmapModal, setShowRoadmapModal] = useState<boolean>(false);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean>(false);
   const [showRedFlags, setShowRedFlags] = useState<boolean>(false);
 
@@ -716,9 +718,14 @@ export default function AxvyraApp() {
                         Ngày {rehabStatus.currentDay} sau mổ • Tuần {rehabStatus.currentWeek}
                       </p>
                     </div>
-                    <span className="text-xs font-normal text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1 rounded-full whitespace-nowrap">
-                      {rehabProgressPercent}% Lộ trình
-                    </span>
+                    <button
+                      onClick={() => setShowRoadmapModal(true)}
+                      title="Nhấn để xem toàn bộ 5 giai đoạn lộ trình hồi phục"
+                      className="text-xs font-normal text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap flex items-center gap-1 transition active:scale-95 group"
+                    >
+                      <span>{rehabProgressPercent}% Lộ trình</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
                   </div>
 
                   {/* 7 Days Minimal Grid (Screen 3 Calendar style) */}
@@ -773,17 +780,82 @@ export default function AxvyraApp() {
                     ))}
                   </div>
 
-                  {/* Status Capsule (Screen 3 "Sickness / Works day" pill style) */}
-                  <div className="py-2.5 px-3.5 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+                  {/* Status Capsule with quick action */}
+                  <div
+                    onClick={() => setShowRoadmapModal(true)}
+                    className="py-2.5 px-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-between text-xs cursor-pointer transition group"
+                  >
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                      <span className="text-slate-300 font-light truncate max-w-[240px]">
-                        GĐ {rehabStatus.phase.phase}: {rehabStatus.phase.title}
+                      <span className="text-slate-300 font-light truncate max-w-[200px] sm:max-w-[260px]">
+                        GĐ {rehabStatus.phase.phase}/5: {rehabStatus.phase.title}
                       </span>
                     </div>
-                    <span className="text-slate-500 text-[11px] font-light shrink-0">
-                      14 ngày đầu
-                    </span>
+                    <div className="flex items-center gap-1 text-emerald-400 group-hover:text-emerald-300 text-[11px] font-medium shrink-0">
+                      <span>Xem lộ trình</span>
+                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+
+                  {/* Mini Roadmap Stepper (5 Clinical Stages) */}
+                  <div className="pt-2 border-t border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10.5px] uppercase font-light text-slate-400 tracking-wider">
+                        5 Cột mốc lộ trình hồi phục
+                      </span>
+                      <button
+                        onClick={() => setShowRoadmapModal(true)}
+                        className="text-[10.5px] text-emerald-400 hover:text-emerald-300 font-light flex items-center gap-0.5 transition"
+                      >
+                        <span>Chi tiết từng mốc</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-1.5 pt-0.5">
+                      {[
+                        { id: 1, label: 'Hậu phẫu', sub: 'Tuần 1–2' },
+                        { id: 2, label: 'Bỏ nạng', sub: 'Tuần 3–6' },
+                        { id: 3, label: 'Cơ bắp', sub: 'Tuần 7–12' },
+                        { id: 4, label: 'Chạy bộ', sub: 'Tuần 13–24' },
+                        { id: 5, label: 'Thể thao', sub: 'Tháng 6+' },
+                      ].map((step) => {
+                        const isCurrent = step.id === rehabStatus.phase.phase;
+                        const isPast = step.id < rehabStatus.phase.phase;
+
+                        return (
+                          <div
+                            key={step.id}
+                            onClick={() => setShowRoadmapModal(true)}
+                            className={`p-2 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition select-none ${
+                              isCurrent
+                                ? 'bg-emerald-500/15 border border-emerald-500/30 text-white shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-400/50 scale-[1.02]'
+                                : isPast
+                                ? 'bg-white/[0.03] border border-white/[0.06] text-slate-300 hover:bg-white/[0.06]'
+                                : 'bg-white/[0.015] border border-white/[0.03] text-slate-500 hover:bg-white/[0.04]'
+                            }`}
+                          >
+                            <div
+                              className={`w-5 h-5 rounded-full flex items-center justify-center mb-1 text-[10px] font-bold ${
+                                isCurrent
+                                  ? 'bg-emerald-500 text-white shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                                  : isPast
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : 'bg-white/10 text-slate-500'
+                              }`}
+                            >
+                              {isPast ? <Check className="w-3 h-3 stroke-[3]" /> : step.id}
+                            </div>
+                            <span className="text-[10px] font-medium leading-tight truncate w-full">
+                              {step.label}
+                            </span>
+                            <span className="text-[8.5px] text-slate-500 font-light truncate w-full mt-0.5">
+                              {step.sub}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -1190,9 +1262,18 @@ export default function AxvyraApp() {
 
             {/* Milestone Timeline */}
             <div className="bg-[#16181F] rounded-[32px] p-5 shadow-2xl border border-white/[0.08] space-y-3">
-              <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
-                Cột Mốc Phục Hồi Lâm Sàng
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
+                  Cột Mốc Phục Hồi Lâm Sàng
+                </h2>
+                <button
+                  onClick={() => setShowRoadmapModal(true)}
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 font-light flex items-center gap-0.5 transition"
+                >
+                  <span>Xem lộ trình 16–24 tuần</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
               <div className="space-y-2">
                 {(recoveryCase?.milestones || []).map((m) => (
                   <div
@@ -1406,6 +1487,17 @@ export default function AxvyraApp() {
         isOpen={showOnboarding}
         onComplete={handleOnboardingComplete}
         onClose={() => setShowOnboarding(false)}
+      />
+
+      {/* Clinical Recovery Roadmap Modal */}
+      <RoadmapModal
+        isOpen={showRoadmapModal}
+        onClose={() => setShowRoadmapModal(false)}
+        currentDay={rehabStatus.currentDay}
+        currentWeek={rehabStatus.currentWeek}
+        currentPhase={rehabStatus.phase.phase}
+        surgeryDateStr={recoveryCase?.surgeryDate || new Date().toISOString()}
+        surgeryType={rehabStatus.surgeryType}
       />
 
       {/* Auth Modal (Login / Register / Email OTP Verification) - Mandatory until logged in */}
