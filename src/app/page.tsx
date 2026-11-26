@@ -33,7 +33,9 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowRight,
-  ArrowUpRight
+  ArrowUpRight,
+  User,
+  FileText
 } from 'lucide-react';
 import {
   SurgeryType,
@@ -63,7 +65,7 @@ import AuthModal, { AuthUser } from '@/components/AuthModal';
 import RoadmapModal from '@/components/RoadmapModal';
 import { LogOut, LogIn, UserCheck } from 'lucide-react';
 
-type MainTab = 'home' | 'plan' | 'progress' | 'explore';
+type MainTab = 'home' | 'plan' | 'progress' | 'account';
 
 const AVATAR_PALETTES = [
   { bg: 'from-emerald-500 via-teal-600 to-emerald-800', border: 'border-emerald-400/40', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.35)]', text: 'text-white' },
@@ -131,6 +133,7 @@ export default function AxvyraApp() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedArticle, setSelectedArticle] = useState<KnowledgeArticle | null>(null);
+  const [accountSubView, setAccountSubView] = useState<'main' | 'articles'>('main');
 
   // Today's completed individual exercises
   const [completedExerciseIds, setCompletedExerciseIds] = useState<string[]>([]);
@@ -629,9 +632,15 @@ export default function AxvyraApp() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#0C0D11]/30 via-[#0C0D11]/85 to-[#0C0D11]" />
         </div>
 
-        {/* Top App Bar Row: Logo + Auth / Logout + Notification Bell */}
+        {/* Top App Bar Row: Logo + Account / Auth (Notification removed per request) */}
         <div className="relative z-10 px-5 pt-5 pb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowOnboarding(true)}>
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => {
+              setActiveTab('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
             <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             </div>
@@ -643,17 +652,19 @@ export default function AxvyraApp() {
           <div className="flex items-center gap-2.5">
             {authUser ? (
               <button
-                onClick={handleLogout}
-                title="Nhấn để đăng xuất"
-                className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/10 text-slate-200 text-xs font-medium transition"
+                onClick={() => {
+                  setActiveTab('account');
+                  setAccountSubView('main');
+                }}
+                title="Tài khoản cá nhân & Hồ sơ y khoa"
+                className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-white/[0.06] hover:bg-white/10 active:scale-95 backdrop-blur-md border border-white/10 text-slate-200 text-xs font-medium transition"
               >
                 <div
-                  className={`w-4 h-4 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border border-white/20 flex items-center justify-center text-[8.5px] font-bold ${userAvatarStyle.text} shrink-0`}
+                  className={`w-5 h-5 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border border-white/20 flex items-center justify-center text-[9px] font-bold ${userAvatarStyle.text} shrink-0`}
                 >
                   {userInitials.substring(0, 1)}
                 </div>
-                <span className="max-w-[80px] truncate">{userShortName}</span>
-                <LogOut className="w-3 h-3 text-slate-400 ml-0.5" />
+                <span className="max-w-[90px] truncate font-light text-slate-300">{userShortName}</span>
               </button>
             ) : (
               <button
@@ -664,15 +675,6 @@ export default function AxvyraApp() {
                 <span>Đăng nhập</span>
               </button>
             )}
-
-            <button
-              onClick={() => setShowOnboarding(true)}
-              className="relative w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition"
-              aria-label="Thông báo & Hồ sơ"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0C0D11]" />
-            </button>
           </div>
         </div>
 
@@ -682,9 +684,12 @@ export default function AxvyraApp() {
             <div className="flex items-center gap-3.5 mb-1">
               {/* Random / Deterministic Color Avatar with Initial Letters */}
               <div
-                onClick={() => setShowOnboarding(true)}
+                onClick={() => {
+                  setActiveTab('account');
+                  setAccountSubView('main');
+                }}
                 className={`w-11 h-11 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border ${userAvatarStyle.border} ${userAvatarStyle.glow} flex items-center justify-center shrink-0 cursor-pointer shadow-lg select-none active:scale-95 transition-all`}
-                title="Hồ sơ phục hồi"
+                title="Tài khoản cá nhân & Hồ sơ y khoa"
               >
                 <span className={`font-semibold text-sm tracking-wider ${userAvatarStyle.text}`}>
                   {userInitials}
@@ -1458,106 +1463,338 @@ export default function AxvyraApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: EXPLORE (KHÁM PHÁ & KIẾN THỨC - DARK BENTO)                        */}
+        {/* TAB 4: TÀI KHOẢN (ACCOUNT & MEDICAL PROFILE & REFERENCE & LOGOUT)         */}
         {/* ========================================================================= */}
-        {activeTab === 'explore' && (
-          <div className="space-y-3.5 animate-fade-in">
-            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-1">
-              <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
-                Thư viện kiến thức • Y khoa
-              </span>
-              <h1 className="text-2xl font-light text-white tracking-tight mt-0.5">
-                Cẩm Nang Phục Hồi Khớp Gối
-              </h1>
-              <p className="text-xs text-slate-400 font-light mt-0.5">
-                Kiến thức từ chuyên gia phục hồi chức năng và chấn thương chỉnh hình.
-              </p>
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm bài viết, câu hỏi, lưu ý..."
-                className="w-full bg-[#16181F] border border-white/10 focus:border-white/30 rounded-full p-3.5 pl-10 text-xs font-normal text-white placeholder-slate-500 outline-none shadow-md"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            </div>
-
-            {/* Category Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-              {[
-                { id: 'all', label: 'Tất cả' },
-                { id: 'safety', label: 'An toàn & R.I.C.E' },
-                { id: 'protocol', label: 'Phác đồ ACL' },
-                { id: 'nutrition', label: 'Dinh dưỡng' },
-              ].map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`py-2 px-4 rounded-full font-medium whitespace-nowrap transition text-xs ${
-                    selectedCategory === cat.id
-                      ? 'bg-white text-slate-950 shadow-md'
-                      : 'bg-[#16181F] border border-white/10 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Selected Article Detail */}
-            {selectedArticle ? (
-              <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 shadow-2xl space-y-3 text-white">
-                <button
-                  onClick={() => setSelectedArticle(null)}
-                  className="text-xs text-emerald-400 font-medium flex items-center gap-1 hover:underline mb-1"
-                >
-                  &larr; Quay lại danh sách
-                </button>
-                <h2 className="text-lg font-light text-white">
-                  {selectedArticle.title}
-                </h2>
-                <div className="text-[11px] text-slate-400 font-light">
-                  {selectedArticle.readTime}
+        {activeTab === 'account' && (
+          <div className="space-y-4 animate-fade-in pb-12">
+            {accountSubView === 'articles' ? (
+              /* VIEW CON: TÀI LIỆU & CẨM NANG THAM KHẢO Y KHOA */
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      setAccountSubView('main');
+                      setSelectedArticle(null);
+                    }}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1.5 transition active:scale-95 py-1 px-2.5 rounded-full bg-white/[0.04] border border-white/[0.08]"
+                  >
+                    <span>&larr;</span>
+                    <span>Quay lại Tài khoản</span>
+                  </button>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {KNOWLEDGE_ARTICLES.length} tài liệu y khoa
+                  </span>
                 </div>
 
-                {selectedArticle.importantNotice && (
-                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 font-medium">
-                    ⚠️ {selectedArticle.importantNotice}
-                  </div>
-                )}
+                <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-1">
+                  <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+                    Thư viện kiến thức • Y khoa
+                  </span>
+                  <h1 className="text-2xl font-light text-white tracking-tight mt-0.5">
+                    Tài Liệu Tham Khảo Y Khoa
+                  </h1>
+                  <p className="text-xs text-slate-400 font-light mt-0.5">
+                    Cẩm nang chăm sóc chườm lạnh R.I.C.E, an toàn sụn chêm và dinh dưỡng phục hồi.
+                  </p>
+                </div>
 
-                <div className="space-y-2 text-xs text-slate-300 font-light leading-relaxed">
-                  {selectedArticle.content.map((p, i) => (
-                    <p key={i}>{p}</p>
+                {/* Search */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Tìm bài viết, lưu ý, dinh dưỡng..."
+                    className="w-full bg-[#16181F] border border-white/10 focus:border-white/30 rounded-full p-3.5 pl-10 text-xs font-normal text-white placeholder-slate-500 outline-none shadow-md"
+                  />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+
+                {/* Category Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                  {[
+                    { id: 'all', label: 'Tất cả' },
+                    { id: 'safety', label: 'An toàn & R.I.C.E' },
+                    { id: 'protocol', label: 'Phác đồ ACL' },
+                    { id: 'nutrition', label: 'Dinh dưỡng' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`py-2 px-4 rounded-full font-medium whitespace-nowrap transition text-xs ${
+                        selectedCategory === cat.id
+                          ? 'bg-white text-slate-950 shadow-md'
+                          : 'bg-[#16181F] border border-white/10 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
                   ))}
                 </div>
+
+                {/* Selected Article Detail */}
+                {selectedArticle ? (
+                  <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 shadow-2xl space-y-3 text-white">
+                    <button
+                      onClick={() => setSelectedArticle(null)}
+                      className="text-xs text-emerald-400 font-medium flex items-center gap-1 hover:underline mb-1"
+                    >
+                      &larr; Quay lại danh sách bài
+                    </button>
+                    <h2 className="text-lg font-light text-white">
+                      {selectedArticle.title}
+                    </h2>
+                    <div className="text-[11px] text-slate-400 font-light">
+                      {selectedArticle.readTime}
+                    </div>
+
+                    {selectedArticle.importantNotice && (
+                      <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 font-medium">
+                        ⚠️ {selectedArticle.importantNotice}
+                      </div>
+                    )}
+
+                    <div className="space-y-2 text-xs text-slate-300 font-light leading-relaxed">
+                      {selectedArticle.content.map((p, i) => (
+                        <p key={i}>{p}</p>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {filteredArticles.map((art) => (
+                      <div
+                        key={art.id}
+                        onClick={() => setSelectedArticle(art)}
+                        className="p-4 bg-[#16181F] hover:bg-[#1C1F28] border border-white/[0.08] rounded-[28px] cursor-pointer transition shadow-sm space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9.5px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                            {art.category === 'safety' ? 'An toàn' : 'Phác đồ'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-light">{art.readTime}</span>
+                        </div>
+                        <h3 className="text-xs font-medium text-white">
+                          {art.title}
+                        </h3>
+                        <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                          {art.summary}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="space-y-2.5">
-                {filteredArticles.map((art) => (
-                  <div
-                    key={art.id}
-                    onClick={() => setSelectedArticle(art)}
-                    className="p-4 bg-[#16181F] hover:bg-[#1C1F28] border border-white/[0.08] rounded-[28px] cursor-pointer transition shadow-sm space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9.5px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        {art.category === 'safety' ? 'An toàn' : 'Phác đồ'}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-light">{art.readTime}</span>
+              /* VIEW CHÍNH: TỔNG QUAN TÀI KHOẢN & HỒ SƠ Y KHOA */
+              <div className="space-y-3.5">
+                {/* 1. Header Card: Profile Card */}
+                <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 shadow-2xl relative overflow-hidden">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-16 h-16 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border-2 border-white/20 flex items-center justify-center text-xl font-bold ${userAvatarStyle.text} shadow-xl shrink-0`}
+                    >
+                      {userInitials}
                     </div>
-                    <h3 className="text-xs font-medium text-white">
-                      {art.title}
-                    </h3>
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                      {art.summary}
-                    </p>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-medium text-white tracking-tight truncate">
+                          {userDisplayName}
+                        </h2>
+                        {authUser && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            Đã xác thực
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 font-light truncate">
+                        {authUser?.email || 'Tài khoản bệnh nhân AXVYRA'}
+                      </p>
+                      <div className="pt-0.5">
+                        <span className="text-[10.5px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-light">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                          Ngày {rehabStatus.currentDay} sau mổ • GĐ {rehabStatus.phase.phase}/5
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* 2. Medical Profile Card ("Cập nhật hồ sơ y khoa trong tài khoản") */}
+                <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 shadow-2xl space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
+                        Thông tin phác đồ
+                      </span>
+                      <h3 className="text-base font-medium text-white tracking-tight mt-0.5">
+                        Hồ Sơ Y Khoa Của Bạn
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setShowOnboarding(true)}
+                      className="text-xs text-emerald-400 hover:text-emerald-300 font-light flex items-center gap-1 transition"
+                    >
+                      <span>Chỉnh sửa</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Clinical Data Grid */}
+                  <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+                    <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-0.5">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-light">
+                        Ngày phẫu thuật
+                      </span>
+                      <div className="text-xs font-medium text-white">
+                        {recoveryCase?.surgeryDate
+                          ? new Date(recoveryCase.surgeryDate).toLocaleDateString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })
+                          : 'Chưa cập nhật'}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-0.5">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-light">
+                        Chân chấn thương
+                      </span>
+                      <div className="text-xs font-medium text-emerald-400">
+                        {recoveryCase?.surgeryLeg === 'right' ? 'Khớp Gối Phải' : 'Khớp Gối Trái'}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-0.5 col-span-2">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-light">
+                        Phương pháp phẫu thuật
+                      </span>
+                      <div className="text-xs font-medium text-white">
+                        {SURGERY_DETAILS[recoveryCase?.surgeryType || 'ACL_MENISCUS_REPAIR']?.label ||
+                          'Tái tạo DCCT & Khâu sụn chêm'}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-0.5">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-light">
+                        Giới hạn tỳ lực
+                      </span>
+                      <div className="text-xs font-medium text-amber-300">
+                        {recoveryCase?.weightBearingStatus ||
+                          (rehabStatus.isMeniscusRepairStrictLimit
+                            ? 'Không tỳ lực (NWB)'
+                            : 'Tỳ lực 1 phần (PWB)')}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-0.5">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-light">
+                        Góc gập cho phép
+                      </span>
+                      <div className="text-xs font-medium text-white">
+                        ≤ {rehabStatus.allowedFlexionMax}° • Duỗi 0°
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Primary CTA Button to update Medical Profile */}
+                  <button
+                    onClick={() => setShowOnboarding(true)}
+                    className="w-full py-3 px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.99] border border-white/10 text-white font-medium text-xs flex items-center justify-between transition mt-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-emerald-400" />
+                      <span>Cập nhật hồ sơ y khoa</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </button>
+                </div>
+
+                {/* 3. Link Section: "Tham khảo" (Reference library link inside account) */}
+                <div
+                  onClick={() => setAccountSubView('articles')}
+                  className="p-4 rounded-[28px] bg-[#16181F] border border-white/[0.08] hover:border-emerald-500/30 cursor-pointer transition shadow-xl group space-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                        <BookOpen className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium text-white group-hover:text-emerald-300 transition">
+                            Tài liệu & Cẩm nang tham khảo
+                          </h4>
+                          <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.2 rounded-full">
+                            {KNOWLEDGE_ARTICLES.length} bài
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-light mt-0.5">
+                          Quy tắc chườm đá R.I.C.E, an toàn sụn chêm & dinh dưỡng liền gân
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition shrink-0 ml-2" />
+                  </div>
+                </div>
+
+                {/* 4. Link Section: "Lộ trình 5 giai đoạn" */}
+                <div
+                  onClick={() => setShowRoadmapModal(true)}
+                  className="p-4 rounded-[28px] bg-[#16181F] border border-white/[0.08] hover:border-cyan-500/30 cursor-pointer transition shadow-xl group space-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                        <Compass className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium text-white group-hover:text-cyan-300 transition">
+                            Lộ trình hồi phục chuẩn y khoa
+                          </h4>
+                          <span className="text-[9.5px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.2 rounded-full">
+                            5 Giai đoạn
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-light mt-0.5">
+                          Chi tiết từng cột mốc, tiêu chuẩn bỏ nạng và ngày dự kiến đạt mốc
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition shrink-0 ml-2" />
+                  </div>
+                </div>
+
+                {/* 5. Logout Button ("Đăng xuất trong tài khoản") */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full p-4 rounded-[28px] bg-rose-500/[0.06] hover:bg-rose-500/[0.12] active:scale-[0.99] border border-rose-500/20 text-rose-300 flex items-center justify-between transition group cursor-pointer shadow-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
+                      <LogOut className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-xs font-semibold text-rose-300">
+                        Đăng xuất tài khoản
+                      </h4>
+                      <p className="text-[11px] text-rose-400/70 font-light">
+                        {authUser?.email ? `Đang đăng nhập: ${authUser.email}` : 'Thoát khỏi phiên làm việc hiện tại'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-rose-400/60 group-hover:translate-x-0.5 transition" />
+                </button>
+
+                {/* Version / Clinical notice */}
+                <div className="text-center pt-2">
+                  <p className="text-[10px] text-slate-500 font-light">
+                    AXVYRA Knee Rehabilitation System • v1.0.4 Medical AI
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -1665,18 +1902,21 @@ export default function AxvyraApp() {
             {activeTab === 'progress' && <span className="text-xs font-medium tracking-tight whitespace-nowrap">Tiến độ</span>}
           </button>
 
-          {/* Tab 4: Khám phá */}
+          {/* Tab 4: Tài khoản */}
           <button
-            onClick={() => setActiveTab('explore')}
-            aria-label="Khám phá kiến thức"
+            onClick={() => {
+              setActiveTab('account');
+              setAccountSubView('main');
+            }}
+            aria-label="Tài khoản & Hồ sơ"
             className={`flex items-center gap-2 py-2 rounded-full text-xs transition-all shrink-0 whitespace-nowrap ${
-              activeTab === 'explore'
+              activeTab === 'account'
                 ? 'bg-white text-slate-950 font-medium px-4 shadow-lg'
                 : 'text-slate-400 hover:text-white px-3'
             }`}
           >
-            <Compass className="w-4 h-4 shrink-0" />
-            {activeTab === 'explore' && <span className="text-xs font-medium tracking-tight whitespace-nowrap">Khám phá</span>}
+            <User className="w-4 h-4 shrink-0" />
+            {activeTab === 'account' && <span className="text-xs font-medium tracking-tight whitespace-nowrap">Tài khoản</span>}
           </button>
         </nav>
 
