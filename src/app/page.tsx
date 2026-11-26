@@ -632,7 +632,7 @@ export default function AxvyraApp() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#0C0D11]/30 via-[#0C0D11]/85 to-[#0C0D11]" />
         </div>
 
-        {/* Top App Bar Row: Logo + Account / Auth (Notification removed per request) */}
+        {/* Top App Bar Row: Logo (Clean & minimal, account link removed) */}
         <div className="relative z-10 px-5 pt-5 pb-2 flex items-center justify-between">
           <div
             className="flex items-center gap-2 cursor-pointer"
@@ -649,33 +649,15 @@ export default function AxvyraApp() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {authUser ? (
-              <button
-                onClick={() => {
-                  setActiveTab('account');
-                  setAccountSubView('main');
-                }}
-                title="Tài khoản cá nhân & Hồ sơ y khoa"
-                className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-white/[0.06] hover:bg-white/10 active:scale-95 backdrop-blur-md border border-white/10 text-slate-200 text-xs font-medium transition"
-              >
-                <div
-                  className={`w-5 h-5 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border border-white/20 flex items-center justify-center text-[9px] font-bold ${userAvatarStyle.text} shrink-0`}
-                >
-                  {userInitials.substring(0, 1)}
-                </div>
-                <span className="max-w-[90px] truncate font-light text-slate-300">{userShortName}</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-1.5 py-1.5 px-4 rounded-full bg-white hover:bg-slate-100 text-slate-950 text-xs font-medium transition shadow-lg shadow-white/5"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Đăng nhập</span>
-              </button>
-            )}
-          </div>
+          {!authUser && (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="flex items-center gap-1.5 py-1.5 px-4 rounded-full bg-white hover:bg-slate-100 text-slate-950 text-xs font-medium transition shadow-lg shadow-white/5"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Đăng nhập</span>
+            </button>
+          )}
         </div>
 
         {/* Home Specific Greeting & Headline (Screen 2 Inspiration) */}
@@ -684,12 +666,7 @@ export default function AxvyraApp() {
             <div className="flex items-center gap-3.5 mb-1">
               {/* Random / Deterministic Color Avatar with Initial Letters */}
               <div
-                onClick={() => {
-                  setActiveTab('account');
-                  setAccountSubView('main');
-                }}
-                className={`w-11 h-11 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border ${userAvatarStyle.border} ${userAvatarStyle.glow} flex items-center justify-center shrink-0 cursor-pointer shadow-lg select-none active:scale-95 transition-all`}
-                title="Tài khoản cá nhân & Hồ sơ y khoa"
+                className={`w-11 h-11 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border ${userAvatarStyle.border} ${userAvatarStyle.glow} flex items-center justify-center shrink-0 shadow-lg select-none`}
               >
                 <span className={`font-semibold text-sm tracking-wider ${userAvatarStyle.text}`}>
                   {userInitials}
