@@ -8,8 +8,10 @@ import { Exercise } from '@/data/rehabProtocols';
 interface WorkoutPlayerProps {
   exercises: Exercise[];
   initialExerciseIndex?: number;
+  completedExerciseIds?: string[];
   onClose: () => void;
   onFinishedWorkout?: () => void;
+  onExerciseCompleted?: (exerciseId: string, index: number) => void;
 }
 
 type WorkoutState = 'PREPARE' | 'HOLD' | 'REST' | 'SET_REST' | 'FINISHED';
@@ -17,8 +19,10 @@ type WorkoutState = 'PREPARE' | 'HOLD' | 'REST' | 'SET_REST' | 'FINISHED';
 export default function WorkoutPlayer({
   exercises,
   initialExerciseIndex = 0,
+  completedExerciseIds = [],
   onClose,
   onFinishedWorkout,
+  onExerciseCompleted,
 }: WorkoutPlayerProps) {
   const [exerciseIndex, setExerciseIndex] = useState(initialExerciseIndex);
   const currentExercise = exercises[exerciseIndex] || exercises[0];
@@ -183,7 +187,12 @@ export default function WorkoutPlayer({
           playBeep(659.25, 0.25);
           speakVoice(`Hoàn thành hiệp ${currentSet}. Nghỉ giữa hiệp!`);
         } else {
-          // Completed all sets for this exercise
+          // Completed all sets for this exercise -> Auto-check & auto-next
+          playBeep(880, 0.25);
+          speakVoice(`Hoàn thành bài ${currentExercise.vietnameseName || currentExercise.name}!`);
+          if (onExerciseCompleted) {
+            onExerciseCompleted(currentExercise.id, exerciseIndex);
+          }
           if (exerciseIndex < exercises.length - 1) {
             setExerciseIndex((idx) => idx + 1);
           } else {
@@ -212,6 +221,20 @@ export default function WorkoutPlayer({
 
   const handleSkipRep = () => {
     handleTransition();
+  };
+
+  const handleCompleteCurrentExercise = () => {
+    playBeep(880, 0.25);
+    speakVoice(`Hoàn thành bài ${currentExercise.vietnameseName || currentExercise.name}!`);
+    if (onExerciseCompleted) {
+      onExerciseCompleted(currentExercise.id, exerciseIndex);
+    }
+    if (exerciseIndex < exercises.length - 1) {
+      setExerciseIndex((idx) => idx + 1);
+    } else {
+      setWorkoutState('FINISHED');
+      setIsActive(false);
+    }
   };
 
   const handleSkipExercise = () => {
@@ -292,10 +315,30 @@ export default function WorkoutPlayer({
             <X className="w-6 h-6" />
           </button>
           <div>
-            <div className="text-xs font-medium text-emerald-400 uppercase tracking-wider">
-              Bài {exerciseIndex + 1}/{exercises.length}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                Bài {exerciseIndex + 1}/{exercises.length}
+              </span>
+              <div className="flex items-center gap-1">
+                {exercises.map((ex, idx) => {
+                  const isDone = (completedExerciseIds || []).includes(ex.id) || idx < exerciseIndex;
+                  const isCurrent = idx === exerciseIndex;
+                  return (
+                    <div
+                      key={ex.id || idx}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        isCurrent
+                          ? 'w-5 bg-emerald-400'
+                          : isDone
+                          ? 'w-2 bg-emerald-500/70'
+                          : 'w-2 bg-white/20'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
             </div>
-            <h1 className="text-sm font-semibold text-white line-clamp-1">
+            <h1 className="text-sm font-semibold text-white line-clamp-1 mt-0.5">
               {currentExercise.vietnameseName}
             </h1>
           </div>
@@ -479,6 +522,15 @@ export default function WorkoutPlayer({
               className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 transition"
             >
               <SkipForward className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={handleCompleteCurrentExercise}
+              title="Đánh dấu hoàn thành bài này và sang bài tiếp"
+              className="py-3 px-3.5 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 whitespace-nowrap"
+            >
+              <Check className="w-4 h-4 stroke-[3]" />
+              <span className="hidden xs:inline sm:inline">Xong bài</span>
             </button>
           </div>
         </div>

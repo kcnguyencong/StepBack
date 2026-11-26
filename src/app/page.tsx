@@ -132,6 +132,14 @@ export default function AxvyraApp() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedArticle, setSelectedArticle] = useState<KnowledgeArticle | null>(null);
 
+  // Today's completed individual exercises
+  const [completedExerciseIds, setCompletedExerciseIds] = useState<string[]>([]);
+
+  const getTodayExerciseStorageKey = () => {
+    const today = new Date();
+    return `axvyra_exercises_${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+
   // Load state on mount
   useEffect(() => {
     setMounted(true);
@@ -192,6 +200,19 @@ export default function AxvyraApp() {
     } catch {
       setShowAuthModal(true);
     }
+
+    // Load today's completed exercises from local storage
+    try {
+      const today = new Date();
+      const storageKey = `axvyra_exercises_${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const savedEx = localStorage.getItem(storageKey);
+      if (savedEx) {
+        const parsed = JSON.parse(savedEx);
+        if (Array.isArray(parsed)) {
+          setCompletedExerciseIds(parsed);
+        }
+      }
+    } catch {}
 
     // Sync with Neon Serverless DB
     AxvyraStore.syncWithServer().then((serverCase) => {
@@ -382,6 +403,47 @@ export default function AxvyraApp() {
       notes: 'Đã tự tập hoàn thành theo phác đồ',
     });
     if (updated) setRecoveryCase({ ...updated });
+
+    // Mark all exercises as done for today
+    if (rehabStatus.exercises.length > 0) {
+      const allIds = rehabStatus.exercises.map((e) => e.id);
+      setCompletedExerciseIds(allIds);
+      try {
+        localStorage.setItem(getTodayExerciseStorageKey(), JSON.stringify(allIds));
+      } catch {}
+    }
+  };
+
+  const handleToggleExerciseDone = (exerciseId: string) => {
+    setCompletedExerciseIds((prev) => {
+      const next = prev.includes(exerciseId)
+        ? prev.filter((id) => id !== exerciseId)
+        : [...prev, exerciseId];
+      try {
+        localStorage.setItem(getTodayExerciseStorageKey(), JSON.stringify(next));
+      } catch {}
+
+      // If all exercises are now completed, automatically mark the day's session as completed!
+      if (rehabStatus.exercises.length > 0 && next.length === rehabStatus.exercises.length && !isTodayCompleted) {
+        handleQuickMarkTodayCompleted();
+      }
+      return next;
+    });
+  };
+
+  const handleExerciseCompletedInWorkout = (exerciseId: string) => {
+    setCompletedExerciseIds((prev) => {
+      if (prev.includes(exerciseId)) return prev;
+      const next = [...prev, exerciseId];
+      try {
+        localStorage.setItem(getTodayExerciseStorageKey(), JSON.stringify(next));
+      } catch {}
+
+      if (rehabStatus.exercises.length > 0 && next.length === rehabStatus.exercises.length && !isTodayCompleted) {
+        handleQuickMarkTodayCompleted();
+      }
+      return next;
+    });
   };
 
   const handleSaveQuickLog = () => {
@@ -471,6 +533,17 @@ export default function AxvyraApp() {
   }, [recoveryCase?.sessionFeedbacks]);
 
   const isTodayCompleted = todayFeedbacks.length > 0 || (recoveryCase?.dailySessions?.[0]?.completed ?? false);
+
+  // Sync today's completed exercises if whole session was marked completed
+  useEffect(() => {
+    if (isTodayCompleted && rehabStatus.exercises.length > 0 && completedExerciseIds.length === 0) {
+      const allIds = rehabStatus.exercises.map((e) => e.id);
+      setCompletedExerciseIds(allIds);
+      try {
+        localStorage.setItem(getTodayExerciseStorageKey(), JSON.stringify(allIds));
+      } catch {}
+    }
+  }, [isTodayCompleted, rehabStatus.exercises, completedExerciseIds.length]);
   const latestTodayFeedback = todayFeedbacks[0] || (isTodayCompleted ? recoveryCase?.sessionFeedbacks?.[0] : null);
 
   // Tính 7 ngày trong tuần phục hồi hiện tại (chuẩn y khoa theo chu kỳ ngày sau mổ)
@@ -862,48 +935,115 @@ export default function AxvyraApp() {
                     </span>
                   </div>
 
+                  {/* Exercise Progress Bar */}
+                  <div className="space-y-1.5 pt-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400 font-light flex items-center gap-1.5">
+                        <span>Tiến độ bài tập hôm nay:</span>
+                        <strong className="text-white font-medium">
+                          {rehabStatus.exercises.filter((e) => completedExerciseIds.includes(e.id)).length}/
+                          {rehabStatus.exercises.length} bài
+                        </strong>
+                      </span>
+                      <span className="text-emerald-400 font-mono font-medium text-[11px]">
+                        {Math.round(
+                          (rehabStatus.exercises.filter((e) => completedExerciseIds.includes(e.id)).length /
+                            (rehabStatus.exercises.length || 1)) *
+                            100
+                        )}
+                        %
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 rounded-full"
+                        style={{
+                          width: `${Math.round(
+                            (rehabStatus.exercises.filter((e) => completedExerciseIds.includes(e.id)).length /
+                              (rehabStatus.exercises.length || 1)) *
+                              100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   {/* Vertical Exercise Timeline */}
                   <div className="relative pl-6 pt-2 space-y-3.5 before:content-[''] before:absolute before:left-[11px] before:top-4 before:bottom-7 before:w-[2px] before:bg-white/[0.08]">
                     {/* Các bài tập phục hồi chức năng trong ngày */}
-                    {rehabStatus.exercises.map((item, idx) => (
-                      <div key={item.id} className="relative group/item">
-                        {/* Timeline Step Node */}
-                        <div
-                          className={`absolute -left-6 top-1 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold z-10 transition ${
-                            isTodayCompleted
-                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                              : 'bg-[#16181F] border-white/20 text-slate-300'
-                          }`}
-                        >
-                          {isTodayCompleted ? <Check className="w-3 h-3 stroke-[3]" /> : idx + 1}
-                        </div>
+                    {rehabStatus.exercises.map((item, idx) => {
+                      const isDone = completedExerciseIds.includes(item.id);
 
-                        {/* Exercise Item Card */}
-                        <div
-                          onClick={() => handleStartTodaySession(undefined, idx)}
-                          className="p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-between gap-3 cursor-pointer transition"
-                        >
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-xs font-semibold text-white tracking-tight">
-                                {item.name}
-                              </h4>
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                {item.sets} hiệp × {item.reps} lần
-                              </span>
+                      return (
+                        <div key={item.id} className="relative group/item">
+                          {/* Timeline Step Node Button (interactive checkmark toggle) */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleExerciseDone(item.id);
+                            }}
+                            title={isDone ? 'Đã xong • Nhấn để bỏ chọn' : 'Nhấn để đánh dấu đã tập xong'}
+                            className={`absolute -left-6 top-1 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold z-10 transition active:scale-90 ${
+                              isDone
+                                ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                                : 'bg-[#16181F] border-white/20 text-slate-400 hover:border-emerald-400/60 hover:text-white'
+                            }`}
+                          >
+                            {isDone ? <Check className="w-3 h-3 stroke-[3]" /> : idx + 1}
+                          </button>
+
+                          {/* Exercise Item Card */}
+                          <div
+                            onClick={() => handleStartTodaySession(undefined, idx)}
+                            className={`p-3 rounded-2xl border flex items-center justify-between gap-3 cursor-pointer transition ${
+                              isDone
+                                ? 'bg-emerald-500/[0.05] hover:bg-emerald-500/[0.08] border-emerald-500/20'
+                                : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.06]'
+                            }`}
+                          >
+                            <div className="space-y-0.5 min-w-0 pr-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4
+                                  className={`text-xs font-semibold tracking-tight ${
+                                    isDone ? 'text-emerald-300' : 'text-white'
+                                  }`}
+                                >
+                                  {item.name}
+                                </h4>
+                                {isDone ? (
+                                  <span className="text-[9.5px] font-medium text-emerald-400 bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.2 rounded-full whitespace-nowrap flex items-center gap-0.5">
+                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                    Đã xong
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                                    {item.sets} hiệp × {item.reps} lần
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 font-light line-clamp-1">
+                                {item.targetGoal}
+                              </p>
                             </div>
-                            <p className="text-[11px] text-slate-400 font-light line-clamp-1">
-                              {item.targetGoal}
-                            </p>
-                          </div>
 
-                          <div className="flex items-center gap-1 text-slate-500 group-hover/item:text-emerald-400 transition shrink-0">
-                            <span className="text-[10px] font-medium hidden sm:inline">Tập bài này</span>
-                            <Play className="w-3 h-3 fill-current" />
+                            <div className="flex items-center gap-1 shrink-0">
+                              {isDone ? (
+                                <span className="text-[10px] font-medium text-slate-400 group-hover/item:text-emerald-300 flex items-center gap-1 transition">
+                                  <span className="hidden sm:inline">Tập lại</span>
+                                  <RotateCcw className="w-3 h-3" />
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-medium text-slate-400 group-hover/item:text-emerald-400 flex items-center gap-1 transition">
+                                  <span className="hidden sm:inline">Tập bài này</span>
+                                  <Play className="w-3 h-3 fill-current" />
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {/* BƯỚC CUỐI CÙNG TRÊN TIMELINE: CHƯỜM ĐÁ LẠNH 15 PHÚT */}
                     <div className="relative">
@@ -1429,8 +1569,10 @@ export default function AxvyraApp() {
         <WorkoutPlayer
           exercises={activeWorkoutExercises}
           initialExerciseIndex={startExerciseIdx}
+          completedExerciseIds={completedExerciseIds}
           onClose={() => setActiveWorkoutExercises(null)}
           onFinishedWorkout={handleWorkoutFinished}
+          onExerciseCompleted={handleExerciseCompletedInWorkout}
         />
       )}
 
