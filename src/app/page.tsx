@@ -1133,46 +1133,6 @@ export default function AxvyraApp() {
                   </div>
                 </div>
 
-                {/* =================================================================== */}
-                {/* KHỐI 4: THẺ CHUYÊN GIA PHỤC HỒI CHỨC NĂNG (SCREEN 3 TRAINER STYLE) */}
-                {/* =================================================================== */}
-                <div
-                  onClick={() => setShowOnboarding(true)}
-                  className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-4 flex items-center justify-between shadow-2xl relative overflow-hidden group cursor-pointer hover:border-white/20 transition"
-                >
-                  <div className="space-y-1.5 z-10 pr-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
-                        Chuyên gia Phục hồi chức năng
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="text-base font-light text-white tracking-tight">
-                        Đồng hành giám sát 1-1
-                      </h4>
-                      <p className="text-xs text-slate-400 font-light mt-0.5">
-                        Kiểm soát góc gập & phác đồ chuẩn y khoa
-                      </p>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full mt-1">
-                      Cập nhật phác đồ
-                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition" />
-                    </span>
-                  </div>
-
-                  {/* Visual of Therapist gently guiding the knee */}
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden border border-white/10 relative shrink-0 shadow-lg">
-                    <Image
-                      src="/images/rehab-hero.jpg"
-                      alt="Chuyên gia PHCN"
-                      fill
-                      className="object-cover object-center group-hover:scale-105 transition duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#16181F]/70 via-transparent to-transparent" />
-                  </div>
-                </div>
-
                 {/* Red Flags / Emergency Warning Drawer */}
                 <div className="pt-1">
                   <button
@@ -1588,15 +1548,15 @@ export default function AxvyraApp() {
                   </div>
                 </div>
 
-                {/* 2. Medical Profile Card ("Cập nhật hồ sơ y khoa trong tài khoản") */}
+                {/* 2. Medical Profile Card ("Cập nhật hồ sơ & phác đồ y khoa trong tài khoản") */}
                 <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 shadow-2xl space-y-3.5">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
-                        Thông tin phác đồ
+                        Phác đồ điều trị
                       </span>
                       <h3 className="text-base font-medium text-white tracking-tight mt-0.5">
-                        Hồ Sơ Y Khoa Của Bạn
+                        Hồ Sơ Y Khoa & Phác Đồ Phục Hồi
                       </h3>
                     </div>
                     <button
@@ -1673,7 +1633,7 @@ export default function AxvyraApp() {
                   >
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-emerald-400" />
-                      <span>Cập nhật hồ sơ y khoa</span>
+                      <span>Cập nhật phác đồ & hồ sơ y khoa</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </button>
