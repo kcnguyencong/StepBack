@@ -660,36 +660,26 @@ export default function AxvyraApp() {
           )}
         </div>
 
-        {/* Home Specific Greeting & Headline (Screen 2 Inspiration) */}
+        {/* Home Specific Headline: Clean & Direct */}
         {activeTab === 'home' && (
-          <div className="relative z-10 px-5 pt-3 pb-3">
-            <div className="flex items-center gap-3.5 mb-1">
-              {/* Random / Deterministic Color Avatar with Initial Letters */}
-              <div
-                className={`w-11 h-11 rounded-full bg-gradient-to-br ${userAvatarStyle.bg} border ${userAvatarStyle.border} ${userAvatarStyle.glow} flex items-center justify-center shrink-0 shadow-lg select-none`}
-              >
-                <span className={`font-semibold text-sm tracking-wider ${userAvatarStyle.text}`}>
-                  {userInitials}
-                </span>
-              </div>
+          <div className="relative z-10 px-5 pt-2 pb-3">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-slate-400 font-light tracking-wide">
-                    Xin chào, {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bạn')} ☺
-                  </p>
-                  <button
-                    onClick={() => setShowRoadmapModal(true)}
-                    title="Xem toàn bộ lộ trình 16 tuần"
-                    className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full hover:bg-emerald-500/20 transition"
-                  >
-                    <span>GĐ {rehabStatus.phase.phase}</span>
-                    <ChevronRight className="w-2.5 h-2.5" />
-                  </button>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-light text-white tracking-tight leading-tight mt-0.5">
+                <h1 className="text-2xl sm:text-3xl font-light text-white tracking-tight leading-tight">
                   Kế hoạch Ngày {rehabStatus.currentDay} sau mổ
                 </h1>
+                <p className="text-xs text-slate-400 font-light mt-0.5">
+                  Tuần {rehabStatus.currentWeek} • GĐ {rehabStatus.phase.phase}/5: {rehabStatus.phase.title.split('&')[0].trim()}
+                </p>
               </div>
+              <button
+                onClick={() => setShowRoadmapModal(true)}
+                title="Xem toàn bộ lộ trình 16 tuần"
+                className="inline-flex items-center gap-1 text-[10.5px] font-medium text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-2.5 py-1 rounded-full transition shrink-0"
+              >
+                <span>GĐ {rehabStatus.phase.phase}/5</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
             </div>
           </div>
         )}
