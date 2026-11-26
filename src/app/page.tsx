@@ -797,9 +797,9 @@ export default function AxvyraApp() {
                     onClick={() => setShowRoadmapModal(true)}
                     className="py-2.5 px-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-between text-xs cursor-pointer transition group"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                      <span className="text-slate-300 font-light truncate max-w-[200px] sm:max-w-[260px]">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] shrink-0" />
+                      <span className="text-slate-300 font-light truncate">
                         GĐ {rehabStatus.phase.phase}/5: {rehabStatus.phase.title}
                       </span>
                     </div>
@@ -808,114 +808,52 @@ export default function AxvyraApp() {
                       <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
-
-                  {/* Mini Roadmap Stepper (5 Clinical Stages) */}
-                  <div className="pt-2 border-t border-white/[0.06] space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[10.5px] uppercase font-light text-slate-400 tracking-wider">
-                        5 Cột mốc lộ trình hồi phục
-                      </span>
-                      <button
-                        onClick={() => setShowRoadmapModal(true)}
-                        className="text-[10.5px] text-emerald-400 hover:text-emerald-300 font-light flex items-center gap-0.5 transition"
-                      >
-                        <span>Chi tiết từng mốc</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-5 gap-1.5 pt-0.5">
-                      {[
-                        { id: 1, label: 'Hậu phẫu', sub: 'Tuần 1–2' },
-                        { id: 2, label: 'Bỏ nạng', sub: 'Tuần 3–6' },
-                        { id: 3, label: 'Cơ bắp', sub: 'Tuần 7–12' },
-                        { id: 4, label: 'Chạy bộ', sub: 'Tuần 13–24' },
-                        { id: 5, label: 'Thể thao', sub: 'Tháng 6+' },
-                      ].map((step) => {
-                        const isCurrent = step.id === rehabStatus.phase.phase;
-                        const isPast = step.id < rehabStatus.phase.phase;
-
-                        return (
-                          <div
-                            key={step.id}
-                            onClick={() => setShowRoadmapModal(true)}
-                            className={`p-2 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition select-none ${
-                              isCurrent
-                                ? 'bg-emerald-500/15 border border-emerald-500/30 text-white shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-400/50 scale-[1.02]'
-                                : isPast
-                                ? 'bg-white/[0.03] border border-white/[0.06] text-slate-300 hover:bg-white/[0.06]'
-                                : 'bg-white/[0.015] border border-white/[0.03] text-slate-500 hover:bg-white/[0.04]'
-                            }`}
-                          >
-                            <div
-                              className={`w-5 h-5 rounded-full flex items-center justify-center mb-1 text-[10px] font-bold ${
-                                isCurrent
-                                  ? 'bg-emerald-500 text-white shadow-[0_0_8px_rgba(52,211,153,0.8)]'
-                                  : isPast
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'bg-white/10 text-slate-500'
-                              }`}
-                            >
-                              {isPast ? <Check className="w-3 h-3 stroke-[3]" /> : step.id}
-                            </div>
-                            <span className="text-[10px] font-medium leading-tight truncate w-full">
-                              {step.label}
-                            </span>
-                            <span className="text-[8.5px] text-slate-500 font-light truncate w-full mt-0.5">
-                              {step.sub}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
 
                 {/* =================================================================== */}
                 {/* KHỐI 2: TIMELINE BUỔI TẬP HÔM NAY (DAILY WORKOUT TIMELINE)          */}
                 {/* =================================================================== */}
                 <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-4 shadow-2xl relative overflow-hidden group">
-                  {/* Card Header: Title + Action Button */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Ngày {rehabStatus.currentDay} sau mổ
+                  {/* Card Header: Title + Subtitle */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Ngày {rehabStatus.currentDay} sau mổ
+                      </span>
+                      {isTodayCompleted ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          Đã tập ({todayFeedbacks.length || 1} cữ)
                         </span>
-                        {isTodayCompleted ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                            Đã tập ({todayFeedbacks.length || 1} cữ)
-                          </span>
-                        ) : (
-                          <span className="text-[11px] font-medium text-slate-400 bg-white/[0.04] border border-white/[0.08] px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                            ~30 phút (Tập + Chườm đá)
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-xl font-medium text-white leading-snug tracking-tight">
-                        Lịch Trình Buổi Tập Hôm Nay
-                      </h3>
-                      <p className="text-xs text-slate-400 font-light mt-0.5">
-                        Thực hiện lần lượt các bài theo thứ tự, kết thúc bằng chườm đá lạnh
-                      </p>
+                      ) : (
+                        <span className="text-[11px] font-medium text-slate-400 bg-white/[0.04] border border-white/[0.08] px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                          ~30 phút (Tập + Chườm đá)
+                        </span>
+                      )}
                     </div>
-
-                    <button
-                      onClick={() => handleStartTodaySession()}
-                      className="py-3 px-5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-semibold text-xs flex items-center gap-1.5 shadow-xl whitespace-nowrap transition shrink-0 mt-1"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>{isTodayCompleted ? 'Tập cữ tiếp' : 'Bắt đầu cữ tập'}</span>
-                    </button>
+                    <h3 className="text-xl font-medium text-white tracking-tight">
+                      Lịch tập hôm nay
+                    </h3>
+                    <p className="text-xs text-slate-400 font-light">
+                      Thực hiện lần lượt các bài theo thứ tự, kết thúc bằng chườm đá lạnh
+                    </p>
                   </div>
+
+                  {/* Primary Action Button: Full-width, high contrast, thumb-friendly */}
+                  <button
+                    onClick={() => handleStartTodaySession()}
+                    className="w-full py-3.5 px-6 rounded-2xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-semibold text-sm flex items-center justify-center gap-2 shadow-xl transition"
+                  >
+                    <Play className="w-4 h-4 fill-current text-slate-950" />
+                    <span>{isTodayCompleted ? 'Bắt đầu cữ tập tiếp theo' : 'Bắt đầu cữ tập hôm nay'}</span>
+                  </button>
 
                   {/* Safety & Angle Reminder Capsule */}
                   <div className="py-2.5 px-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-slate-300 font-light truncate max-w-[220px]">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      <span className="text-slate-300 font-light truncate">
                         Góc an toàn: <strong>≤ {rehabStatus.allowedFlexionMax}°</strong> • Duỗi thẳng 0°
                       </span>
                     </div>
