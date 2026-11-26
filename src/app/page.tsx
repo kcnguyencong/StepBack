@@ -112,6 +112,7 @@ export default function AxvyraApp() {
 
   // Workout Session State
   const [activeWorkoutExercises, setActiveWorkoutExercises] = useState<Exercise[] | null>(null);
+  const [startExerciseIdx, setStartExerciseIdx] = useState<number>(0);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [feedbackSessionTitle, setFeedbackSessionTitle] = useState<string>('');
@@ -323,10 +324,11 @@ export default function AxvyraApp() {
   };
 
   // Start Session with guided interval timer
-  const handleStartTodaySession = (session?: DailyExerciseSession) => {
-    const sessionTitle = session?.title || `Buổi tập Phục hồi • ${rehabStatus.phase.title}`;
+  const handleStartTodaySession = (session?: DailyExerciseSession, exerciseIdx = 0) => {
+    const sessionTitle = session?.title || `Buổi tập Phục hồi • Ngày ${rehabStatus.currentDay}`;
     setActiveSessionId(session?.id || `ses-${Date.now()}`);
     setFeedbackSessionTitle(sessionTitle);
+    setStartExerciseIdx(exerciseIdx);
 
     // Wire up clinical exercises from getRehabStatus
     const exercisesForPlayer: Exercise[] = rehabStatus.exercises.map((e) => ({
@@ -616,11 +618,21 @@ export default function AxvyraApp() {
                 </span>
               </div>
               <div>
-                <p className="text-xs text-slate-400 font-light tracking-wide">
-                  Xin chào, {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bạn')} ☺
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-slate-400 font-light tracking-wide">
+                    Xin chào, {authUser ? userDisplayName : (recoveryCase?.patientName || 'Bạn')} ☺
+                  </p>
+                  <button
+                    onClick={() => setShowRoadmapModal(true)}
+                    title="Xem toàn bộ lộ trình 16 tuần"
+                    className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full hover:bg-emerald-500/20 transition"
+                  >
+                    <span>GĐ {rehabStatus.phase.phase}</span>
+                    <ChevronRight className="w-2.5 h-2.5" />
+                  </button>
+                </div>
                 <h1 className="text-2xl sm:text-3xl font-light text-white tracking-tight leading-tight mt-0.5">
-                  Lộ trình hồi phục của bạn
+                  Kế hoạch Ngày {rehabStatus.currentDay} sau mổ
                 </h1>
               </div>
             </div>
@@ -860,117 +872,165 @@ export default function AxvyraApp() {
                 </div>
 
                 {/* =================================================================== */}
-                {/* KHỐI 2: HERO ACTION CARD (DARK BENTO MEDITATION STYLE)             */}
+                {/* KHỐI 2: TIMELINE BUỔI TẬP HÔM NAY (DAILY WORKOUT TIMELINE)          */}
                 {/* =================================================================== */}
                 <div className="bg-[#16181F] border border-white/[0.08] rounded-[32px] p-5 space-y-4 shadow-2xl relative overflow-hidden group">
-                  {/* Card Header: Title + Arrow */}
-                  <div className="flex items-start justify-between">
+                  {/* Card Header: Title + Action Button */}
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[11px] font-medium text-slate-300 bg-white/[0.06] border border-white/10 px-3 py-1 rounded-full whitespace-nowrap">
-                          GĐ {rehabStatus.phase.phase} • 14 ngày đầu
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          Ngày {rehabStatus.currentDay} sau mổ
                         </span>
                         {isTodayCompleted ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap">
                             <Check className="w-3 h-3 stroke-[3]" />
                             Đã tập ({todayFeedbacks.length || 1} cữ)
                           </span>
                         ) : (
-                          <span className="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap">
-                            15 phút
+                          <span className="text-[11px] font-medium text-slate-400 bg-white/[0.04] border border-white/[0.08] px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                            ~30 phút (Tập + Chườm đá)
                           </span>
                         )}
-                        <span className="text-[11px] font-light text-slate-400 bg-white/[0.04] border border-white/[0.06] px-3 py-1 rounded-full whitespace-nowrap">
-                          {rehabStatus.phase.phase === 1 ? '3–4 cữ/ngày' : '2 cữ/ngày'}
-                        </span>
                       </div>
-                      <h3 className="text-xl font-light text-white leading-snug tracking-tight">
-                        {rehabStatus.phase.title}
+                      <h3 className="text-xl font-medium text-white leading-snug tracking-tight">
+                        Lịch Trình Buổi Tập Hôm Nay
                       </h3>
                       <p className="text-xs text-slate-400 font-light mt-0.5">
-                        {rehabStatus.exercises.length} bài tập phục hồi chức năng
+                        Thực hiện lần lượt các bài theo thứ tự, kết thúc bằng chườm đá lạnh
                       </p>
                     </div>
+
                     <button
-                      onClick={() => setActiveTab('plan')}
-                      className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:border-white/20 transition shrink-0"
+                      onClick={() => handleStartTodaySession()}
+                      className="py-3 px-5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-semibold text-xs flex items-center gap-1.5 shadow-xl whitespace-nowrap transition shrink-0 mt-1"
                     >
-                      <ArrowUpRight className="w-4 h-4" />
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>{isTodayCompleted ? 'Tập cữ tiếp' : 'Bắt đầu cữ tập'}</span>
                     </button>
                   </div>
 
-                  {/* Visual Ruler / Audio-wave Ticks (Screen 2 Meditation Style) */}
-                  <div className="py-3 px-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-slate-400 font-light">Góc gập an toàn:</span>
-                      </div>
-                      <span className="text-white font-medium text-sm">
-                        ≤ {rehabStatus.allowedFlexionMax}°
+                  {/* Safety & Angle Reminder Capsule */}
+                  <div className="py-2.5 px-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-slate-300 font-light truncate max-w-[220px]">
+                        Góc an toàn: <strong>≤ {rehabStatus.allowedFlexionMax}°</strong> • Duỗi thẳng 0°
                       </span>
                     </div>
+                    <span className="text-[11px] text-slate-400 font-light shrink-0">
+                      {rehabStatus.phase.phase === 1 ? '3–4 cữ/ngày' : '2 cữ/ngày'}
+                    </span>
+                  </div>
 
-                    {/* Minimal Audio-wave / Gauge Ticks */}
-                    <div className="flex items-center justify-between h-6 px-1 pt-1 opacity-75">
-                      {[10, 14, 18, 12, 16, 22, 26, 20, 14, 18, 26, 22, 16, 12, 18, 14, 22, 16, 10, 14, 12].map((h, i) => (
+                  {/* Vertical Exercise Timeline */}
+                  <div className="relative pl-6 pt-2 space-y-3.5 before:content-[''] before:absolute before:left-[11px] before:top-4 before:bottom-7 before:w-[2px] before:bg-white/[0.08]">
+                    {/* Các bài tập phục hồi chức năng trong ngày */}
+                    {rehabStatus.exercises.map((item, idx) => (
+                      <div key={item.id} className="relative group/item">
+                        {/* Timeline Step Node */}
                         <div
-                          key={i}
-                          style={{ height: `${h}px` }}
-                          className={`w-[2px] rounded-full transition-all ${
-                            i === 10
-                              ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] w-[3px]'
-                              : i >= 8 && i <= 12
-                              ? 'bg-white/70'
-                              : 'bg-white/20'
+                          className={`absolute -left-6 top-1 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold z-10 transition ${
+                            isTodayCompleted
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                              : 'bg-[#16181F] border-white/20 text-slate-300'
                           }`}
-                        />
-                      ))}
+                        >
+                          {isTodayCompleted ? <Check className="w-3 h-3 stroke-[3]" /> : idx + 1}
+                        </div>
+
+                        {/* Exercise Item Card */}
+                        <div
+                          onClick={() => handleStartTodaySession(undefined, idx)}
+                          className="p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-between gap-3 cursor-pointer transition"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-xs font-semibold text-white tracking-tight">
+                                {item.name}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {item.sets} hiệp × {item.reps} lần
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-light line-clamp-1">
+                              {item.targetGoal}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1 text-slate-500 group-hover/item:text-emerald-400 transition shrink-0">
+                            <span className="text-[10px] font-medium hidden sm:inline">Tập bài này</span>
+                            <Play className="w-3 h-3 fill-current" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* BƯỚC CUỐI CÙNG TRÊN TIMELINE: CHƯỜM ĐÁ LẠNH 15 PHÚT */}
+                    <div className="relative">
+                      {/* Node Snowflake Icon */}
+                      <div className="absolute -left-6 top-2 w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-400 flex items-center justify-center text-[10px] font-bold z-10 shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+                        ❄️
+                      </div>
+
+                      {/* Integrated Ice Compress Card */}
+                      <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/25 space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">
+                              Bước cuối • Chăm sóc sau tập
+                            </span>
+                            <h4 className="text-xs font-semibold text-white mt-0.5">
+                              Chườm đá lạnh 15 phút & Kê cao chân 45°
+                            </h4>
+                            <p className="text-[11px] text-slate-400 font-light">
+                              Hạ nhiệt bao khớp, chống sưng phù nề sau vận động
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-sm font-semibold tabular-nums text-white font-mono bg-black/40 px-2.5 py-1 rounded-lg border border-white/10">
+                              {formatTimer(iceSeconds)}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsIceRunning(!isIceRunning);
+                              }}
+                              className={`py-1.5 px-3 rounded-full text-xs font-semibold transition active:scale-95 ${
+                                isIceRunning
+                                  ? 'bg-amber-500 text-slate-950'
+                                  : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md shadow-cyan-950/50'
+                              }`}
+                            >
+                              {isIceRunning ? 'Tạm dừng' : 'Bắt đầu'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Primary Action Button */}
-                  <div className="space-y-2 pt-1">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleStartTodaySession()}
-                        className="flex-1 py-3.5 px-6 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-sm flex items-center justify-center gap-2 shadow-xl whitespace-nowrap transition"
-                      >
-                        <Play className="w-4 h-4 fill-current" />
-                        <span>{isTodayCompleted ? 'Tập cữ tiếp theo' : 'Bắt đầu buổi tập'}</span>
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('plan')}
-                        title="Xem toàn bộ bài tập"
-                        className="w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
-                      >
-                        <Calendar className="w-5 h-5" />
-                      </button>
-                    </div>
+                  {/* Footer note: Quick Mark Completed or Repeat */}
+                  <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
+                    {isTodayCompleted ? (
+                      <span className="text-emerald-400 flex items-center gap-1.5 font-light">
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Hôm nay đã hoàn thành ({todayFeedbacks.length} cữ tập)</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 font-light">
+                        Trợ lý âm thanh sẽ tự động đếm nhịp cho từng bài
+                      </span>
+                    )}
 
-                    <div className="flex items-center justify-between px-1.5 text-[11px]">
-                      {isTodayCompleted ? (
-                        <>
-                          <span className="text-emerald-400/90 font-light flex items-center gap-1.5">
-                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>
-                              Đã ghi nhận cữ gần nhất {latestTodayFeedback?.completedAt ? `(${new Date(latestTodayFeedback.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})` : 'hôm nay'}
-                            </span>
-                          </span>
-                          <span className="text-slate-500 font-light">Chườm lạnh 15p</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-slate-500 font-light">Khoảng 15 phút • 3–4 cữ/ngày</span>
-                          <button
-                            onClick={handleQuickMarkTodayCompleted}
-                            className="text-slate-400 hover:text-emerald-400 font-light underline underline-offset-2 transition"
-                          >
-                            Đã tự tập xong?
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <button
+                      onClick={handleQuickMarkTodayCompleted}
+                      className="text-slate-400 hover:text-emerald-400 font-light underline underline-offset-2 transition"
+                    >
+                      {isTodayCompleted ? 'Ghi nhận thêm 1 cữ' : 'Đã tự tập xong?'}
+                    </button>
                   </div>
                 </div>
 
@@ -1024,38 +1084,7 @@ export default function AxvyraApp() {
                 </div>
 
                 {/* =================================================================== */}
-                {/* KHỐI 4: CHƯỜM ĐÁ LẠNH (POST-OP CARE)                               */}
-                {/* =================================================================== */}
-                <div className="bg-[#16181F] border border-white/[0.08] rounded-[28px] p-4 flex items-center justify-between shadow-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-white">Chườm đá lạnh</h4>
-                      <p className="text-xs text-slate-400 font-light">15 phút giảm sưng & viêm</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-base font-light tabular-nums text-white font-mono">
-                      {formatTimer(iceSeconds)}
-                    </span>
-                    <button
-                      onClick={() => setIsIceRunning(!isIceRunning)}
-                      className={`py-2 px-4 rounded-full text-xs font-medium transition whitespace-nowrap ${
-                        isIceRunning
-                          ? 'bg-amber-500 text-slate-950 font-semibold'
-                          : 'bg-white hover:bg-slate-100 text-slate-950 font-semibold shadow-md'
-                      }`}
-                    >
-                      {isIceRunning ? 'Tạm dừng' : 'Bắt đầu'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* =================================================================== */}
-                {/* KHỐI 5: THẺ CHUYÊN GIA PHỤC HỒI CHỨC NĂNG (SCREEN 3 TRAINER STYLE) */}
+                {/* KHỐI 4: THẺ CHUYÊN GIA PHỤC HỒI CHỨC NĂNG (SCREEN 3 TRAINER STYLE) */}
                 {/* =================================================================== */}
                 <div
                   onClick={() => setShowOnboarding(true)}
@@ -1461,6 +1490,7 @@ export default function AxvyraApp() {
       {activeWorkoutExercises && (
         <WorkoutPlayer
           exercises={activeWorkoutExercises}
+          initialExerciseIndex={startExerciseIdx}
           onClose={() => setActiveWorkoutExercises(null)}
           onFinishedWorkout={handleWorkoutFinished}
         />
