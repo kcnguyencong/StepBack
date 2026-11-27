@@ -12,6 +12,17 @@ export async function GET(req: NextRequest) {
 
   await ensureNeonTables();
 
+  const userId = req.nextUrl.searchParams.get('userId');
+  if (userId) {
+    const userCase = await executeNeonQuery(
+      `SELECT data FROM recovery_cases WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1`,
+      [userId]
+    );
+    if (userCase.rows.length > 0) {
+      return NextResponse.json({ connected: true, data: userCase.rows[0].data });
+    }
+  }
+
   const caseId = req.nextUrl.searchParams.get('id');
   if (caseId) {
     const result = await executeNeonQuery(
@@ -48,14 +59,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid RecoveryCase payload' }, { status: 400 });
     }
 
+    const userId = (body as any).userId || (body as any).user_id || null;
+
     // Upsert into recovery_cases
     await executeNeonQuery(
       `INSERT INTO recovery_cases (
-        id, patient_name, surgery_date, surgery_type, surgery_leg,
+        id, user_id, patient_name, surgery_date, surgery_type, surgery_leg,
         current_phase, weight_bearing_status, brace_requirement, max_safe_flexion,
         data, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
+        user_id = COALESCE(EXCLUDED.user_id, recovery_cases.user_id),
         patient_name = EXCLUDED.patient_name,
         surgery_date = EXCLUDED.surgery_date,
         surgery_type = EXCLUDED.surgery_type,
@@ -68,6 +82,7 @@ export async function POST(req: NextRequest) {
         updated_at = CURRENT_TIMESTAMP;`,
       [
         body.id,
+        userId,
         body.patientName,
         body.surgeryDate,
         body.surgeryType,

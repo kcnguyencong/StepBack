@@ -139,6 +139,17 @@ export async function ensureNeonTables(): Promise<boolean> {
       details TEXT,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS verification_otps (
+      email TEXT PRIMARY KEY,
+      code TEXT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      full_name TEXT,
+      password_hash TEXT,
+      otp_type TEXT DEFAULT 'REGISTER',
+      attempts INT DEFAULT 0,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
   `;
 
   try {

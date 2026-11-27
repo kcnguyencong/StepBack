@@ -35,7 +35,9 @@ import {
   ArrowRight,
   ArrowUpRight,
   User,
-  FileText
+  FileText,
+  Lock,
+  KeyRound
 } from 'lucide-react';
 import {
   SurgeryType,
@@ -192,6 +194,15 @@ export default function AxvyraApp() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('AGE_31_45');
 
+  // Password Change State
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState<boolean>(false);
+  const [oldPassword, setOldPassword] = useState<string>('');
+  const [changeNewPassword, setChangeNewPassword] = useState<string>('');
+  const [changeConfirmPassword, setChangeConfirmPassword] = useState<string>('');
+  const [changePwdLoading, setChangePwdLoading] = useState<boolean>(false);
+  const [changePwdError, setChangePwdError] = useState<string | null>(null);
+  const [changePwdSuccess, setChangePwdSuccess] = useState<string | null>(null);
+
   // Workout Session State
   const [activeWorkoutExercises, setActiveWorkoutExercises] = useState<Exercise[] | null>(null);
   const [startExerciseIdx, setStartExerciseIdx] = useState<number>(0);
@@ -307,7 +318,7 @@ export default function AxvyraApp() {
     });
   }, []);
 
-  const handleAuthSuccess = (user: AuthUser) => {
+  const handleAuthSuccess = (user: AuthUser, isNewUser: boolean = false) => {
     try {
       const rawName = user?.fullName || user?.email?.split('@')[0] || 'Bệnh nhân';
       const safeName = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : 'Bệnh nhân';
@@ -326,18 +337,90 @@ export default function AxvyraApp() {
         localStorage.setItem('axvyra_auth_user', JSON.stringify(safeUser));
       } catch {}
 
-      if (recoveryCase) {
-        const updated = AxvyraStore.sanitizeCase({
-          ...recoveryCase,
-          userId: safeUser.id,
-          patientName: safeName,
-        });
-        AxvyraStore.saveRecoveryCase(updated);
-        setRecoveryCase(updated);
+      // If user is brand new or hasn't finished medical onboarding, auto-open onboarding wizard!
+      const storedCompleted = typeof window !== 'undefined' ? localStorage.getItem('axvyra_profile_completed') : null;
+      if (isNewUser || storedCompleted !== 'true') {
+        setShowOnboarding(true);
       }
+
+      // Sync with user's remote case in Neon if available
+      fetch(`/api/sync?userId=${encodeURIComponent(safeUser.id)}`)
+        .then((res) => res.json())
+        .then((syncData) => {
+          if (syncData.connected && syncData.data) {
+            const serverCase = AxvyraStore.sanitizeCase(syncData.data);
+            AxvyraStore.saveRecoveryCase(serverCase);
+            setRecoveryCase(serverCase);
+            setHasCompletedProfile(true);
+          } else if (recoveryCase) {
+            const updated = AxvyraStore.sanitizeCase({
+              ...recoveryCase,
+              userId: safeUser.id,
+              patientName: safeName,
+            });
+            AxvyraStore.saveRecoveryCase(updated);
+            setRecoveryCase(updated);
+            // Push to server
+            fetch('/api/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...updated, userId: safeUser.id }),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
     } catch (e) {
       console.error('handleAuthSuccess error:', e);
       setShowAuthModal(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePwdError(null);
+    setChangePwdSuccess(null);
+
+    if (!oldPassword || !changeNewPassword) {
+      setChangePwdError('Vui lòng điền đầy đủ thông tin.');
+      return;
+    }
+
+    if (changeNewPassword.length < 6) {
+      setChangePwdError('Mật khẩu mới phải có tối thiểu 6 ký tự.');
+      return;
+    }
+
+    if (changeNewPassword !== changeConfirmPassword) {
+      setChangePwdError('Mật khẩu xác nhận không trùng khớp.');
+      return;
+    }
+
+    setChangePwdLoading(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: authUser?.email,
+          oldPassword,
+          newPassword: changeNewPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Đổi mật khẩu thất bại.');
+
+      setChangePwdSuccess('Đổi mật khẩu thành công!');
+      setOldPassword('');
+      setChangeNewPassword('');
+      setChangeConfirmPassword('');
+      setTimeout(() => {
+        setShowChangePasswordModal(false);
+        setChangePwdSuccess(null);
+      }, 1500);
+    } catch (err: any) {
+      setChangePwdError(err.message || 'Lỗi khi đổi mật khẩu.');
+    } finally {
+      setChangePwdLoading(false);
     }
   };
 
@@ -539,6 +622,15 @@ export default function AxvyraApp() {
     AxvyraStore.saveRecoveryCase(updated);
     setRecoveryCase(updated);
     setShowOnboarding(false);
+
+    // Sync to Neon DB with user link
+    if (authUser?.id) {
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updated, userId: authUser.id }),
+      }).catch(() => {});
+    }
   };
 
   // Start Session with guided interval timer
@@ -2052,7 +2144,88 @@ export default function AxvyraApp() {
                   </div>
                 </div>
 
-                {/* 5. Logout Button ("Đăng xuất trong tài khoản") */}
+                {/* 5. Security & Change Password Card */}
+                {authUser && authUser.provider !== 'google' && (
+                  <div className="p-4 rounded-[28px] bg-[#16181F] border border-white/[0.08] shadow-xl space-y-3">
+                    <div
+                      onClick={() => {
+                        setShowChangePasswordModal(!showChangePasswordModal);
+                        setChangePwdError(null);
+                        setChangePwdSuccess(null);
+                      }}
+                      className="flex items-center justify-between cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                          <Lock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-white group-hover:text-amber-300 transition">
+                            Bảo mật & Đổi mật khẩu
+                          </h4>
+                          <p className="text-[11px] text-slate-400 font-light mt-0.5">
+                            Cập nhật mật khẩu bảo vệ tài khoản cá nhân
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight
+                        className={`w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-transform ${
+                          showChangePasswordModal ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </div>
+
+                    {showChangePasswordModal && (
+                      <form onSubmit={handleChangePassword} className="space-y-2.5 pt-2 border-t border-white/[0.06] animate-fade-in">
+                        {changePwdError && (
+                          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-light">
+                            {changePwdError}
+                          </div>
+                        )}
+                        {changePwdSuccess && (
+                          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-light">
+                            {changePwdSuccess}
+                          </div>
+                        )}
+
+                        <input
+                          type="password"
+                          required
+                          value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)}
+                          placeholder="Mật khẩu hiện tại"
+                          className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-xl py-2.5 px-3 text-xs text-white placeholder-slate-500 outline-none"
+                        />
+                        <input
+                          type="password"
+                          required
+                          value={changeNewPassword}
+                          onChange={(e) => setChangeNewPassword(e.target.value)}
+                          placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+                          className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-xl py-2.5 px-3 text-xs text-white placeholder-slate-500 outline-none"
+                        />
+                        <input
+                          type="password"
+                          required
+                          value={changeConfirmPassword}
+                          onChange={(e) => setChangeConfirmPassword(e.target.value)}
+                          placeholder="Xác nhận mật khẩu mới"
+                          className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-xl py-2.5 px-3 text-xs text-white placeholder-slate-500 outline-none"
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={changePwdLoading}
+                          className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-medium text-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        >
+                          {changePwdLoading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
+
+                {/* 6. Logout Button ("Đăng xuất trong tài khoản") */}
                 <button
                   onClick={handleLogout}
                   className="w-full p-4 rounded-[28px] bg-rose-500/[0.06] hover:bg-rose-500/[0.12] active:scale-[0.99] border border-rose-500/20 text-rose-300 flex items-center justify-between transition group cursor-pointer shadow-lg"

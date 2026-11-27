@@ -30,11 +30,11 @@ export interface AuthUser {
 interface AuthModalProps {
   isOpen: boolean;
   onClose?: () => void;
-  onAuthSuccess: (user: AuthUser) => void;
+  onAuthSuccess: (user: AuthUser, isNewUser?: boolean) => void;
   isMandatory?: boolean;
 }
 
-type AuthMode = 'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'GOOGLE_PROMPT';
+type AuthMode = 'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'GOOGLE_PROMPT';
 
 export default function AuthModal({
   isOpen,
@@ -46,6 +46,8 @@ export default function AuthModal({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -69,7 +71,7 @@ export default function AuthModal({
   // OTP Countdown Timer
   useEffect(() => {
     let timer: any = null;
-    if (mode === 'VERIFY_OTP' && countdown > 0) {
+    if ((mode === 'VERIFY_OTP' || mode === 'RESET_PASSWORD') && countdown > 0) {
       timer = setInterval(() => setCountdown((c) => c - 1), 1000);
     }
     return () => clearInterval(timer);
@@ -270,10 +272,116 @@ export default function AuthModal({
         fullName: safeFullName,
         provider: 'email',
         isVerified: true,
-      });
+      }, true);
       onClose?.();
     } catch (err: any) {
       setErrorMsg(err.message || 'Xác thực OTP thất bại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Forgot Password
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!email.trim()) {
+      setErrorMsg('Vui lòng nhập địa chỉ email của bạn.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Không thể gửi mã đặt lại mật khẩu.');
+      }
+
+      setGeneratedOtp(data.otpCode || null);
+      setSuccessMsg(data.message || 'Mã xác thực 6 số đã được gửi tới email của bạn!');
+      setOtp(['', '', '', '', '', '']);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setMode('RESET_PASSWORD');
+      setCountdown(60);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Lỗi khi gửi yêu cầu khôi phục mật khẩu.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Reset Password
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const fullCode = otp.join('');
+    if (fullCode.length < 6) {
+      setErrorMsg('Vui lòng nhập đủ 6 chữ số mã xác thực.');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      setErrorMsg('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setErrorMsg('Mật khẩu xác nhận không trùng khớp.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          otp: fullCode,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Đặt lại mật khẩu thất bại.');
+      }
+
+      try {
+        confetti({
+          particleCount: 85,
+          spread: 75,
+          origin: { y: 0.6 },
+        });
+      } catch {}
+
+      const rawUser = data?.user || {};
+      const safeFullName = typeof rawUser.fullName === 'string' && rawUser.fullName.trim()
+        ? rawUser.fullName.trim()
+        : (email.split('@')[0] || 'Bệnh nhân');
+
+      onAuthSuccess({
+        id: rawUser.id || `usr-${Date.now()}`,
+        email: rawUser.email || email,
+        fullName: safeFullName,
+        provider: 'email',
+        isVerified: true,
+      }, false);
+      onClose?.();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Đặt lại mật khẩu thất bại.');
     } finally {
       setIsLoading(false);
     }
@@ -506,6 +614,34 @@ export default function AuthModal({
             </div>
           )}
 
+          {mode === 'FORGOT_PASSWORD' && (
+            <div className="space-y-1 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/[0.06] border border-white/10 text-emerald-400 flex items-center justify-center mx-auto mb-2">
+                <KeyRound className="w-6 h-6" />
+              </div>
+              <h1 className="text-xl font-light text-white leading-tight">
+                Khôi phục mật khẩu
+              </h1>
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
+                Nhập email của bạn để nhận mã xác thực đặt lại mật khẩu.
+              </p>
+            </div>
+          )}
+
+          {mode === 'RESET_PASSWORD' && (
+            <div className="space-y-1 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/[0.06] border border-white/10 text-emerald-400 flex items-center justify-center mx-auto mb-2">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h1 className="text-xl font-light text-white leading-tight">
+                Đặt lại mật khẩu mới
+              </h1>
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
+                Nhập mã 6 số gửi tới <strong className="text-white font-medium">{email}</strong> và mật khẩu mới.
+              </p>
+            </div>
+          )}
+
           {/* Feedback alerts */}
           {errorMsg && (
             <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-light flex items-center gap-2">
@@ -564,9 +700,10 @@ export default function AuthModal({
                   type="button"
                   onClick={() => {
                     setErrorMsg(null);
-                    setSuccessMsg('Bạn có thể đăng nhập tức thì bằng Google bên dưới.');
+                    setSuccessMsg(null);
+                    setMode('FORGOT_PASSWORD');
                   }}
-                  className="text-[11px] font-light text-slate-400 hover:text-white transition"
+                  className="text-[11px] font-light text-slate-400 hover:text-emerald-400 transition"
                 >
                   Quên mật khẩu?
                 </button>
@@ -786,8 +923,162 @@ export default function AuthModal({
             </form>
           )}
 
+          {/* MODE 5: FORGOT PASSWORD REQUEST FORM */}
+          {mode === 'FORGOT_PASSWORD' && (
+            <form onSubmit={handleForgotPassword} className="space-y-3.5 pt-1 animate-fade-in">
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email đăng ký của bạn"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3.5 pl-11 pr-4 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3.5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
+              >
+                <span>{isLoading ? 'Đang gửi mã...' : 'Gửi mã xác thực'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="text-center pt-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('LOGIN');
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                  }}
+                  className="text-xs text-slate-400 hover:text-white transition"
+                >
+                  ← Quay lại Đăng nhập
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* MODE 6: RESET PASSWORD WITH OTP */}
+          {mode === 'RESET_PASSWORD' && (
+            <form onSubmit={handleResetPassword} className="space-y-3.5 pt-1 animate-fade-in">
+              {generatedOtp && (
+                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-light flex items-center justify-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    Chế độ thử nghiệm: <strong className="text-base font-medium tracking-widest text-amber-200">{generatedOtp}</strong>
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-center gap-2 pt-1">
+                {otp.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    id={`auth-reset-otp-${idx}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (val.length > 1) val = val[val.length - 1];
+                      const updated = [...otp];
+                      updated[idx] = val;
+                      setOtp(updated);
+                      if (val && idx < 5) {
+                        const nextInput = document.getElementById(`auth-reset-otp-${idx + 1}`);
+                        nextInput?.focus();
+                      }
+                    }}
+                    className="w-10 h-12 text-center text-lg font-light bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-2xl outline-none text-white transition"
+                    autoFocus={idx === 0}
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between text-xs px-1">
+                <span className="text-slate-400 text-[11px] font-light">
+                  {countdown > 0 ? `Gửi lại sau ${countdown}s` : 'Chưa nhận được mã?'}
+                </span>
+                <button
+                  type="button"
+                  disabled={countdown > 0 || isLoading}
+                  onClick={handleForgotPassword}
+                  className="font-medium text-emerald-400 disabled:opacity-40 text-[11px]"
+                >
+                  Gửi lại mã
+                </button>
+              </div>
+
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3 pl-11 pr-11 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Xác nhận mật khẩu mới"
+                  className="w-full bg-white/[0.04] border border-white/10 focus:border-white/30 rounded-full py-3 pl-11 pr-4 text-xs font-normal text-white placeholder-slate-500 outline-none transition"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3.5 rounded-full bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 font-medium text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isLoading ? 'Đang cập nhật...' : 'Xác nhận & Đăng nhập ngay'}</span>
+              </button>
+
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('LOGIN');
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                  }}
+                  className="text-xs text-slate-400 hover:text-white transition"
+                >
+                  ← Quay lại Đăng nhập
+                </button>
+              </div>
+            </form>
+          )}
+
           {/* GOOGLE ONLY SOCIAL LOGIN (APPLE REMOVED) */}
-          {mode !== 'VERIFY_OTP' && mode !== 'GOOGLE_PROMPT' && (
+          {mode !== 'VERIFY_OTP' && mode !== 'GOOGLE_PROMPT' && mode !== 'FORGOT_PASSWORD' && mode !== 'RESET_PASSWORD' && (
             <div className="space-y-3 pt-1">
               <div className="relative flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center">
