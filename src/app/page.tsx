@@ -979,7 +979,7 @@ export default function AxvyraApp() {
                     </button>
                   </div>
 
-                  {/* 7 Days Minimal Grid (Screen 3 Calendar style) */}
+                  {/* 7 Days Minimal Grid: Ký hiệu thứ tự ngày sau mổ (N1, N2...) */}
                   <div className="grid grid-cols-7 gap-1.5 text-center pt-1">
                     {currentWeekDays.map((item) => (
                       <div
@@ -990,42 +990,45 @@ export default function AxvyraApp() {
                             : 'bg-white/[0.03] border border-white/[0.06] text-slate-400'
                         }`}
                       >
+                        {/* Ký hiệu thứ tự ngày sau mổ (N1, N2, N3...) */}
                         <span
-                          className={`text-[10px] uppercase tracking-wider ${
-                            item.isToday ? 'text-slate-950 font-semibold' : 'text-slate-500 font-light'
+                          className={`text-[10px] font-semibold tracking-wider ${
+                            item.isToday ? 'text-slate-950' : 'text-slate-400 font-medium'
                           }`}
                         >
-                          T{item.dayInWeek === 7 ? 'CN' : item.dayInWeek + 1}
+                          N{item.dayNum}
                         </span>
+
+                        {/* Trạng thái tập trong ngày */}
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center my-1 text-xs transition ${
                             item.isToday
                               ? 'bg-slate-950 text-white font-semibold'
                               : item.isDone
                               ? 'bg-emerald-500/20 text-emerald-400 font-medium'
-                              : 'text-slate-300 font-light'
+                              : 'text-slate-400 font-light'
                           }`}
                         >
                           {item.isToday && isTodayCompleted ? (
                             <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-400" />
                           ) : item.isDone && !item.isToday ? (
                             <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                          ) : item.isToday ? (
+                            <Play className="w-3 h-3 fill-emerald-400 text-emerald-400 ml-0.5" />
                           ) : (
-                            item.dayNum
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
                           )}
                         </div>
+
+                        {/* Ngày dương lịch thực tế đối chiếu */}
                         <span
-                          className={`text-[9px] font-bold h-2 flex items-center ${
-                            item.isToday && isTodayCompleted
-                              ? 'text-emerald-500 font-black'
-                              : item.isToday
-                              ? 'text-slate-950'
-                              : item.isDone
-                              ? 'text-emerald-400'
-                              : 'text-transparent'
+                          className={`text-[9px] font-medium h-3 flex items-center ${
+                            item.isToday
+                              ? 'text-slate-600 font-bold'
+                              : 'text-slate-500'
                           }`}
                         >
-                          {item.isToday && isTodayCompleted ? '✓' : '•'}
+                          {item.realDateFormatted}
                         </span>
                       </div>
                     ))}
