@@ -48,7 +48,8 @@ import {
   getAgeGroupDetails,
   getSurgeryDetails,
   PHASE_RULES,
-  Exercise
+  Exercise,
+  REHAB_EXERCISES
 } from '@/data/rehabProtocols';
 import {
   RecoveryCase,
@@ -96,6 +97,85 @@ const getAvatarStyle = (seed?: string | null) => {
   return AVATAR_PALETTES[idx];
 };
 
+const PHASE_5_EXERCISES: Exercise[] = [
+  {
+    id: 'ex-p5-agility-cutting',
+    name: 'Chạy đổi hướng zíc-zắc (Shuttle Run / T-Test)',
+    englishName: 'Agility & Cutting Drills',
+    phase: 4,
+    holdSeconds: 30,
+    restSeconds: 60,
+    reps: 6,
+    sets: 3,
+    frequencyPerDay: 1,
+    targetGoal: 'Tập phản xạ hãm phanh và đổi hướng đột ngột chịu tải xoay khớp gối an toàn',
+    instructions: [
+      'Đặt 4 nón tiêu cự ly 5m hình chữ T trên sân cỏ hoặc sàn tập.',
+      'Chạy nước rút tiến 5m, phanh lại tiếp đất bằng đùi chùng gối.',
+      'Di chuyển ngang sang trái 5m, đổi hướng sang phải 10m rồi lùi về vị trí xuất phát.',
+      'Gối luôn hơi chùng 20-30° khi tiếp đất đổi hướng, không để đầu gối sụp vào trong (valgus).',
+    ],
+    contraindications: 'Chỉ tập khi sức cơ đạt tối thiểu 85% so với chân lành.',
+    medicalSource: 'Delaware-Oslo ACL Cohort / AAOS Return-to-Sport 2023',
+    allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    vietnameseName: 'Chạy đổi hướng zíc-zắc',
+    targetSets: 3,
+    targetReps: 6,
+    holdSec: 30,
+    restSec: 60,
+  },
+  {
+    id: 'ex-p5-single-leg-hop',
+    name: 'Nhảy tiếp đất 1 chân kiểm soát trục gối (Hop & Stick)',
+    englishName: 'Single-Leg Hop and Stick Landing',
+    phase: 4,
+    holdSeconds: 5,
+    restSeconds: 15,
+    reps: 8,
+    sets: 3,
+    frequencyPerDay: 1,
+    targetGoal: 'Huấn luyện cơ bắp hấp thụ xung lực khi tiếp đất một chân (bài kiểm tra Return-to-Sport chuẩn)',
+    instructions: [
+      'Đứng trên chân phẫu thuật, hai tay đặt ngang hông.',
+      'Bật nhảy về phía trước khoảng cách bằng chiều dài cẳng chân.',
+      'Tiếp đất dứt khoát trên chính chân phẫu thuật, gập gối khoảng 30-45° để hãm lực êm ái.',
+      'Đóng băng tư thế (Stick) trong 3-5 giây không chao đảo.',
+    ],
+    contraindications: 'Dừng ngay nếu gối có hiện tượng trượt hoặc đau nhói.',
+    medicalSource: 'IKDC / Hop Test Battery Guidelines',
+    allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    vietnameseName: 'Nhảy tiếp đất 1 chân kiểm soát trục gối',
+    targetSets: 3,
+    targetReps: 8,
+    holdSec: 5,
+    restSec: 15,
+  },
+  {
+    id: 'ex-p5-sport-specific',
+    name: 'Bài tập chuyên biệt môn thể thao (Sút bóng / Đập cầu / Bật rổ)',
+    englishName: 'Sport-Specific Skill Training',
+    phase: 4,
+    holdSeconds: 60,
+    restSeconds: 60,
+    reps: 5,
+    sets: 3,
+    frequencyPerDay: 1,
+    targetGoal: 'Lấy lại phản xạ phối hợp thần kinh - cơ với dụng cụ và tư thế thi đấu thực tế',
+    instructions: [
+      'Bắt đầu với bóng/dụng cụ ở tốc độ 50% không có đối kháng.',
+      'Tập các động tác chuyền, sút nhẹ, di chuyển bộ chân chuyên môn.',
+      'Tăng dần cường độ lên 80% khi khớp gối hoàn toàn không có phản ứng đau hay sưng.',
+    ],
+    medicalSource: 'Aspetar ACL Clinical Practice Guidelines 2023',
+    allowedSurgeries: ['ACL_ONLY', 'ACL_MENISCUS_REPAIR', 'ACL_MENISCUS_TRIM'],
+    vietnameseName: 'Bài tập chuyên biệt môn thể thao',
+    targetSets: 3,
+    targetReps: 5,
+    holdSec: 60,
+    restSec: 60,
+  },
+];
+
 export default function AxvyraApp() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<MainTab>('home');
@@ -137,6 +217,10 @@ export default function AxvyraApp() {
 
   // Today's completed individual exercises
   const [completedExerciseIds, setCompletedExerciseIds] = useState<string[]>([]);
+
+  // Plan Tab Phase Selection State
+  const [selectedPlanPhase, setSelectedPlanPhase] = useState<number>(1);
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
 
   const getTodayExerciseStorageKey = () => {
     const today = new Date();
@@ -271,6 +355,116 @@ export default function AxvyraApp() {
     const sType = recoveryCase?.surgeryType || 'ACL_MENISCUS_REPAIR';
     return getRehabStatus(sDate, sType, ageGroup);
   }, [recoveryCase, ageGroup]);
+
+  // Automatically sync selectedPlanPhase with patient's current phase on initial load
+  useEffect(() => {
+    if (rehabStatus.phase?.phase) {
+      setSelectedPlanPhase(rehabStatus.phase.phase);
+    }
+  }, [rehabStatus.phase?.phase]);
+
+  // 5 Stages Clinical Plan Definition
+  const PLAN_STAGES = useMemo(() => {
+    const isMeniscus = recoveryCase?.surgeryType === 'ACL_MENISCUS_REPAIR';
+    return [
+      {
+        id: 1,
+        shortLabel: 'GĐ 1',
+        tabLabel: 'Hậu phẫu',
+        weekRange: 'Tuần 1 – 2 (Ngày 1–14)',
+        title: 'Giai đoạn 1: Kiểm soát sưng đau & Đánh thức cơ đùi',
+        focus: 'Phục hồi duỗi thẳng gối 0° khẩn cấp, kích hoạt cơ tứ đầu đùi và kiểm soát dịch phù nề.',
+        flexion: '≤ 90°',
+        weightBearing: isMeniscus ? 'Không tỳ lực (NWB) • Đi 2 nạng' : 'Tỳ lực 1 phần (PWB) có 2 nạng',
+        brace: 'Khóa nẹp thẳng 0° liên tục 24/24',
+        criteria: [
+          'Duỗi thẳng gối hoàn toàn 0° chạm mặt phẳng',
+          'Nâng chân thẳng có nẹp (SLR) 10 lần liên tục không rớt gối',
+          'Gập gối đạt 70° – 90° êm ái không đau nhói',
+        ],
+      },
+      {
+        id: 2,
+        shortLabel: 'GĐ 2',
+        tabLabel: 'Bỏ nạng',
+        weekRange: 'Tuần 3 – 6 (Ngày 15–42)',
+        title: 'Giai đoạn 2: Phục hồi biên độ vận động & Bỏ nạng',
+        focus: 'Mở rộng góc gập gối, tập đi bộ dáng chuẩn không khập khiễng và bỏ nạng dần.',
+        flexion: isMeniscus ? '≤ 90° (Hạn chế bảo vệ sụn chêm)' : '≤ 125°',
+        weightBearing: isMeniscus ? 'Chạm mũi chân nhẹ tuần 5-6 • Bỏ nạng tuần 7-8' : 'Tập bỏ nạng tuần 4 nếu đi chuẩn',
+        brace: isMeniscus ? 'Khóa 0° khi đi • Mở 0°-90° khi ngồi' : 'Mở khóa 0°–90° khi đi lại',
+        criteria: [
+          'Duy trì duỗi 0° và gập đạt 120° (ACL) hoặc 90° (sụn chêm)',
+          'Bỏ nạng đi bộ bình thường không khập khiễng',
+          'Đạp xe đạp tĩnh không kháng lực trơn tru',
+        ],
+      },
+      {
+        id: 3,
+        shortLabel: 'GĐ 3',
+        tabLabel: 'Cơ bắp',
+        weekRange: 'Tuần 7 – 12 (Ngày 43–84)',
+        title: 'Giai đoạn 3: Tăng cường sức mạnh cơ & Thăng bằng',
+        focus: 'Tăng cơ đùi và cơ mông, phục hồi cảm thụ bản thể và thăng bằng 1 chân vững vàng.',
+        flexion: '≤ 135° (Gần bằng chân lành)',
+        weightBearing: 'Tỳ lực hoàn toàn 100% • Bỏ nạng hoàn toàn',
+        brace: 'Bỏ nẹp hoàn toàn trong sinh hoạt',
+        criteria: [
+          'Biên độ gập gối đạt 130° – 135°',
+          'Đứng thăng bằng 1 chân mổ vững trong 30 giây',
+          'Bước lên/xuống bục 15cm không sụp gối',
+        ],
+      },
+      {
+        id: 4,
+        shortLabel: 'GĐ 4',
+        tabLabel: 'Chạy bộ',
+        weekRange: 'Tuần 13 – 24 (Ngày 85–168)',
+        title: 'Giai đoạn 4: Sức bền cơ & Chạy bộ đường thẳng',
+        focus: 'Tái lập phản xạ chịu tải động, chạy bộ ngắt quãng và tăng sức bền cơ đùi.',
+        flexion: '140° – 145° (Đầy đủ)',
+        weightBearing: 'Chạy bộ đường thẳng (Jogging)',
+        brace: 'Không cần nẹp',
+        criteria: [
+          'Sức cơ đùi đạt ≥ 80% so với chân lành',
+          'Chạy bộ đường thẳng 15-20 phút không sưng đau',
+          'Thực hiện bài tập thang dây linh hoạt tiến lùi',
+        ],
+      },
+      {
+        id: 5,
+        shortLabel: 'GĐ 5',
+        tabLabel: 'Thể thao',
+        weekRange: 'Tháng 6 – 9+ (Sau ngày 168)',
+        title: 'Giai đoạn 5: Đổi hướng nhanh & Trở lại thể thao đỉnh cao',
+        focus: 'Huấn luyện Plyometrics, chuyển hướng đột ngột (Cutting/Agility) và vượt qua bài test Return-to-Sport.',
+        flexion: '145° – 150° (Bằng chân lành)',
+        weightBearing: 'Thi đấu thể thao toàn phần',
+        brace: 'Băng thun thể thao hỗ trợ tâm lý (tùy chọn)',
+        criteria: [
+          'Single-leg Hop Test đạt ≥ 90% so với chân lành',
+          'Chỉ số tâm lý sẵn sàng ACL-RSI ≥ 65 điểm',
+          'Bác sĩ phẫu thuật ký xác nhận đủ điều kiện thi đấu',
+        ],
+      },
+    ];
+  }, [recoveryCase?.surgeryType]);
+
+  const currentPlanStage = useMemo(() => {
+    return PLAN_STAGES.find((s) => s.id === selectedPlanPhase) || PLAN_STAGES[0];
+  }, [PLAN_STAGES, selectedPlanPhase]);
+
+  const currentPlanExercises = useMemo(() => {
+    if (selectedPlanPhase === 5) {
+      return PHASE_5_EXERCISES;
+    }
+    const matched = REHAB_EXERCISES.filter(
+      (ex) =>
+        ex.phase === selectedPlanPhase &&
+        ex.allowedSurgeries.includes(recoveryCase?.surgeryType || 'ACL_MENISCUS_REPAIR')
+    );
+    return matched.length > 0 ? matched : REHAB_EXERCISES.filter((ex) => ex.phase === selectedPlanPhase);
+  }, [selectedPlanPhase, recoveryCase?.surgeryType]);
 
   // Ice Timer Tick
   useEffect(() => {
@@ -1167,107 +1361,267 @@ export default function AxvyraApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: PLAN (KẾ HOẠCH BÀI TẬP - DARK BENTO)                              */}
+        {/* TAB 2: PLAN (KẾ HOẠCH BÀI TẬP 5 GIAI ĐOẠN - DARK BENTO CHUẨN Y KHOA)       */}
         {/* ========================================================================= */}
         {activeTab === 'plan' && (
-          <div className="space-y-3.5 animate-fade-in">
-            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium tracking-wide uppercase">
-                <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                Giai đoạn {rehabStatus.phase.phase} • 14 ngày đầu (Tuần {rehabStatus.phase.weekRange[0]} – {rehabStatus.phase.weekRange[1]})
-              </span>
-              <h1 className="text-2xl font-light text-white tracking-tight mt-1">
-                {rehabStatus.phase.title}
+          <div className="space-y-3.5 animate-fade-in pb-12">
+            {/* Header: Title + Patient's Current Phase Pill */}
+            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5" />
+                  Phác đồ phục hồi chuẩn y khoa
+                </span>
+                <span className="text-[10.5px] text-slate-400 font-light">
+                  Hiện tại: <strong className="text-emerald-400 font-medium">GĐ {rehabStatus.phase.phase}/5</strong>
+                </span>
+              </div>
+              <h1 className="text-2xl font-light text-white tracking-tight">
+                Kế Hoạch Phục Hồi Toàn Diện
               </h1>
-              <p className="text-xs text-slate-400 leading-relaxed font-light">
-                Phác đồ phục hồi {getSurgeryDetails(rehabStatus.surgeryType).shortLabel} • Tần suất chỉ định: <strong className="text-emerald-400 font-medium">{rehabStatus.phase.phase === 1 ? '3–4 lần/ngày' : '2 lần/ngày'}</strong>.
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
+                Khám phá đầy đủ 5 giai đoạn từ hậu phẫu đến thể thao. Chạm từng mốc để xem chi tiết bài tập & tiêu chuẩn.
               </p>
             </div>
 
-            {/* Session Detail */}
-            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="text-xs font-light text-slate-400 uppercase tracking-wider">
-                      Bài tập chỉ định giai đoạn {rehabStatus.phase.phase}
-                    </h2>
-                    {isTodayCompleted && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                        Đã tập hôm nay
-                      </span>
+            {/* 5-Phase Horizontal Stepper Selector */}
+            <div className="grid grid-cols-5 gap-1.5 p-1.5 rounded-3xl bg-[#16181F] border border-white/[0.08] shadow-xl">
+              {PLAN_STAGES.map((stg) => {
+                const isSelected = selectedPlanPhase === stg.id;
+                const isPatientCurrent = rehabStatus.phase.phase === stg.id;
+                const isPast = stg.id < rehabStatus.phase.phase;
+
+                return (
+                  <button
+                    key={stg.id}
+                    onClick={() => {
+                      setSelectedPlanPhase(stg.id);
+                      setExpandedExerciseId(null);
+                    }}
+                    className={`py-2 px-1 rounded-2xl flex flex-col items-center justify-center text-center transition-all relative ${
+                      isSelected
+                        ? 'bg-white text-slate-950 font-semibold shadow-xl scale-[1.03] z-10'
+                        : isPast
+                        ? 'bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                        : 'bg-transparent text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {isPatientCurrent && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#16181F] animate-pulse" />
                     )}
-                  </div>
-                  <h3 className="text-sm font-medium text-white">
-                    {rehabStatus.exercises.length} bài tập phục hồi chức năng
-                  </h3>
+                    <span className={`text-[11px] font-bold ${isSelected ? 'text-slate-950' : isPast ? 'text-emerald-400' : ''}`}>
+                      GĐ {stg.id}
+                    </span>
+                    <span className={`text-[9px] truncate w-full mt-0.5 ${isSelected ? 'text-slate-800 font-medium' : 'text-slate-400 font-light'}`}>
+                      {stg.tabLabel}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected Phase Overview Card */}
+            <div className="bg-[#16181F] rounded-[32px] p-5 border border-white/[0.08] shadow-2xl space-y-3.5">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                    {currentPlanStage.weekRange}
+                  </span>
+                  {selectedPlanPhase === rehabStatus.phase.phase ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Giai đoạn hiện tại của bạn
+                    </span>
+                  ) : selectedPlanPhase < rehabStatus.phase.phase ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 bg-white/[0.04] border border-white/10 px-2.5 py-0.5 rounded-full">
+                      <Check className="w-2.5 h-2.5 stroke-[3] text-emerald-400" />
+                      Đã hoàn thành
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 bg-white/[0.04] border border-white/10 px-2.5 py-0.5 rounded-full">
+                      Giai đoạn tương lai
+                    </span>
+                  )}
                 </div>
-                <button
-                  onClick={() => handleStartTodaySession()}
-                  className="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition shrink-0"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>{isTodayCompleted ? 'Tập cữ tiếp' : 'Tập ngay'}</span>
-                </button>
+                <h2 className="text-lg font-medium text-white tracking-tight">
+                  {currentPlanStage.title}
+                </h2>
+                <p className="text-xs text-slate-400 font-light mt-1 leading-relaxed">
+                  {currentPlanStage.focus}
+                </p>
               </div>
 
-              <div className="divide-y divide-white/[0.06]">
-                {rehabStatus.exercises.map((item, idx) => (
-                  <div key={item.id} className="py-3.5 first:pt-1 last:pb-1 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-2.5">
-                        <span className="w-6 h-6 rounded-full bg-white/5 text-slate-300 text-[11px] font-bold flex items-center justify-center border border-white/10 shrink-0 mt-0.5">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <h4 className="text-sm font-bold text-white">
-                            {item.name}
-                          </h4>
-                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                            <span className="text-[10.5px] text-slate-400 italic">
+              {/* 3 Pillars Grid: Angle, Weight-Bearing, Brace */}
+              <div className="grid grid-cols-3 gap-2 pt-0.5 text-center">
+                <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-0.5">
+                  <span className="text-[9px] uppercase font-light text-slate-400 block tracking-wider">
+                    Góc an toàn
+                  </span>
+                  <span className="text-xs font-semibold text-white block">
+                    {currentPlanStage.flexion}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-0.5">
+                  <span className="text-[9px] uppercase font-light text-slate-400 block tracking-wider">
+                    Mức tỳ lực
+                  </span>
+                  <span className="text-xs font-semibold text-amber-300 block truncate" title={currentPlanStage.weightBearing}>
+                    {currentPlanStage.weightBearing.split('•')[0].trim()}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-0.5">
+                  <span className="text-[9px] uppercase font-light text-slate-400 block tracking-wider">
+                    Quy tắc nẹp
+                  </span>
+                  <span className="text-xs font-semibold text-cyan-300 block truncate" title={currentPlanStage.brace}>
+                    {currentPlanStage.brace.split('(')[0].trim()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Clearance Criteria Checklist */}
+              <div className="pt-2 border-t border-white/[0.06] space-y-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Tiêu chuẩn hoàn thành giai đoạn {selectedPlanPhase}:
+                </span>
+                <div className="space-y-1.5">
+                  {currentPlanStage.criteria.map((cr, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-slate-300 font-light leading-snug">
+                      <span className="w-4 h-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+                        ✓
+                      </span>
+                      <span>{cr}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Exercise List for Selected Phase */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <h3 className="text-sm font-medium text-white tracking-tight">
+                    Danh sách bài tập Giai đoạn {selectedPlanPhase}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-light">
+                    {currentPlanExercises.length} bài tập theo phác đồ chỉ định
+                  </p>
+                </div>
+
+                {selectedPlanPhase === rehabStatus.phase.phase && (
+                  <button
+                    onClick={() => handleStartTodaySession()}
+                    className="py-2 px-3.5 bg-white hover:bg-slate-100 text-slate-950 font-medium rounded-full text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition shrink-0"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>Tập trọn bộ</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Exercise Bento Cards */}
+              <div className="space-y-2.5">
+                {currentPlanExercises.map((item, idx) => {
+                  const isExpanded = expandedExerciseId === item.id;
+                  const isCurrentPatientPhase = selectedPlanPhase === rehabStatus.phase.phase;
+                  const isCompletedToday = isCurrentPatientPhase && completedExerciseIds.includes(item.id);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`rounded-[28px] border transition-all ${
+                        isExpanded
+                          ? 'bg-[#181A24] border-white/20 shadow-xl'
+                          : 'bg-[#16181F] hover:bg-[#1A1C24] border-white/[0.08]'
+                      } p-4 space-y-3`}
+                    >
+                      {/* Exercise Header Row */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <span className={`w-7 h-7 rounded-2xl flex items-center justify-center text-xs font-bold border shrink-0 mt-0.5 ${
+                            isCompletedToday
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                              : 'bg-white/[0.04] border-white/10 text-slate-300'
+                          }`}>
+                            {isCompletedToday ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-semibold text-white tracking-tight leading-snug">
+                              {item.vietnameseName || item.name}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 font-light italic truncate">
                               {item.englishName}
-                            </span>
-                            {item.startTiming && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-300 bg-white/[0.06] border border-white/10 px-2 py-0.5 rounded-full">
-                                ⏱ Bắt đầu: {item.startTiming}
-                              </span>
-                            )}
-                            {item.frequencyPerDay && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                📅 {item.frequencyPerDay} lần/ngày
-                              </span>
-                            )}
+                            </p>
                           </div>
                         </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-[10.5px] font-medium text-white bg-white/[0.06] border border-white/10 px-2.5 py-0.5 rounded-full whitespace-nowrap block">
+                            {item.sets} hiệp × {item.reps} lần
+                          </span>
+                          <span className="text-[9.5px] text-slate-400 block mt-1">
+                            Giữ {item.holdSeconds}s • Nghỉ {item.restSeconds}s
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-[10px] font-bold text-white bg-white/10 px-2.5 py-0.5 rounded-full block">
-                          {item.sets} hiệp × {item.reps} lần
-                        </span>
-                        <span className="text-[9.5px] text-slate-400 block mt-0.5">
-                          Giữ {item.holdSeconds}s • Nghỉ {item.restSeconds}s
-                        </span>
+
+                      {/* Single-line Target Goal */}
+                      <div className="text-xs text-slate-300 font-light pl-1 flex items-start gap-1.5 leading-relaxed">
+                        <span className="text-emerald-400 shrink-0">🎯</span>
+                        <span>{item.targetGoal}</span>
                       </div>
+
+                      {/* Action Buttons Row */}
+                      <div className="flex items-center justify-between pt-1 border-t border-white/[0.05]">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedExerciseId(isExpanded ? null : item.id)}
+                          className="text-xs text-slate-400 hover:text-white font-light flex items-center gap-1 transition py-1"
+                        >
+                          <span>{isExpanded ? 'Thu gọn kỹ thuật' : 'Xem kỹ thuật tập'}</span>
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+
+                        {isCurrentPatientPhase && (
+                          <button
+                            onClick={() => handleStartTodaySession(undefined, idx)}
+                            className="py-1.5 px-3 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-medium flex items-center gap-1.5 transition active:scale-95"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>{isCompletedToday ? 'Tập lại' : 'Tập bài này'}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Expanded Step-by-Step Instructions */}
+                      {isExpanded && (
+                        <div className="pt-2 border-t border-white/[0.06] space-y-2.5 animate-fade-in">
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                              Các bước thực hiện chuẩn:
+                            </span>
+                            {item.instructions.map((inst, i) => (
+                              <div key={i} className="flex items-start gap-2 text-xs text-slate-300 font-light leading-relaxed">
+                                <span className="w-4 h-4 rounded-full bg-white/5 text-slate-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+                                  {i + 1}
+                                </span>
+                                <span>{inst}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {item.contraindications && (
+                            <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 font-light flex items-start gap-2">
+                              <span className="text-sm shrink-0">⚠️</span>
+                              <span><strong>Lưu ý an toàn:</strong> {item.contraindications}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-
-                    <p className="text-[11.5px] text-slate-300 pl-8 leading-relaxed font-medium">
-                      🎯 <strong className="text-white">Mục tiêu:</strong> {item.targetGoal}
-                    </p>
-
-                    <div className="pl-8 text-[11px] text-slate-400 space-y-0.5">
-                      {item.instructions.map((inst, i) => (
-                        <p key={i}>• {inst}</p>
-                      ))}
-                    </div>
-
-                    {item.contraindications && (
-                      <div className="mt-1 pl-8 text-[10.5px] text-rose-300 font-semibold bg-rose-500/10 p-2 rounded-xl border border-rose-500/20">
-                        ⚠️ <strong className="text-rose-200">Lưu ý:</strong> {item.contraindications}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
