@@ -1,6 +1,9 @@
+import tls from 'tls';
+
 /**
- * AXVYRA Resend Email Service
- * Sends branded medical OTP verification emails for Register & Forgot Password.
+ * AXVYRA Hybrid Email Service:
+ * 1. Primary: Native Gmail SMTP (over TLS 465) - Sends to ANY email with 0 domain verification.
+ * 2. Fallback: Resend API.
  */
 
 export interface SendOtpResult {
@@ -8,6 +11,122 @@ export interface SendOtpResult {
   messageId?: string;
   error?: string;
   isDomainRestricted?: boolean;
+  provider?: 'gmail_smtp' | 'resend';
+}
+
+/**
+ * Native Zero-Dependency Gmail SMTP Client (Port 465 SSL/TLS)
+ */
+async function sendViaGmailSmtp(
+  user: string,
+  appPassword: string,
+  toEmail: string,
+  subject: string,
+  htmlContent: string
+): Promise<SendOtpResult> {
+  return new Promise((resolve) => {
+    const cleanPass = appPassword.replace(/\s+/g, '');
+    const cleanUser = user.trim();
+
+    const socket = tls.connect(465, 'smtp.gmail.com', { rejectUnauthorized: true }, () => {
+      // TLS connection established
+    });
+
+    socket.setEncoding('utf-8');
+    let step = 0;
+
+    const timeout = setTimeout(() => {
+      socket.destroy();
+      resolve({
+        success: false,
+        error: 'Kết nối tới máy chủ Gmail SMTP bị quá hạn (10s).',
+        provider: 'gmail_smtp',
+      });
+    }, 10000);
+
+    socket.on('data', (raw: string) => {
+      const code = parseInt(raw.substring(0, 3), 10);
+
+      try {
+        if (step === 0 && code === 220) {
+          step = 1;
+          socket.write('EHLO localhost\r\n');
+        } else if (step === 1 && code === 250) {
+          // Multiline 250 response ends with "250 " or last line
+          if (raw.includes('250 ') || raw.startsWith('250 ')) {
+            step = 2;
+            socket.write('AUTH LOGIN\r\n');
+          }
+        } else if (step === 2 && code === 334) {
+          step = 3;
+          socket.write(Buffer.from(cleanUser).toString('base64') + '\r\n');
+        } else if (step === 3 && code === 334) {
+          step = 4;
+          socket.write(Buffer.from(cleanPass).toString('base64') + '\r\n');
+        } else if (step === 4 && code === 235) {
+          step = 5;
+          socket.write(`MAIL FROM:<${cleanUser}>\r\n`);
+        } else if (step === 5 && code === 250) {
+          step = 6;
+          socket.write(`RCPT TO:<${toEmail.trim()}>\r\n`);
+        } else if (step === 6 && code === 250) {
+          step = 7;
+          socket.write('DATA\r\n');
+        } else if (step === 7 && code === 354) {
+          step = 8;
+          const mime = [
+            `From: "AXVYRA Medical" <${cleanUser}>`,
+            `To: <${toEmail.trim()}>`,
+            `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            Buffer.from(htmlContent).toString('base64'),
+            '',
+            '.',
+            '',
+          ].join('\r\n');
+          socket.write(mime);
+        } else if (step === 8 && code === 250) {
+          step = 9;
+          socket.write('QUIT\r\n');
+          clearTimeout(timeout);
+          socket.end();
+          resolve({
+            success: true,
+            provider: 'gmail_smtp',
+          });
+        } else if (code >= 400) {
+          clearTimeout(timeout);
+          socket.destroy();
+          const cleanErr = raw.replace(/\r?\n/g, ' ').trim();
+          resolve({
+            success: false,
+            error: `Lỗi xác thực Gmail SMTP (${code}): ${cleanErr}`,
+            provider: 'gmail_smtp',
+          });
+        }
+      } catch (err: any) {
+        clearTimeout(timeout);
+        socket.destroy();
+        resolve({
+          success: false,
+          error: err.message || 'Lỗi gửi gói tin SMTP',
+          provider: 'gmail_smtp',
+        });
+      }
+    });
+
+    socket.on('error', (err) => {
+      clearTimeout(timeout);
+      resolve({
+        success: false,
+        error: `Không thể kết nối smtp.gmail.com: ${err.message}`,
+        provider: 'gmail_smtp',
+      });
+    });
+  });
 }
 
 export async function sendOtpEmail(
@@ -16,13 +135,6 @@ export async function sendOtpEmail(
   fullName: string = 'Bệnh nhân',
   otpType: 'REGISTER' | 'FORGOT_PASSWORD' = 'REGISTER'
 ): Promise<SendOtpResult> {
-  const apiKey = process.env.RESEND_API_KEY;
-
-  if (!apiKey) {
-    console.warn('RESEND_API_KEY is not configured in environment');
-    return { success: false, error: 'Chưa cấu hình biến môi trường RESEND_API_KEY.' };
-  }
-
   const isReset = otpType === 'FORGOT_PASSWORD';
   const emailSubject = isReset
     ? `Mã đặt lại mật khẩu AXVYRA: ${otpCode}`
@@ -86,6 +198,27 @@ export async function sendOtpEmail(
     </html>
   `;
 
+  // 1. Check if Gmail SMTP credentials are provided
+  const gmailUser = process.env.GMAIL_USER || process.env.SMTP_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || process.env.GMAIL_PASSWORD;
+
+  if (gmailUser && gmailPass) {
+    const smtpResult = await sendViaGmailSmtp(gmailUser, gmailPass, toEmail, emailSubject, htmlContent);
+    if (smtpResult.success) {
+      return smtpResult;
+    }
+    console.warn('Gmail SMTP attempt failed, falling back to Resend if available:', smtpResult.error);
+  }
+
+  // 2. Resend API Fallback
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return {
+      success: false,
+      error: 'Chưa cấu hình GMAIL_USER/GMAIL_APP_PASSWORD hoặc RESEND_API_KEY.',
+    };
+  }
+
   try {
     const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || 'AXVYRA Medical <onboarding@resend.dev>';
 
@@ -115,18 +248,21 @@ export async function sendOtpEmail(
         success: false,
         error: data?.message || 'Không thể gửi email qua Resend',
         isDomainRestricted,
+        provider: 'resend',
       };
     }
 
     return {
       success: true,
       messageId: data.id,
+      provider: 'resend',
     };
   } catch (err: any) {
     console.error('sendOtpEmail exception:', err);
     return {
       success: false,
       error: err.message || 'Lỗi mạng khi kết nối tới dịch vụ email Resend',
+      provider: 'resend',
     };
   }
 }
