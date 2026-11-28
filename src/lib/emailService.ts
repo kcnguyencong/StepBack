@@ -87,6 +87,8 @@ export async function sendOtpEmail(
   `;
 
   try {
+    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || 'AXVYRA Medical <onboarding@resend.dev>';
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -94,7 +96,7 @@ export async function sendOtpEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'AXVYRA Medical <onboarding@resend.dev>',
+        from: fromEmail,
         to: [toEmail],
         subject: emailSubject,
         html: htmlContent,
